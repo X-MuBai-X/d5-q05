@@ -1,0 +1,66 @@
+[meegle CLI work-item verification log]
+timestamp_local=2026-11-11 Asia/Shanghai
+cli_version=1.0.28 (@lark-project/meegle)
+host=meegle.com (larksuite tenant)
+
+=== meegle auth status ===
+{
+  "authenticated": true,
+  "expires_in_minutes": 110,
+  "host": "meegle.com"
+}
+
+=== project search (spaces visible to this account) ===
+{
+  "pagination": {
+    "has_more": false,
+    "page_num": 1,
+    "page_size": 50,
+    "total": 1
+  },
+  "projects": [
+    {
+      "name": "软件开发",
+      "project_key": "6af44f0114103c3750cd053c",
+      "simple_name": "j7wqr7"
+    }
+  ]
+}
+
+=== workitem get --work-item-id 6974499249 --project-key r17te9 (example ID from commit-convention.md) ===
+meegle.cmd : {
+所在位置 行:20 字符: 12
++ $lines += (& "$env:APPDATA\npm\meegle.cmd" workitem get --work-item-i ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ({:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  "data": null,
+  "error": {
+    "code": "SERVER_CALL_FAILED",
+    "message": "error=ProjectNotFound,message=project: r17te9 not found,retriable=false",
+    "retryable": false
+  },
+  "meta": {
+    "logid": "202611111932360B00D48F6C9734008820"
+  }
+}
+
+=== workitem meta-types --project-key r17te9 ===
+meegle.cmd : {
+所在位置 行:23 字符: 12
++ $lines += (& "$env:APPDATA\npm\meegle.cmd" workitem meta-types --proj ...
++            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ({:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+  "data": null,
+  "error": {
+    "code": "SERVER_CALL_FAILED",
+    "message": "error=ProjectNotFound,message=project: r17te9 not found,retriable=false",
+    "retryable": false
+  },
+  "meta": {
+    "logid": "20261111193236790E32B0D541AB0077DD"
+  }
+}
