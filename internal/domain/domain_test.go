@@ -227,6 +227,45 @@ func TestBuildDailyReportDetectsMismatch(t *testing.T) {
 	}
 }
 
+// TestBuildDailyReportListsAllStatuses 验证日报始终列出 R8 要求的五类终态，
+// 即使某类当天没有任何记录也要出现（计数为 0），而不是从结果中消失。
+func TestBuildDailyReportListsAllStatuses(t *testing.T) {
+	counts := map[RequestStatus]int{RequestSuccess: 1}
+	usage := Usage{TenantID: "t", Day: "2026-01-01", QuotaLimit: 10, Success: 1}
+	report := BuildDailyReport("t", "2026-01-01", counts, usage, nil, nil)
+
+	for _, status := range []RequestStatus{
+		RequestSuccess, RequestFailed, RequestTimeout, RequestProcessing, RequestRejected,
+	} {
+		n, ok := report.Counts[status]
+		if !ok {
+			t.Fatalf("日报缺少终态 %s", status)
+		}
+		if status != RequestSuccess && n != 0 {
+			t.Fatalf("终态 %s 的计数 = %d, 期望 0", status, n)
+		}
+	}
+	if report.Counts[RequestSuccess] != 1 {
+		t.Fatalf("成功计数 = %d, 期望 1", report.Counts[RequestSuccess])
+	}
+	if len(report.Counts) != len(StatusOrder) {
+		t.Fatalf("日报终态数 = %d, 期望 %d", len(report.Counts), len(StatusOrder))
+	}
+}
+
+// TestBuildDailyReportDoesNotMutateInput 验证归一化不会污染调用方传入的 map。
+func TestBuildDailyReportDoesNotMutateInput(t *testing.T) {
+	counts := map[RequestStatus]int{RequestSuccess: 1}
+	usage := Usage{TenantID: "t", Day: "2026-01-01", QuotaLimit: 10, Success: 1}
+	report := BuildDailyReport("t", "2026-01-01", counts, usage, nil, nil)
+	if len(counts) != 1 {
+		t.Fatalf("入参 map 被修改，长度 = %d, 期望 1", len(counts))
+	}
+	if len(report.Counts) == len(counts) {
+		t.Fatalf("报表应补齐缺失终态")
+	}
+}
+
 // ---------- 状态排序 ----------
 
 func TestSortStatusesKeepsStableOrder(t *testing.T) {

@@ -164,6 +164,88 @@ func TestCompleteWithUnserializableParams(t *testing.T) {
 	}
 }
 
+func TestCompleteLateResultObservedAfterTimeout(t *testing.T) {
+	// 上游在硬时限之后才返回成功：平台应先判超时，再上报迟到结果（R4）。
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(300 * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(wireResponse{UpstreamID: "up-late", Content: "迟到的输出"})
+	}))
+	defer srv.Close()
+
+	type late struct {
+		correlationID string
+		resp          *Response
+		err           error
+	}
+	lateCh := make(chan late, 1)
+
+	c := NewHTTPCallier(srv.URL, srv.Client(), "test")
+	c.SetLateResultHandler(func(correlationID string, resp *Response, err error) {
+		lateCh <- late{correlationID: correlationID, resp: resp, err: err}
+	})
+
+	_, err := c.Complete(context.Background(),
+		Request{RequestNo: "req-1", CorrelationID: "corr-1", Model: "m", Prompt: "p"}, 100*time.Millisecond)
+	if !errors.Is(err, ErrTimeout) {
+		t.Fatalf("期望 ErrTimeout，实际 %v", err)
+	}
+
+	select {
+	case got := <-lateCh:
+		if got.err != nil {
+			t.Fatalf("迟到结果不应是错误: %v", got.err)
+		}
+		if got.correlationID != "corr-1" {
+			t.Fatalf("迟到结果关联 ID = %s，期望 corr-1", got.correlationID)
+		}
+		if got.resp == nil || got.resp.UpstreamID != "up-late" {
+			t.Fatalf("迟到结果内容不符: %+v", got.resp)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatalf("未在预期时间内收到迟到结果")
+	}
+}
+
+func TestCompleteNoLateResultWhenCallerCanceled(t *testing.T) {
+	// 调用方取消后不应再上报迟到结果。
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(200 * time.Millisecond):
+		case <-r.Context().Done():
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(wireResponse{UpstreamID: "up-late", Content: "迟到的输出"})
+	}))
+	defer srv.Close()
+
+	lateCh := make(chan string, 1)
+	c := NewHTTPCallier(srv.URL, srv.Client(), "test")
+	c.SetLateResultHandler(func(correlationID string, resp *Response, err error) {
+		lateCh <- correlationID
+	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		time.Sleep(30 * time.Millisecond)
+		cancel()
+	}()
+	_, err := c.Complete(ctx, Request{CorrelationID: "corr-x", Model: "m", Prompt: "p"}, 5*time.Second)
+	if err == nil {
+		t.Fatalf("上下文取消应报错")
+	}
+	select {
+	case id := <-lateCh:
+		t.Fatalf("调用方取消后不应上报迟到结果，实际收到 %s", id)
+	case <-time.After(400 * time.Millisecond):
+	}
+}
+
 func TestTruncate(t *testing.T) {
 	if got := truncate("abc", 5); got != "abc" {
 		t.Fatalf("truncate = %s, 期望 abc", got)

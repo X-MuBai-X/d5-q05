@@ -394,6 +394,93 @@ func TestInvokeLateResultOnlyRecordedAsDiagnostic(t *testing.T) {
 	}
 }
 
+// TestInvokeUpstreamLateResultOnlyRecordedAsDiagnostic 验证真实上游链路下的迟到结果：
+// 上游在 2 秒硬时限之后才返回成功，平台只写诊断记录，
+// 不改变已经返回的超时终态，也不追加扣额（R4）。
+func TestInvokeUpstreamLateResultOnlyRecordedAsDiagnostic(t *testing.T) {
+	svc, fake, db := newTestService(t)
+	ctx := context.Background()
+	fake.failure = upstream.ErrTimeout
+
+	res, err := svc.Invoke(ctx, "app", testTenantA, "cred-a1",
+		InvokeInput{RequestNo: "req-late", Model: "m", Prompt: "p"})
+	if err != nil {
+		t.Fatalf("调用失败: %v", err)
+	}
+	if res.Request.Status != domain.RequestTimeout {
+		t.Fatalf("终态 = %s，期望 timeout", res.Request.Status)
+	}
+	if len(res.Diagnostics) != 0 {
+		t.Fatalf("尚未收到迟到结果时不应有诊断记录，实际 %d 条", len(res.Diagnostics))
+	}
+
+	// 上游在超时之后返回成功。
+	fake.fireLateResult(res.Request.ID, &upstream.Response{Content: "迟到输出", UpstreamID: "up-late"}, nil)
+
+	diags, err := db.ListDiagnosticsByRequest(ctx, res.Request.ID)
+	if err != nil {
+		t.Fatalf("查询诊断失败: %v", err)
+	}
+	if len(diags) != 1 {
+		t.Fatalf("诊断记录数 = %d，期望 1", len(diags))
+	}
+	if diags[0].Kind != "late_result" {
+		t.Fatalf("诊断类型 = %s，期望 late_result", diags[0].Kind)
+	}
+
+	// 终态不变，仍是超时。
+	req, err := db.GetRequest(ctx, res.Request.ID)
+	if err != nil {
+		t.Fatalf("读取请求失败: %v", err)
+	}
+	if req.Status != domain.RequestTimeout {
+		t.Fatalf("迟到结果不应改变终态，终态 = %s", req.Status)
+	}
+	// 不追加扣额：超时已释放占用，迟到结果不计入成功量。
+	usage, err := db.GetDayUsage(ctx, testTenantA, testDay, 10)
+	if err != nil {
+		t.Fatalf("读取用量失败: %v", err)
+	}
+	if usage.Success != 0 || usage.InFlight != 0 {
+		t.Fatalf("迟到结果不应追加扣额，成功量 = %d，处理中 = %d", usage.Success, usage.InFlight)
+	}
+}
+
+// TestInvokeLateResultIgnoredForNonTimeoutRequest 验证非超时终态不会记录迟到结果。
+func TestInvokeLateResultIgnoredForNonTimeoutRequest(t *testing.T) {
+	svc, fake, db := newTestService(t)
+	ctx := context.Background()
+
+	res, err := svc.Invoke(ctx, "app", testTenantA, "cred-a1",
+		InvokeInput{RequestNo: "req-ok", Model: "m", Prompt: "p"})
+	if err != nil {
+		t.Fatalf("调用失败: %v", err)
+	}
+	fake.fireLateResult(res.Request.ID, &upstream.Response{Content: "不应记录", UpstreamID: "up-x"}, nil)
+
+	diags, err := db.ListDiagnosticsByRequest(ctx, res.Request.ID)
+	if err != nil {
+		t.Fatalf("查询诊断失败: %v", err)
+	}
+	if len(diags) != 0 {
+		t.Fatalf("成功终态不应记录迟到结果，实际 %d 条", len(diags))
+	}
+}
+
+// TestInvokeLateResultIgnoredForUnknownRequest 验证关联 ID 不存在时不写诊断。
+func TestInvokeLateResultIgnoredForUnknownRequest(t *testing.T) {
+	svc, fake, _ := newTestService(t)
+	fake.fireLateResult("req-not-exist", &upstream.Response{Content: "x", UpstreamID: "up-x"}, nil)
+	fake.fireLateResult("", &upstream.Response{Content: "x", UpstreamID: "up-x"}, nil)
+	diags, err := svc.Diagnostics(context.Background(), testTenantA)
+	if err != nil {
+		t.Fatalf("查询诊断失败: %v", err)
+	}
+	if len(diags) != 0 {
+		t.Fatalf("未知请求不应产生诊断记录，实际 %d 条", len(diags))
+	}
+}
+
 func TestInvokeTestHooksDisabledByDefault(t *testing.T) {
 	svc, _, _ := newTestService(t)
 	svc.AddTestHook(TestHook{Kind: "late_result", RequestNo: "req-1"})

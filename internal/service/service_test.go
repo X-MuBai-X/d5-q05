@@ -28,6 +28,8 @@ type fakeUpstream struct {
 	result  *upstream.Response
 	failure error
 	delay   time.Duration
+	// handler 是迟到结果回调，模拟上游在超时后返回结果的场景（R4）。
+	handler upstream.LateResultFunc
 }
 
 func (f *fakeUpstream) Complete(ctx context.Context, req upstream.Request, timeout time.Duration) (*upstream.Response, error) {
@@ -56,6 +58,23 @@ func (f *fakeUpstream) Complete(ctx context.Context, req upstream.Request, timeo
 }
 
 func (f *fakeUpstream) Name() string { return "fake-upstream" }
+
+// SetLateResultHandler 注册迟到结果回调。
+func (f *fakeUpstream) SetLateResultHandler(fn upstream.LateResultFunc) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.handler = fn
+}
+
+// fireLateResult 模拟上游在硬时限之后才返回结果（R4 的迟到结果场景）。
+func (f *fakeUpstream) fireLateResult(correlationID string, resp *upstream.Response, callErr error) {
+	f.mu.Lock()
+	handler := f.handler
+	f.mu.Unlock()
+	if handler != nil {
+		handler(correlationID, resp, callErr)
+	}
+}
 
 func (f *fakeUpstream) callCount() int {
 	f.mu.Lock()
