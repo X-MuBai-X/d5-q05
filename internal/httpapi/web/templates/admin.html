@@ -1,0 +1,91 @@
+{{define "content"}}
+{{$v := .Data}}
+<section>
+  <h2>核查日期</h2>
+  <form class="inline" method="get" action="/admin">
+    <label>UTC 自然日 <input type="date" name="day" value="{{$v.Day}}" required></label>
+    <button class="sec" type="submit">查看该日记录</button>
+    <span class="mut">缺省为 UTC 今日（{{.Today}}）。</span>
+  </form>
+</section>
+
+<section>
+  <h2>租户概况</h2>
+  <p class="mut">管理员可查看本租户全部调用、成功量、处理中量和剩余额度（R7）。凭证所属租户由系统确认，创建凭证时不能指定其他租户（R1）。</p>
+  <div class="kpi"><b>{{$v.Usage.QuotaLimit}}</b><span>日额度</span></div>
+  <div class="kpi"><b>{{$v.Usage.Success}}</b><span>成功量</span></div>
+  <div class="kpi"><b>{{$v.Usage.InFlight}}</b><span>处理中</span></div>
+  <div class="kpi"><b>{{$v.Usage.Remaining}}</b><span>剩余额度</span></div>
+  <div class="kpi"><b><code>{{$v.TenantID}}</code></b><span>租户编号</span></div>
+</section>
+
+<section>
+  <h2>应用凭证</h2>
+  <p class="mut">每个租户最多 2 个凭证（R1 与题面预置条件）。密钥只在创建时返回一次，请立即交给应用。</p>
+  {{if $v.Secret}}
+  <div class="msg">
+    凭证 <code>{{$v.SecretCredential}}</code> 的密钥：<code>{{$v.Secret}}</code>
+    （仅此一次，刷新页面后不再显示）
+  </div>
+  {{end}}
+  <table>
+    <tr><th>凭证</th><th>名称</th><th>状态</th><th>创建人</th><th>停用时间</th><th>停用原因</th><th>操作</th></tr>
+    {{range $v.Credentials}}
+    <tr>
+      <td><code>{{.ID}}</code></td>
+      <td>{{.Name}}</td>
+      <td><span class="tag">{{credentialStatusLabel .Status}}</span></td>
+      <td>{{.CreatedBy}}</td>
+      <td>{{if .DisabledAt}}{{.DisabledAt.Format "2006-01-02 15:04:05"}}{{else}}—{{end}}</td>
+      <td>{{if .DisableWhy}}{{.DisableWhy}}{{else}}—{{end}}</td>
+      <td>
+        {{if eq (printf "%s" .Status) "active"}}
+        <form class="inline" method="post" action="/api/v1/admin/credentials/disable">
+          <input type="hidden" name="credential_id" value="{{.ID}}">
+          <input name="reason" placeholder="停用原因（必填）" required>
+          <button class="sec" type="submit">停用凭证</button>
+        </form>
+        {{end}}
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  <form class="inline" method="post" action="/api/v1/admin/credentials/create">
+    <label>凭证名称 <input name="name" placeholder="应用名，如 app-1" required></label>
+    <button type="submit">创建凭证</button>
+  </form>
+</section>
+
+<section>
+  <h2>本租户调用记录（{{$v.Day}}）</h2>
+  <table>
+    <tr><th>请求编号</th><th>凭证</th><th>状态</th><th>模型</th><th>提示词</th><th>结果 / 失败原因</th><th>幂等命中</th><th>受理时间</th></tr>
+    {{range $v.Requests}}
+    <tr>
+      <td><code>{{.RequestNo}}</code></td>
+      <td><code>{{.CredentialID}}</code></td>
+      <td><span class="tag {{statusClass .Status}}">{{statusLabel .Status}}</span></td>
+      <td>{{.Model}}</td>
+      <td>{{.Prompt}}</td>
+      <td>{{if .UpstreamResult}}{{.UpstreamResult}}{{else if .ErrorReason}}{{.ErrorReason}}{{else}}—{{end}}</td>
+      <td>{{.ReplayCount}}</td>
+      <td>{{.ReceivedAt.Format "15:04:05"}}</td>
+    </tr>
+    {{end}}
+  </table>
+  <h2>被拒绝的调用尝试</h2>
+  <table>
+    <tr><th>请求编号</th><th>状态</th><th>原因</th><th>发起方</th><th>时间</th></tr>
+    {{range $v.Rejected}}
+    <tr>
+      <td><code>{{.RequestNo}}</code></td>
+      <td><span class="tag bad">{{statusLabel .Status}}</span></td>
+      <td>{{.Reason}}</td>
+      <td>{{.Actor}}</td>
+      <td>{{.OccurredAt.Format "15:04:05"}}</td>
+    </tr>
+    {{end}}
+  </table>
+  <p class="mut">被拒绝的尝试不占用请求编号，因此额度提升后应用仍可用同一编号重试（确认结论 Q7）。</p>
+</section>
+{{end}}
