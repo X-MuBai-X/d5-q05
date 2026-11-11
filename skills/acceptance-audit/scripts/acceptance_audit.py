@@ -422,7 +422,9 @@ def toolchain_checks(repo: Path, skip: bool) -> dict[str, Item]:
 def secret_scan(repo: Path) -> tuple[str, str]:
     """在证据与文档中扫描明文口令。返回 (状态, 证据)。"""
     patterns = [
-        re.compile(r"sk_[A-Za-z0-9_]{6,}"),
+        # `sk_` 前缀必须是一个完整词的开头，否则会误伤 `task_output`、`ask_xxx`
+        # 这类会话/问卷编号（`a` + `sk_` 恰好构成 `sk_`）。
+        re.compile(r"(?<![A-Za-z0-9_])sk_[A-Za-z0-9_]{6,}"),
         re.compile(r"(?i)password\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{6,}['\"]?"),
         re.compile(r"(?i)(secret|token|apikey|api_key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{12,}['\"]"),
     ]

@@ -25,6 +25,8 @@ param(
     [int]$Port = 8080,
     [int]$UpstreamPort = 9091,
     [string]$DbPath = "",
+    [string]$LogFile = "",
+    [switch]$SkipSmoke,
     [switch]$KeepRunning
 )
 
@@ -42,7 +44,11 @@ $logDir = Join-Path $repo 'deploy'
 $evidence = Join-Path $repo 'evidence'
 New-Item -ItemType Directory -Force -Path $binDir, (Split-Path -Parent $DbPath), $evidence | Out-Null
 
-$deployLog = Join-Path $evidence 'deployment.log'
+$deployLog = if ([string]::IsNullOrWhiteSpace($LogFile)) {
+    Join-Path $evidence 'deployment.log'
+} else {
+    if ([System.IO.Path]::IsPathRooted($LogFile)) { $LogFile } else { Join-Path $repo $LogFile }
+}
 function Write-Log([string]$text) {
     $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'), $text
     Write-Output $line
@@ -60,14 +66,30 @@ try {
     Write-Log "模拟上游：http://127.0.0.1:$UpstreamPort"
     Write-Log "数据库路径：$DbPath"
 
-    Write-Log "--- 步骤 1/5：构建可执行产物 ---"
+    Write-Log "--- 步骤 1/6：检查端口占用 ---"
+    # 必须先确认端口空闲：否则新进程启动失败，而健康检查与冒烟会打到旧进程上，
+    # 导致「测的不是刚构建的产物」这种假通过或假失败。
+    $busy = @()
+    foreach ($p in @($Port, $UpstreamPort)) {
+        $conn = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
+        if ($conn) {
+            $owner = ($conn | Select-Object -ExpandProperty OwningProcess -Unique) -join ','
+            $busy += "$p(PID=$owner)"
+        }
+    }
+    if ($busy.Count -gt 0) {
+        throw "端口已被占用：$($busy -join '、')。请先执行 scripts/stop-local.ps1，或手动结束占用进程后重试。"
+    }
+    Write-Log "端口检查通过：$Port、$UpstreamPort 均空闲"
+
+    Write-Log "--- 步骤 2/6：构建可执行产物 ---"
     & go -C $repo build -o (Join-Path $binDir 'server.exe') ./cmd/server
     if ($LASTEXITCODE -ne 0) { throw "构建 server 失败（退出码 $LASTEXITCODE）" }
     & go -C $repo build -o (Join-Path $binDir 'mockupstream.exe') ./cmd/mockupstream
     if ($LASTEXITCODE -ne 0) { throw "构建 mockupstream 失败（退出码 $LASTEXITCODE）" }
     Write-Log "构建完成：$binDir\server.exe、$binDir\mockupstream.exe"
 
-    Write-Log "--- 步骤 2/5：启动模拟上游模型服务 ---"
+    Write-Log "--- 步骤 3/6：启动模拟上游模型服务 ---"
     $upstreamProc = Start-Process -FilePath (Join-Path $binDir 'mockupstream.exe') `
         -ArgumentList '-addr', "127.0.0.1:$UpstreamPort" `
         -RedirectStandardOutput (Join-Path $logDir 'mockupstream.log') `
@@ -75,7 +97,7 @@ try {
         -PassThru -WindowStyle Hidden
     Write-Log "模拟上游已启动，PID=$($upstreamProc.Id)"
 
-    Write-Log "--- 步骤 3/5：启动业务服务 ---"
+    Write-Log "--- 步骤 4/6：启动业务服务 ---"
     $serverProc = Start-Process -FilePath (Join-Path $binDir 'server.exe') `
         -ArgumentList '-addr', "127.0.0.1:$Port", '-db', $DbPath, '-upstream', "http://127.0.0.1:$UpstreamPort", '-enable-test-hooks' `
         -RedirectStandardOutput (Join-Path $logDir 'server.log') `
@@ -83,7 +105,7 @@ try {
         -PassThru -WindowStyle Hidden
     Write-Log "业务服务已启动，PID=$($serverProc.Id)"
 
-    Write-Log "--- 步骤 4/5：健康检查 ---"
+    Write-Log "--- 步骤 5/6：健康检查 ---"
     $ready = $false
     for ($i = 0; $i -lt 30; $i++) {
         try {
@@ -99,7 +121,14 @@ try {
     $upResp = Invoke-WebRequest -Uri "http://127.0.0.1:$UpstreamPort/healthz" -UseBasicParsing -TimeoutSec 5
     Write-Log "模拟上游健康检查通过：$($upResp.Content)"
 
-    Write-Log "--- 步骤 5/5：业务冒烟 ---"
+    Write-Log "--- 步骤 6/6：业务冒烟 ---"
+    if ($SkipSmoke) {
+        Write-Log "已按 -SkipSmoke 跳过业务冒烟（用于五组完整场景验证：需要未污染的全新数据库）"
+        Write-Log "===== 部署成功（跳过冒烟）：服务地址 http://127.0.0.1:$Port ====="
+        Write-Log "服务 PID=$($serverProc.Id)；模拟上游 PID=$($upstreamProc.Id)"
+        Write-Log "恢复办法：停止进程即可回退；数据库为本地 SQLite 文件，删除 $DbPath 即回到初始预置状态"
+        return
+    }
     $bash = Get-Command bash -ErrorAction SilentlyContinue
     $gitBash = 'C:\Program Files\Git\bin\bash.exe'
     if (Test-Path $gitBash) {
