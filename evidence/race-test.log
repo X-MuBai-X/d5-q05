@@ -1,0 +1,526 @@
+=== go test -race 竞态检测（容器内 linux/amd64） ===
+执行时间(UTC): 2026-11-11T13:20:15Z
+go version: go version go1.27.4 linux/amd64
+GOOS/GOARCH/CGO_ENABLED:
+linux
+amd64
+1
+命令: go test ./... -count=1 -race -v
+
+=== RUN   TestHandleCompleteSuccess
+--- PASS: TestHandleCompleteSuccess (0.00s)
+=== RUN   TestHandleCompleteRejectsNonPost
+--- PASS: TestHandleCompleteRejectsNonPost (0.00s)
+=== RUN   TestHandleCompleteRejectsBrokenBody
+--- PASS: TestHandleCompleteRejectsBrokenBody (0.00s)
+=== RUN   TestHandleCompleteFailScenario
+--- PASS: TestHandleCompleteFailScenario (0.00s)
+=== RUN   TestHandleCompleteScenarioFromHeader
+--- PASS: TestHandleCompleteScenarioFromHeader (0.00s)
+=== RUN   TestHandleCompleteTimeoutScenarioReleases
+--- PASS: TestHandleCompleteTimeoutScenarioReleases (0.10s)
+=== RUN   TestHandleCompleteDuplicateScenarioReturnsSameContent
+--- PASS: TestHandleCompleteDuplicateScenarioReturnsSameContent (0.00s)
+=== RUN   TestContentForKeysByPrompt
+--- PASS: TestContentForKeysByPrompt (0.00s)
+=== RUN   TestNewIDIsUnique
+--- PASS: TestNewIDIsUnique (0.00s)
+=== RUN   TestStringParam
+--- PASS: TestStringParam (0.00s)
+=== RUN   TestRunRejectsInvalidAddress
+2026/11/11 13:20:31 模拟上游模型服务已启动: http://127.0.0.1:99999
+--- PASS: TestRunRejectsInvalidAddress (0.00s)
+=== RUN   TestRunMainRejectsUnknownFlag
+flag provided but not defined: -不存在的参数
+Usage of mockupstream:
+  -addr string
+    	监听地址 (default "127.0.0.1:9091")
+--- PASS: TestRunMainRejectsUnknownFlag (0.00s)
+=== RUN   TestRunMainRejectsInvalidAddress
+2026/11/11 13:20:31 模拟上游模型服务已启动: http://127.0.0.1:99999
+--- PASS: TestRunMainRejectsInvalidAddress (0.00s)
+=== RUN   TestRunServesHealthz
+2026/11/11 13:20:31 模拟上游模型服务已启动: http://127.0.0.1:36837
+--- PASS: TestRunServesHealthz (0.00s)
+PASS
+ok  	modelquota/cmd/mockupstream	1.125s
+=== RUN   TestParseInt
+--- PASS: TestParseInt (0.00s)
+=== RUN   TestSeedDataCreatesTenantsAndAdmins
+--- PASS: TestSeedDataCreatesTenantsAndAdmins (0.11s)
+=== RUN   TestSeedDataIsIdempotent
+--- PASS: TestSeedDataIsIdempotent (0.09s)
+=== RUN   TestSeedDataRepairsQuota
+--- PASS: TestSeedDataRepairsQuota (0.14s)
+=== RUN   TestRunMainRejectsUnknownFlag
+flag provided but not defined: -不存在的参数
+Usage of server:
+  -addr string
+    	监听地址 (default "127.0.0.1:8080")
+  -db string
+    	SQLite 数据库路径 (default "./data/app.db")
+  -enable-test-hooks
+    	是否开放平台侧测试钩子（含迟到结果注入）
+  -seed
+    	是否写入预置数据 (default true)
+  -upstream string
+    	上游模型服务地址 (default "http://127.0.0.1:9091")
+--- PASS: TestRunMainRejectsUnknownFlag (0.00s)
+=== RUN   TestRunMainRejectsInvalidAddress
+2026/11/11 13:20:47 服务已启动: http://127.0.0.1:99999 （数据库 /tmp/TestRunMainRejectsInvalidAddress1603341122/001/x.db，上游 http://127.0.0.1:1，测试钩子 false）
+--- PASS: TestRunMainRejectsInvalidAddress (0.11s)
+=== RUN   TestRunRejectsInvalidAddress
+2026/11/11 13:20:47 服务已启动: http://127.0.0.1:99999 （数据库 /tmp/TestRunRejectsInvalidAddress961875744/001/x.db，上游 http://127.0.0.1:1，测试钩子 false）
+--- PASS: TestRunRejectsInvalidAddress (0.10s)
+=== RUN   TestRunCreatesDatabaseDirectory
+2026/11/11 13:20:47 服务已启动: http://127.0.0.1:99999 （数据库 /tmp/TestRunCreatesDatabaseDirectory3107051800/001/nested/dir/app.db，上游 http://127.0.0.1:1，测试钩子 false）
+--- PASS: TestRunCreatesDatabaseDirectory (0.15s)
+=== RUN   TestBuildServerWiresEverything
+--- PASS: TestBuildServerWiresEverything (0.11s)
+=== RUN   TestBuildServerWithoutSeed
+--- PASS: TestBuildServerWithoutSeed (0.09s)
+=== RUN   TestBuildServerRestoresClockOffset
+--- PASS: TestBuildServerRestoresClockOffset (0.12s)
+PASS
+ok  	modelquota/cmd/server	2.049s
+=== RUN   TestUsageRemainingAndOccupied
+=== RUN   TestUsageRemainingAndOccupied/全部剩余
+=== RUN   TestUsageRemainingAndOccupied/有成功
+=== RUN   TestUsageRemainingAndOccupied/有处理中
+=== RUN   TestUsageRemainingAndOccupied/额度用尽
+=== RUN   TestUsageRemainingAndOccupied/超额时不出现负数
+--- PASS: TestUsageRemainingAndOccupied (0.00s)
+    --- PASS: TestUsageRemainingAndOccupied/全部剩余 (0.00s)
+    --- PASS: TestUsageRemainingAndOccupied/有成功 (0.00s)
+    --- PASS: TestUsageRemainingAndOccupied/有处理中 (0.00s)
+    --- PASS: TestUsageRemainingAndOccupied/额度用尽 (0.00s)
+    --- PASS: TestUsageRemainingAndOccupied/超额时不出现负数 (0.00s)
+=== RUN   TestOccupiedIncludesInflight
+--- PASS: TestOccupiedIncludesInflight (0.00s)
+=== RUN   TestDayOfUsesUTCNaturalDay
+--- PASS: TestDayOfUsesUTCNaturalDay (0.00s)
+=== RUN   TestValidateRequestNo
+=== RUN   TestValidateRequestNo/正常编号
+=== RUN   TestValidateRequestNo/下划线
+=== RUN   TestValidateRequestNo/64_位
+=== RUN   TestValidateRequestNo/空串
+=== RUN   TestValidateRequestNo/纯空格
+=== RUN   TestValidateRequestNo/含中文
+=== RUN   TestValidateRequestNo/含斜杠
+=== RUN   TestValidateRequestNo/超长
+--- PASS: TestValidateRequestNo (0.00s)
+    --- PASS: TestValidateRequestNo/正常编号 (0.00s)
+    --- PASS: TestValidateRequestNo/下划线 (0.00s)
+    --- PASS: TestValidateRequestNo/64_位 (0.00s)
+    --- PASS: TestValidateRequestNo/空串 (0.00s)
+    --- PASS: TestValidateRequestNo/纯空格 (0.00s)
+    --- PASS: TestValidateRequestNo/含中文 (0.00s)
+    --- PASS: TestValidateRequestNo/含斜杠 (0.00s)
+    --- PASS: TestValidateRequestNo/超长 (0.00s)
+=== RUN   TestParamsFingerprintStableAcrossKeyOrder
+--- PASS: TestParamsFingerprintStableAcrossKeyOrder (0.00s)
+=== RUN   TestParamsFingerprintIgnoresNilValues
+--- PASS: TestParamsFingerprintIgnoresNilValues (0.00s)
+=== RUN   TestParamsFingerprintDiffersOnDifferentParams
+--- PASS: TestParamsFingerprintDiffersOnDifferentParams (0.00s)
+=== RUN   TestParamsFingerprintRejectsUnserializableParams
+--- PASS: TestParamsFingerprintRejectsUnserializableParams (0.00s)
+=== RUN   TestHashSecretIsDeterministicAndSalted
+--- PASS: TestHashSecretIsDeterministicAndSalted (0.00s)
+=== RUN   TestValidateQuota
+--- PASS: TestValidateQuota (0.00s)
+=== RUN   TestValidateQuotaChangeFloorUsesSuccessPlusInflight
+--- PASS: TestValidateQuotaChangeFloorUsesSuccessPlusInflight (0.00s)
+=== RUN   TestValidateQuotaChangeRejectsOutOfRange
+--- PASS: TestValidateQuotaChangeRejectsOutOfRange (0.00s)
+=== RUN   TestBuildDailyReportConsistent
+--- PASS: TestBuildDailyReportConsistent (0.00s)
+=== RUN   TestBuildDailyReportDetectsMismatch
+--- PASS: TestBuildDailyReportDetectsMismatch (0.00s)
+=== RUN   TestBuildDailyReportListsAllStatuses
+--- PASS: TestBuildDailyReportListsAllStatuses (0.00s)
+=== RUN   TestBuildDailyReportDoesNotMutateInput
+--- PASS: TestBuildDailyReportDoesNotMutateInput (0.00s)
+=== RUN   TestSortStatusesKeepsStableOrder
+--- PASS: TestSortStatusesKeepsStableOrder (0.00s)
+=== RUN   TestSortStatusesDeduplicates
+--- PASS: TestSortStatusesDeduplicates (0.00s)
+=== RUN   TestSortStatusesKeepsUnknownStatus
+--- PASS: TestSortStatusesKeepsUnknownStatus (0.00s)
+=== RUN   TestMaxQuotaAndTimeout
+--- PASS: TestMaxQuotaAndTimeout (0.00s)
+PASS
+ok  	modelquota/internal/domain	1.022s
+=== RUN   TestIsJSONAndFormRequest
+--- PASS: TestIsJSONAndFormRequest (0.00s)
+=== RUN   TestAssignFormMapsFields
+--- PASS: TestAssignFormMapsFields (0.00s)
+=== RUN   TestAssignFormRejectsInvalidValues
+--- PASS: TestAssignFormRejectsInvalidValues (0.00s)
+=== RUN   TestAssignFormRejectsBadTarget
+--- PASS: TestAssignFormRejectsBadTarget (0.00s)
+=== RUN   TestFormFieldName
+--- PASS: TestFormFieldName (0.00s)
+=== RUN   TestSetFormValueUnsupportedType
+--- PASS: TestSetFormValueUnsupportedType (0.00s)
+=== RUN   TestSetFormValueEmptyMap
+--- PASS: TestSetFormValueEmptyMap (0.00s)
+=== RUN   TestDecodeFormReadsBody
+--- PASS: TestDecodeFormReadsBody (0.00s)
+=== RUN   TestDecodeInputRejectsBrokenForm
+--- PASS: TestDecodeInputRejectsBrokenForm (0.00s)
+=== RUN   TestRespondRedirectsForFormRequests
+--- PASS: TestRespondRedirectsForFormRequests (0.11s)
+=== RUN   TestRespondMarksClientErrors
+--- PASS: TestRespondMarksClientErrors (0.10s)
+=== RUN   TestRespondMasksInternalErrors
+2026/11/11 13:20:47 服务端内部错误: 数据库内部细节
+2026/11/11 13:20:47 服务端内部错误: 数据库内部细节
+--- PASS: TestRespondMasksInternalErrors (0.10s)
+=== RUN   TestRespondWritesJSONForJSONRequests
+--- PASS: TestRespondWritesJSONForJSONRequests (0.15s)
+=== RUN   TestLoginPage
+--- PASS: TestLoginPage (0.10s)
+=== RUN   TestIndexRedirectsByIdentity
+--- PASS: TestIndexRedirectsByIdentity (0.12s)
+=== RUN   TestUnknownPathReturnsNotFoundPage
+--- PASS: TestUnknownPathReturnsNotFoundPage (0.09s)
+=== RUN   TestOpsPage
+--- PASS: TestOpsPage (0.11s)
+=== RUN   TestOpsPageRequiresLogin
+--- PASS: TestOpsPageRequiresLogin (0.10s)
+=== RUN   TestOpsPageRejectsTenantAdmin
+--- PASS: TestOpsPageRejectsTenantAdmin (0.11s)
+=== RUN   TestOpsPageShowsDiagnostics
+--- PASS: TestOpsPageShowsDiagnostics (0.11s)
+=== RUN   TestAdminPage
+--- PASS: TestAdminPage (0.10s)
+=== RUN   TestAdminPageRejectsOps
+--- PASS: TestAdminPageRejectsOps (0.09s)
+=== RUN   TestAdminPageRequiresLogin
+--- PASS: TestAdminPageRequiresLogin (0.09s)
+=== RUN   TestAdminPageShowsRejectedAttempts
+--- PASS: TestAdminPageShowsRejectedAttempts (0.13s)
+=== RUN   TestAppPage
+--- PASS: TestAppPage (0.12s)
+=== RUN   TestAppPageRejectsAdmin
+--- PASS: TestAppPageRejectsAdmin (0.11s)
+=== RUN   TestAppPageRequiresLogin
+--- PASS: TestAppPageRequiresLogin (0.09s)
+=== RUN   TestRenderHandlesTemplateError
+--- PASS: TestRenderHandlesTemplateError (0.10s)
+=== RUN   TestHealth
+--- PASS: TestHealth (0.10s)
+=== RUN   TestLoginAndWhoami
+--- PASS: TestLoginAndWhoami (0.10s)
+=== RUN   TestLoginWithCredentialSecret
+--- PASS: TestLoginWithCredentialSecret (0.10s)
+=== RUN   TestLoginRejectsBadPassword
+--- PASS: TestLoginRejectsBadPassword (0.10s)
+=== RUN   TestLoginRejectsBadJSON
+--- PASS: TestLoginRejectsBadJSON (0.12s)
+=== RUN   TestLoginRejectsUnknownField
+--- PASS: TestLoginRejectsUnknownField (0.10s)
+=== RUN   TestLogout
+--- PASS: TestLogout (0.09s)
+=== RUN   TestUnauthenticatedRequestRejected
+--- PASS: TestUnauthenticatedRequestRejected (0.09s)
+=== RUN   TestOpsListTenants
+--- PASS: TestOpsListTenants (0.10s)
+=== RUN   TestOpsOnlyRejectsTenantAdmin
+--- PASS: TestOpsOnlyRejectsTenantAdmin (0.12s)
+=== RUN   TestOpsOpenTenant
+--- PASS: TestOpsOpenTenant (0.10s)
+=== RUN   TestOpsOpenTenantRejectsInvalidQuota
+--- PASS: TestOpsOpenTenantRejectsInvalidQuota (0.09s)
+=== RUN   TestOpsAdjustQuota
+--- PASS: TestOpsAdjustQuota (0.16s)
+=== RUN   TestOpsDisableTenant
+--- PASS: TestOpsDisableTenant (0.12s)
+=== RUN   TestOpsDailyReportRequiresTenantScope
+--- PASS: TestOpsDailyReportRequiresTenantScope (0.10s)
+=== RUN   TestOpsClock
+--- PASS: TestOpsClock (0.10s)
+=== RUN   TestOpsDiagnostics
+--- PASS: TestOpsDiagnostics (0.10s)
+=== RUN   TestOpsMethodsMustBePost
+--- PASS: TestOpsMethodsMustBePost (0.09s)
+=== RUN   TestAdminListCredentials
+--- PASS: TestAdminListCredentials (0.11s)
+=== RUN   TestAdminCreateCredential
+--- PASS: TestAdminCreateCredential (0.11s)
+=== RUN   TestAdminCreateCredentialRejectsCrossTenant
+--- PASS: TestAdminCreateCredentialRejectsCrossTenant (0.10s)
+=== RUN   TestAdminDisableCredential
+--- PASS: TestAdminDisableCredential (0.10s)
+=== RUN   TestAdminCannotDisableOtherTenantCredential
+--- PASS: TestAdminCannotDisableOtherTenantCredential (0.10s)
+=== RUN   TestAdminUsageAndRequests
+--- PASS: TestAdminUsageAndRequests (0.10s)
+=== RUN   TestAdminCrossTenantQueryRejected
+--- PASS: TestAdminCrossTenantQueryRejected (0.10s)
+=== RUN   TestAppCannotAccessAdminAPI
+--- PASS: TestAppCannotAccessAdminAPI (0.10s)
+=== RUN   TestAppInvoke
+--- PASS: TestAppInvoke (0.11s)
+=== RUN   TestAppInvokeIdempotent
+--- PASS: TestAppInvokeIdempotent (0.12s)
+=== RUN   TestAppInvokeConflict
+--- PASS: TestAppInvokeConflict (0.14s)
+=== RUN   TestAppInvokeQuotaExceeded
+--- PASS: TestAppInvokeQuotaExceeded (0.13s)
+=== RUN   TestAppInvokeMissingRequestNo
+--- PASS: TestAppInvokeMissingRequestNo (0.11s)
+=== RUN   TestAppInvokeUpstreamFailure
+--- PASS: TestAppInvokeUpstreamFailure (0.12s)
+=== RUN   TestAppListOwnRequests
+--- PASS: TestAppListOwnRequests (0.14s)
+=== RUN   TestAppGetRequest
+--- PASS: TestAppGetRequest (0.12s)
+=== RUN   TestOpsCannotCreateCredential
+--- PASS: TestOpsCannotCreateCredential (0.10s)
+=== RUN   TestFormLoginRedirects
+--- PASS: TestFormLoginRedirects (0.09s)
+=== RUN   TestFormAdjustQuotaRedirects
+--- PASS: TestFormAdjustQuotaRedirects (0.12s)
+=== RUN   TestFormAdjustQuotaRejectsNonNumeric
+--- PASS: TestFormAdjustQuotaRejectsNonNumeric (0.09s)
+=== RUN   TestFormCreateCredentialRendersSecret
+--- PASS: TestFormCreateCredentialRendersSecret (0.12s)
+=== RUN   TestFormInvokeRedirects
+--- PASS: TestFormInvokeRedirects (0.13s)
+=== RUN   TestEffectiveParams
+--- PASS: TestEffectiveParams (0.00s)
+PASS
+ok  	modelquota/internal/httpapi	7.395s
+=== RUN   TestIdentityPredicates
+--- PASS: TestIdentityPredicates (0.00s)
+=== RUN   TestLoginAdminSuccess
+--- PASS: TestLoginAdminSuccess (0.11s)
+=== RUN   TestLoginAdminOpsHasNoTenant
+--- PASS: TestLoginAdminOpsHasNoTenant (0.11s)
+=== RUN   TestLoginAdminRejectsBadCredentials
+--- PASS: TestLoginAdminRejectsBadCredentials (0.10s)
+=== RUN   TestLoginCredentialSuccess
+--- PASS: TestLoginCredentialSuccess (0.15s)
+=== RUN   TestLoginCredentialRejectsUnknownSecret
+--- PASS: TestLoginCredentialRejectsUnknownSecret (0.11s)
+=== RUN   TestAuthenticateResolvesIdentity
+--- PASS: TestAuthenticateResolvesIdentity (0.10s)
+=== RUN   TestAuthenticateCredentialIdentity
+--- PASS: TestAuthenticateCredentialIdentity (0.10s)
+=== RUN   TestAuthenticateRejectsMissingOrUnknownToken
+--- PASS: TestAuthenticateRejectsMissingOrUnknownToken (0.10s)
+=== RUN   TestAuthenticateRejectsExpiredSession
+--- PASS: TestAuthenticateRejectsExpiredSession (0.10s)
+=== RUN   TestLogoutInvalidatesSession
+--- PASS: TestLogoutInvalidatesSession (0.11s)
+=== RUN   TestAuthorizeTenantAccess
+--- PASS: TestAuthorizeTenantAccess (0.00s)
+=== RUN   TestAuthorizeOps
+--- PASS: TestAuthorizeOps (0.00s)
+=== RUN   TestIdentityComesFromServerSideSession
+--- PASS: TestIdentityComesFromServerSideSession (0.10s)
+=== RUN   TestNewFallsBackToSystemClock
+--- PASS: TestNewFallsBackToSystemClock (0.09s)
+=== RUN   TestOpenTenantUsesDefaultReason
+--- PASS: TestOpenTenantUsesDefaultReason (0.11s)
+=== RUN   TestInvokeConcurrentSameRequestNo
+--- PASS: TestInvokeConcurrentSameRequestNo (0.21s)
+=== RUN   TestInvokeConcurrentSameRequestNoDifferentParams
+--- PASS: TestInvokeConcurrentSameRequestNoDifferentParams (0.14s)
+=== RUN   TestSettleSuccessCountsSuccess
+--- PASS: TestSettleSuccessCountsSuccess (0.12s)
+=== RUN   TestSettleTimeoutReleasesOccupancy
+--- PASS: TestSettleTimeoutReleasesOccupancy (0.11s)
+=== RUN   TestSettleFailureReleasesOccupancy
+--- PASS: TestSettleFailureReleasesOccupancy (0.12s)
+=== RUN   TestSettleOtherErrorKeepsReason
+--- PASS: TestSettleOtherErrorKeepsReason (0.12s)
+=== RUN   TestSettleFailsWhenDatabaseBroken
+--- PASS: TestSettleFailsWhenDatabaseBroken (0.11s)
+=== RUN   TestInvokeSuccessCountsOneQuota
+--- PASS: TestInvokeSuccessCountsOneQuota (0.11s)
+=== RUN   TestInvokePassesParamsToUpstream
+--- PASS: TestInvokePassesParamsToUpstream (0.15s)
+=== RUN   TestInvokeSameRequestNoSameParamsIsReplay
+--- PASS: TestInvokeSameRequestNoSameParamsIsReplay (0.12s)
+=== RUN   TestInvokeSameRequestNoDifferentParamsIsRejected
+--- PASS: TestInvokeSameRequestNoDifferentParamsIsRejected (0.11s)
+=== RUN   TestInvokeRequestNoMustBePresentAndValid
+--- PASS: TestInvokeRequestNoMustBePresentAndValid (0.10s)
+=== RUN   TestInvokeRequestNoNotReusableAcrossDays
+--- PASS: TestInvokeRequestNoNotReusableAcrossDays (0.14s)
+=== RUN   TestInvokeRejectsWhenQuotaExhausted
+--- PASS: TestInvokeRejectsWhenQuotaExhausted (0.12s)
+=== RUN   TestInvokeRetrySameRequestNoAfterQuotaIncrease
+--- PASS: TestInvokeRetrySameRequestNoAfterQuotaIncrease (0.12s)
+=== RUN   TestInvokeQuotaSharedByAllCredentials
+--- PASS: TestInvokeQuotaSharedByAllCredentials (0.19s)
+=== RUN   TestInvokeConcurrentLastQuotaSlot
+--- PASS: TestInvokeConcurrentLastQuotaSlot (0.16s)
+=== RUN   TestInvokeUpstreamFailureReleasesQuota
+--- PASS: TestInvokeUpstreamFailureReleasesQuota (0.12s)
+=== RUN   TestInvokeUpstreamTimeoutReleasesQuota
+--- PASS: TestInvokeUpstreamTimeoutReleasesQuota (0.11s)
+=== RUN   TestInvokeTimeoutAndFailureAreDistinctTerminalStates
+--- PASS: TestInvokeTimeoutAndFailureAreDistinctTerminalStates (0.14s)
+=== RUN   TestInvokeLateResultOnlyRecordedAsDiagnostic
+--- PASS: TestInvokeLateResultOnlyRecordedAsDiagnostic (0.12s)
+=== RUN   TestInvokeUpstreamLateResultOnlyRecordedAsDiagnostic
+--- PASS: TestInvokeUpstreamLateResultOnlyRecordedAsDiagnostic (0.11s)
+=== RUN   TestInvokeLateResultIgnoredForNonTimeoutRequest
+--- PASS: TestInvokeLateResultIgnoredForNonTimeoutRequest (0.12s)
+=== RUN   TestInvokeLateResultIgnoredForUnknownRequest
+--- PASS: TestInvokeLateResultIgnoredForUnknownRequest (0.11s)
+=== RUN   TestInvokeTestHooksDisabledByDefault
+--- PASS: TestInvokeTestHooksDisabledByDefault (0.12s)
+=== RUN   TestInvokeTestHookIgnoresOtherRequestNo
+--- PASS: TestInvokeTestHookIgnoresOtherRequestNo (0.11s)
+=== RUN   TestInvokeTestHookCustomDetail
+--- PASS: TestInvokeTestHookCustomDetail (0.11s)
+=== RUN   TestInvokeRejectedAfterTenantDisabled
+--- PASS: TestInvokeRejectedAfterTenantDisabled (0.10s)
+=== RUN   TestInvokeRejectedAfterCredentialDisabled
+--- PASS: TestInvokeRejectedAfterCredentialDisabled (0.13s)
+=== RUN   TestInvokeRejectsCredentialOfOtherTenant
+--- PASS: TestInvokeRejectsCredentialOfOtherTenant (0.10s)
+=== RUN   TestInvokeUnknownCredential
+--- PASS: TestInvokeUnknownCredential (0.09s)
+=== RUN   TestInvokeUnknownTenant
+--- PASS: TestInvokeUnknownTenant (0.11s)
+=== RUN   TestDailyReportSplitsTerminalStates
+--- PASS: TestDailyReportSplitsTerminalStates (0.17s)
+=== RUN   TestDailyReportIncludesQuotaChangesAndEvents
+--- PASS: TestDailyReportIncludesQuotaChangesAndEvents (0.12s)
+=== RUN   TestDailyReportUnknownTenant
+--- PASS: TestDailyReportUnknownTenant (0.10s)
+=== RUN   TestRequestsByTenantAndCredential
+--- PASS: TestRequestsByTenantAndCredential (0.14s)
+=== RUN   TestTenantUsageReflectsQuota
+--- PASS: TestTenantUsageReflectsQuota (0.12s)
+=== RUN   TestOffsetClock
+--- PASS: TestOffsetClock (0.00s)
+=== RUN   TestServiceClockAccessors
+--- PASS: TestServiceClockAccessors (0.11s)
+=== RUN   TestOpenTenantCreatesTenantAndQuotaChange
+--- PASS: TestOpenTenantCreatesTenantAndQuotaChange (0.12s)
+=== RUN   TestOpenTenantRequiresNameForNewTenant
+--- PASS: TestOpenTenantRequiresNameForNewTenant (0.11s)
+=== RUN   TestOpenTenantRejectsQuotaOutOfRange
+--- PASS: TestOpenTenantRejectsQuotaOutOfRange (0.11s)
+=== RUN   TestOpenTenantReactivatesExistingTenant
+--- PASS: TestOpenTenantReactivatesExistingTenant (0.11s)
+=== RUN   TestOpenTenantUnknownTenant
+--- PASS: TestOpenTenantUnknownTenant (0.10s)
+=== RUN   TestAdjustQuotaRecordsChange
+--- PASS: TestAdjustQuotaRecordsChange (0.12s)
+=== RUN   TestAdjustQuotaRequiresReason
+--- PASS: TestAdjustQuotaRequiresReason (0.09s)
+=== RUN   TestAdjustQuotaLowerBoundUsesSuccessPlusInflight
+--- PASS: TestAdjustQuotaLowerBoundUsesSuccessPlusInflight (0.16s)
+=== RUN   TestAdjustQuotaRejectsOutOfRangeAndUnknownTenant
+--- PASS: TestAdjustQuotaRejectsOutOfRangeAndUnknownTenant (0.12s)
+=== RUN   TestDisableTenant
+--- PASS: TestDisableTenant (0.15s)
+=== RUN   TestDisableTenantRequiresReason
+--- PASS: TestDisableTenantRequiresReason (0.10s)
+=== RUN   TestDisableTenantUnknown
+--- PASS: TestDisableTenantUnknown (0.09s)
+=== RUN   TestCreateCredential
+--- PASS: TestCreateCredential (0.11s)
+=== RUN   TestCreateCredentialRequiresName
+--- PASS: TestCreateCredentialRequiresName (0.10s)
+=== RUN   TestCreateCredentialRespectsTenantLimit
+--- PASS: TestCreateCredentialRespectsTenantLimit (0.10s)
+=== RUN   TestDisableCredential
+--- PASS: TestDisableCredential (0.10s)
+=== RUN   TestDisableCredentialRejectsOtherTenant
+--- PASS: TestDisableCredentialRejectsOtherTenant (0.10s)
+=== RUN   TestDisableCredentialRequiresReason
+--- PASS: TestDisableCredentialRequiresReason (0.11s)
+=== RUN   TestDisableCredentialUnknown
+--- PASS: TestDisableCredentialUnknown (0.09s)
+PASS
+ok  	modelquota/internal/service	9.204s
+=== RUN   TestTenantCRUD
+--- PASS: TestTenantCRUD (0.12s)
+=== RUN   TestTenantNotFound
+--- PASS: TestTenantNotFound (0.09s)
+=== RUN   TestCreateTenantDuplicateFails
+--- PASS: TestCreateTenantDuplicateFails (0.10s)
+=== RUN   TestAdminQueries
+--- PASS: TestAdminQueries (0.15s)
+=== RUN   TestCredentialLifecycle
+--- PASS: TestCredentialLifecycle (0.10s)
+=== RUN   TestCountAndListCredentials
+--- PASS: TestCountAndListCredentials (0.10s)
+=== RUN   TestRequestInsertAndQueries
+--- PASS: TestRequestInsertAndQueries (0.10s)
+=== RUN   TestRequestNoUniquePerTenant
+--- PASS: TestRequestNoUniquePerTenant (0.10s)
+=== RUN   TestFinishRequestOnlyFromProcessing
+--- PASS: TestFinishRequestOnlyFromProcessing (0.10s)
+=== RUN   TestIncrementReplay
+--- PASS: TestIncrementReplay (0.10s)
+=== RUN   TestCountAndListRequests
+--- PASS: TestCountAndListRequests (0.10s)
+=== RUN   TestRejectedAttempts
+--- PASS: TestRejectedAttempts (0.10s)
+=== RUN   TestReserveInflightRespectsQuota
+--- PASS: TestReserveInflightRespectsQuota (0.10s)
+=== RUN   TestCommitSuccessAndRelease
+--- PASS: TestCommitSuccessAndRelease (0.10s)
+=== RUN   TestCommitSuccessWithoutInflightFails
+--- PASS: TestCommitSuccessWithoutInflightFails (0.10s)
+=== RUN   TestGetDayUsageWithoutRow
+--- PASS: TestGetDayUsageWithoutRow (0.12s)
+=== RUN   TestReserveInflightConcurrentLastSlot
+--- PASS: TestReserveInflightConcurrentLastSlot (0.11s)
+=== RUN   TestQuotaChangesAndEvents
+--- PASS: TestQuotaChangesAndEvents (0.11s)
+=== RUN   TestEventWithEmptyCredentialAndDetail
+--- PASS: TestEventWithEmptyCredentialAndDetail (0.10s)
+=== RUN   TestDiagnostics
+--- PASS: TestDiagnostics (0.11s)
+=== RUN   TestSessionLifecycle
+--- PASS: TestSessionLifecycle (0.09s)
+=== RUN   TestSessionWithEmptyTenantAndRole
+--- PASS: TestSessionWithEmptyTenantAndRole (0.10s)
+=== RUN   TestSettingsUpsert
+--- PASS: TestSettingsUpsert (0.10s)
+=== RUN   TestSQLAndClose
+--- PASS: TestSQLAndClose (0.09s)
+=== RUN   TestNewWithRawSQLDB
+--- PASS: TestNewWithRawSQLDB (0.04s)
+=== RUN   TestOperationsOnClosedDB
+--- PASS: TestOperationsOnClosedDB (0.10s)
+PASS
+ok  	modelquota/internal/store	3.656s
+=== RUN   TestName
+--- PASS: TestName (0.00s)
+=== RUN   TestCompleteSuccess
+--- PASS: TestCompleteSuccess (0.01s)
+=== RUN   TestCompleteUpstreamFailure
+--- PASS: TestCompleteUpstreamFailure (0.00s)
+=== RUN   TestCompleteTimeout
+--- PASS: TestCompleteTimeout (0.20s)
+=== RUN   TestCompleteMalformedResponse
+--- PASS: TestCompleteMalformedResponse (0.00s)
+=== RUN   TestCompleteUnreachableUpstream
+--- PASS: TestCompleteUnreachableUpstream (0.00s)
+=== RUN   TestCompleteContextCanceled
+--- PASS: TestCompleteContextCanceled (0.05s)
+=== RUN   TestCompleteWithUnserializableParams
+--- PASS: TestCompleteWithUnserializableParams (0.00s)
+=== RUN   TestCompleteLateResultObservedAfterTimeout
+--- PASS: TestCompleteLateResultObservedAfterTimeout (0.30s)
+=== RUN   TestCompleteNoLateResultWhenCallerCanceled
+--- PASS: TestCompleteNoLateResultWhenCallerCanceled (0.43s)
+=== RUN   TestTruncate
+--- PASS: TestTruncate (0.00s)
+PASS
+ok  	modelquota/internal/upstream	2.019s
+
+exit_code=0
+结论：全部包通过，未检出数据竞争。
