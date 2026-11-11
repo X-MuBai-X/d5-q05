@@ -1,0 +1,24 @@
+# 构建产物
+/deploy/bin/
+/deploy/data/
+*.exe
+
+# 运行期数据
+/data/
+*.db
+*.db-shm
+*.db-wal
+
+# 覆盖率与临时产物
+coverage.out
+.quota-guard-coverage.out
+
+# 编辑器与系统文件
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 本地覆盖配置（不提交任何密钥）
+.env
+.env.local
