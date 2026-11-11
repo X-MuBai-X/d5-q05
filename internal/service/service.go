@@ -79,7 +79,7 @@ func New(db *store.DB, clk Clock, up upstream.Client) *Service {
 	if clk == nil {
 		clk = SystemClock{}
 	}
-	return &Service{
+	svc := &Service{
 		db:                      db,
 		clk:                     clk,
 		up:                      up,
@@ -87,6 +87,12 @@ func New(db *store.DB, clk Clock, up upstream.Client) *Service {
 		SessionTTL:              12 * time.Hour,
 		EnableTestHooks:         false,
 	}
+	// 上游客户端若支持迟到结果观测，则接管迟到结果：
+	// 只写诊断记录，不改终态、不追加扣额（R4）。
+	if setter, ok := up.(upstream.LateResultHandlerSetter); ok {
+		setter.SetLateResultHandler(svc.handleLateResult)
+	}
+	return svc
 }
 
 // DB 暴露持久化句柄，供 HTTP 层与测试使用。
@@ -127,7 +133,7 @@ type TenantInput struct {
 // 若 TenantID 为空则新建租户；否则把已有租户置为 active。
 func (s *Service) OpenTenant(ctx context.Context, operator string, in TenantInput) (*domain.Tenant, error) {
 	if strings.TrimSpace(in.Name) == "" && in.TenantID == "" {
-		return nil, fmt.Errorf("租户名称不能为空")
+		return nil, domain.ErrTenantNameRequired
 	}
 	if err := domain.ValidateQuota(in.DailyQuota); err != nil {
 		return nil, err
@@ -493,7 +499,13 @@ func (s *Service) Invoke(ctx context.Context, actor, tenantID, credentialID stri
 
 	// 调用上游（R4）：2 秒时限。
 	timeout := domain.UpstreamTimeout
-	resp, callErr := s.up.Complete(ctx, upstream.Request{Model: in.Model, Prompt: in.Prompt, Params: in.Params}, timeout)
+	resp, callErr := s.up.Complete(ctx, upstream.Request{
+		RequestNo:     in.RequestNo,
+		CorrelationID: req.ID,
+		Model:         in.Model,
+		Prompt:        in.Prompt,
+		Params:        in.Params,
+	}, timeout)
 
 	if err := s.settle(ctx, req, resp, callErr); err != nil {
 		return nil, err
@@ -579,6 +591,52 @@ func (s *Service) runTestHooks(ctx context.Context, req *domain.ModelRequest) {
 
 // AddTestHook 注册一个测试钩子。
 func (s *Service) AddTestHook(hook TestHook) { s.TestHooks = append(s.TestHooks, hook) }
+
+// handleLateResult 处理上游在 2 秒硬时限之后才返回的「迟到结果」（R4）。
+//
+// 口径要求：
+//   - 只写 diagnostics 表，作为诊断记录保留；
+//   - 不修改已经返回的超时终态；
+//   - 不追加扣额、不计入成功量。
+//
+// 该回调由上游客户端在后台协程中触发，因此必须使用独立上下文，
+// 不能依赖原调用方的请求上下文（那可能已经结束）。
+func (s *Service) handleLateResult(correlationID string, resp *upstream.Response, callErr error) {
+	if correlationID == "" {
+		return
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	req, err := s.db.GetRequest(ctx, correlationID)
+	if err != nil {
+		return
+	}
+	// 只有已经按超时结案的请求才可能有迟到结果。
+	if req.Status != domain.RequestTimeout {
+		return
+	}
+
+	detail := ""
+	switch {
+	case callErr == nil && resp != nil:
+		detail = fmt.Sprintf("迟到结果（上游在超时后返回成功）：upstream_id=%s，耗时=%s",
+			resp.UpstreamID, resp.Latency.Round(time.Millisecond))
+	case callErr != nil:
+		detail = "迟到失败结果（上游在超时后返回失败）：" + callErr.Error()
+	default:
+		return
+	}
+	// 忽略写入失败：诊断记录不得影响主流程结论。
+	_ = s.db.InsertDiagnostic(ctx, &domain.Diagnostic{
+		ID:         newID("diag"),
+		RequestID:  req.ID,
+		TenantID:   req.TenantID,
+		Kind:       "late_result",
+		Detail:     detail,
+		RecordedAt: s.clk.Now(),
+	})
+}
 
 // recordRejected 记录被拒绝的调用尝试（R8）。独立表存储，不占用 request_no 唯一性。
 func (s *Service) recordRejected(ctx context.Context, tenantID, credentialID, requestNo string, cause error, actor string, at time.Time) {

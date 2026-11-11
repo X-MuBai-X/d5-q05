@@ -113,6 +113,11 @@ var ErrCredentialLimit = errors.New("凭证数量已达上限")
 // ErrTenantMismatch 表示请求试图把资源绑定到其他租户（题面 R1）。
 var ErrTenantMismatch = errors.New("凭证所属租户由系统确认，不允许指定其他租户")
 
+// ErrTenantNameRequired 表示新建租户时缺少名称。
+//
+// 这属于「调用方可以自行纠正的参数缺失」，因此必须映射为 400 而不是 500。
+var ErrTenantNameRequired = errors.New("租户名称不能为空")
+
 // ErrForbidden 表示角色越权（题面 R7）。
 var ErrForbidden = errors.New("无权访问该资源")
 
@@ -351,12 +356,23 @@ func ValidateQuotaChange(newQuota int, current Usage) error {
 }
 
 // BuildDailyReport 汇总终态计数并核对「成功记录数 == 计入用量次数」（题面 R8）。
+//
+// 题面 R8 要求日报「列出成功、失败、超时、处理中和被拒绝请求」，
+// 因此这里先把五类终态全部补齐为 0，再叠加实际计数：
+// 某类当天没有记录时也要出现在报表里，而不是直接从结果中消失。
 func BuildDailyReport(tenantID, day string, counts map[RequestStatus]int, usage Usage, changes []QuotaChange, events []TenantEvent) DailyReport {
-	success := counts[RequestSuccess]
+	normalized := make(map[RequestStatus]int, len(StatusOrder))
+	for _, status := range StatusOrder {
+		normalized[status] = 0
+	}
+	for status, n := range counts {
+		normalized[status] = n
+	}
+	success := normalized[RequestSuccess]
 	report := DailyReport{
 		TenantID:      tenantID,
 		Day:           day,
-		Counts:        counts,
+		Counts:        normalized,
 		UsageSuccess:  usage.Success,
 		UsageInFlight: usage.InFlight,
 		QuotaLimit:    usage.QuotaLimit,

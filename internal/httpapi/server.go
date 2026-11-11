@@ -121,6 +121,7 @@ func statusFor(err error) int {
 		errors.Is(err, domain.ErrReasonRequired),
 		errors.Is(err, domain.ErrCredentialLimit),
 		errors.Is(err, domain.ErrTenantMismatch),
+		errors.Is(err, domain.ErrTenantNameRequired),
 		errors.Is(err, domain.ErrTenantScopeRequired):
 		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrTenantDisabled),

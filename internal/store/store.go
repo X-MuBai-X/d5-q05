@@ -113,7 +113,7 @@ func (d *DB) ListTenants(ctx context.Context) ([]domain.Tenant, error) {
 		return nil, fmt.Errorf("列出租户失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.Tenant
+	out := make([]domain.Tenant, 0)
 	for rows.Next() {
 		var t domain.Tenant
 		var status, created string
@@ -211,7 +211,7 @@ func (d *DB) ListAdminsByTenant(ctx context.Context, tenantID string) ([]domain.
 		return nil, fmt.Errorf("列出管理员失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.Admin
+	out := make([]domain.Admin, 0)
 	for rows.Next() {
 		var a domain.Admin
 		var role, created string
@@ -294,7 +294,7 @@ func (d *DB) ListCredentialsByTenant(ctx context.Context, tenantID string) ([]do
 		return nil, fmt.Errorf("列出凭证失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.Credential
+	out := make([]domain.Credential, 0)
 	for rows.Next() {
 		c, err := scanCredential(rows)
 		if err != nil {
@@ -444,7 +444,7 @@ func (d *DB) ListRequestsByTenant(ctx context.Context, tenantID, day string) ([]
 		return nil, fmt.Errorf("列出租户请求失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.ModelRequest
+	out := make([]domain.ModelRequest, 0)
 	for rows.Next() {
 		r, err := scanRequest(rows)
 		if err != nil {
@@ -463,7 +463,7 @@ func (d *DB) ListRequestsByCredential(ctx context.Context, credentialID, day str
 		return nil, fmt.Errorf("列出凭证请求失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.ModelRequest
+	out := make([]domain.ModelRequest, 0)
 	for rows.Next() {
 		r, err := scanRequest(rows)
 		if err != nil {
@@ -508,7 +508,7 @@ func (d *DB) ListRejectedAttempts(ctx context.Context, tenantID, day string) ([]
 		return nil, fmt.Errorf("列出被拒绝尝试失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.RejectedAttempt
+	out := make([]domain.RejectedAttempt, 0)
 	for rows.Next() {
 		var a domain.RejectedAttempt
 		var tenantID, credID, reqNo sql.NullString
@@ -625,7 +625,7 @@ func (d *DB) ListQuotaChanges(ctx context.Context, tenantID, day string) ([]doma
 		return nil, fmt.Errorf("列出配额变更失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.QuotaChange
+	out := make([]domain.QuotaChange, 0)
 	for rows.Next() {
 		var c domain.QuotaChange
 		var effective string
@@ -659,7 +659,7 @@ func (d *DB) ListEvents(ctx context.Context, tenantID, day string) ([]domain.Ten
 		return nil, fmt.Errorf("列出业务事件失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.TenantEvent
+	out := make([]domain.TenantEvent, 0)
 	for rows.Next() {
 		var e domain.TenantEvent
 		var credID, detail sql.NullString
@@ -696,7 +696,7 @@ func (d *DB) ListDiagnosticsByTenant(ctx context.Context, tenantID string) ([]do
 		return nil, fmt.Errorf("列出诊断记录失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.Diagnostic
+	out := make([]domain.Diagnostic, 0)
 	for rows.Next() {
 		var diag domain.Diagnostic
 		var recorded string
@@ -717,7 +717,7 @@ func (d *DB) ListDiagnosticsByRequest(ctx context.Context, requestID string) ([]
 		return nil, fmt.Errorf("列出请求诊断失败: %w", err)
 	}
 	defer rows.Close()
-	var out []domain.Diagnostic
+	out := make([]domain.Diagnostic, 0)
 	for rows.Next() {
 		var diag domain.Diagnostic
 		var recorded string
