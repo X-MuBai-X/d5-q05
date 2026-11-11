@@ -116,6 +116,10 @@ var ErrTenantMismatch = errors.New("凭证所属租户由系统确认，不允�
 // ErrForbidden 表示角色越权（题面 R7）。
 var ErrForbidden = errors.New("无权访问该资源")
 
+// ErrTenantScopeRequired 表示运营跨租户核查时必须显式指定租户。
+// 属于调用方可自行纠正的参数缺失，因此按 400 处理而不是 500。
+var ErrTenantScopeRequired = errors.New("运营跨租户核查必须指定 tenant_id")
+
 // ErrNotFound 表示目标对象不存在。
 var ErrNotFound = errors.New("对象不存在")
 

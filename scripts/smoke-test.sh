@@ -200,7 +200,7 @@ REJECTED=$(jsonq "$SMK_DIR/report.json" 'd["report"]["counts"].get("rejected", 0
 if [ "${REJECTED:-0}" -ge 1 ] 2>/dev/null; then ok "被拒绝请求已分列统计（$REJECTED）"; else bad "被拒绝分列" "实际 $REJECTED"; fi
 
 api GET /api/v1/ops/report/daily "$OPS_TOKEN"
-expect "运营未指定租户被拒" 500 "$API_CODE"
+expect "运营未指定租户被拒" 400 "$API_CODE"
 
 # ---------- 7. 并发争抢最后一个额度 ----------
 # 用另一个租户（tenant-b）做，避免受 tenant-a 已有用量影响；

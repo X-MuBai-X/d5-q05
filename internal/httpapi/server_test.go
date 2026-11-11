@@ -377,10 +377,10 @@ func TestOpsDailyReportRequiresTenantScope(t *testing.T) {
 	h := srv.Handler()
 	token := login(t, h, "ops", "ops-secret")
 
-	// 运营跨租户核查必须显式指定租户。
+	// 运营跨租户核查必须显式指定租户（属调用方可纠正的参数缺失 → 400）。
 	rec := do(t, h, http.MethodGet, "/api/v1/ops/report/daily", token, nil)
-	if rec.Code != http.StatusInternalServerError {
-		t.Fatalf("未指定租户应报错，状态码 = %d", rec.Code)
+	if rec.Code != http.StatusBadRequest {
+		t.Fatalf("未指定租户应返回 400，状态码 = %d", rec.Code)
 	}
 	rec = do(t, h, http.MethodGet, "/api/v1/ops/report/daily?tenant_id="+tenantA, token, nil)
 	if rec.Code != http.StatusOK {

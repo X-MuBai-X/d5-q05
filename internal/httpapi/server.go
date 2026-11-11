@@ -120,7 +120,8 @@ func statusFor(err error) int {
 		errors.Is(err, domain.ErrQuotaFloor),
 		errors.Is(err, domain.ErrReasonRequired),
 		errors.Is(err, domain.ErrCredentialLimit),
-		errors.Is(err, domain.ErrTenantMismatch):
+		errors.Is(err, domain.ErrTenantMismatch),
+		errors.Is(err, domain.ErrTenantScopeRequired):
 		return http.StatusBadRequest
 	case errors.Is(err, domain.ErrTenantDisabled),
 		errors.Is(err, domain.ErrCredentialDisabled):
@@ -224,7 +225,7 @@ func (s *Server) tenantScope(r *http.Request, identity service.Identity) (string
 	requested := r.URL.Query().Get("tenant_id")
 	if identity.IsOps() {
 		if requested == "" {
-			return "", fmt.Errorf("运营跨租户核查必须指定 tenant_id")
+			return "", domain.ErrTenantScopeRequired
 		}
 		return requested, nil
 	}
