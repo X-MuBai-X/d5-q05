@@ -1,0 +1,133 @@
+# 合并到 main 后的门禁、构建与部署（题目 05）
+#
+# 共同要求第 8 节第 7 条：「合并后必须针对主分支实际合并版本重新执行质量门禁、
+# 构建和部署，记录部署提交、流水线及制品。」
+#
+# 本工作流在 **push 到 main** 时触发，输入即为主分支的合并版本；
+# 产出的制品与部署日志都携带触发该次构建的提交 SHA，便于核对「部署的是哪个版本」。
+
+name: main-gate-and-deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: 质量门禁（gofmt / vet / 单测 / 覆盖率 / -race）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 记录被检提交
+        run: |
+          echo "GATE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "提交：$(git rev-parse HEAD)  标题：$(git log -1 --format=%s)"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      # 门禁统一由 scripts/verify-gate.py 执行，产出的日志文件名与
+      # scripts/verify-delivery.py 的 D-07 校验口径一致：
+      # evidence/main-gate-<短SHA>.log，且日志内含被检提交的完整 SHA。
+      - name: 质量门禁（gofmt / vet / 单测 / 覆盖率）
+        run: |
+          short=$(git rev-parse --short HEAD)
+          python scripts/verify-gate.py --commit "$GATE_COMMIT" \
+            --out "evidence/main-gate-${short}.log" --repo .
+
+      - name: 竞态检测
+        run: go test ./... -race
+
+      - name: 上传门禁日志与覆盖率产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-gate-${{ github.sha }}
+          path: |
+            evidence/main-gate-*.log
+            evidence/coverage.out
+            evidence/coverage-summary.txt
+          if-no-files-found: error
+
+  smoke:
+    name: 业务冒烟
+    runs-on: ubuntu-latest
+    needs: gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+      - name: 构建并启动双进程
+        run: |
+          mkdir -p deploy/bin deploy/data
+          go build -o deploy/bin/mockupstream ./cmd/mockupstream
+          go build -o deploy/bin/server ./cmd/server
+          ./deploy/bin/mockupstream -addr 127.0.0.1:9091 &
+          ./deploy/bin/server -addr 127.0.0.1:8080 -db deploy/data/main-gate.db -upstream http://127.0.0.1:9091 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz
+      - name: 冒烟断言
+        run: bash scripts/smoke-test.sh 2>&1 | tee evidence/smoke-test.log
+      - name: 上传冒烟记录
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-gate-smoke-${{ github.sha }}
+          path: evidence/smoke-test.log
+          if-no-files-found: error
+
+  deploy:
+    name: 部署（合并版本）
+    runs-on: ubuntu-latest
+    needs: [gate, smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - name: 构建制品
+        run: |
+          mkdir -p deploy/bin
+          go build -trimpath -o deploy/bin/server ./cmd/server
+          go build -trimpath -o deploy/bin/mockupstream ./cmd/mockupstream
+          sha256sum deploy/bin/server deploy/bin/mockupstream
+      - name: 部署并记录版本
+        run: |
+          ./deploy/bin/mockupstream -addr 127.0.0.1:9091 &
+          ./deploy/bin/server -addr 127.0.0.1:8080 -db deploy/data/deployed.db -upstream http://127.0.0.1:9091 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz
+          # 部署记录写入 evidence/deployment-main.log，内容含本次部署的提交 SHA，
+          # 与 scripts/verify-delivery.py 的 D-07 校验口径一致。
+          {
+            echo "================================================================================"
+            echo "题目 05 主分支合并版本部署记录"
+            echo "================================================================================"
+            echo "# 执行时间      : $(date -Iseconds)"
+            echo "# 部署提交      : $(git rev-parse HEAD)"
+            echo "# 部署提交标题  : $(git log -1 --format=%s)"
+            echo "# 运行地址      : http://127.0.0.1:8080（模拟上游 http://127.0.0.1:9091）"
+            echo "# 数据库        : deploy/data/deployed.db"
+            echo "# 制品          : deploy/bin/server、deploy/bin/mockupstream"
+            echo "# 制品 SHA-256  :"
+            sha256sum deploy/bin/server deploy/bin/mockupstream
+          } > evidence/deployment-main.log
+      - name: 上传部署记录与制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-deploy-${{ github.sha }}
+          path: |
+            evidence/deployment-main.log
+            deploy/bin/**
+            deploy/data/**
+          if-no-files-found: error

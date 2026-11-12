@@ -1,0 +1,39 @@
+==============================================================================
+题目 05 质量门禁执行日志（针对指定提交）
+# 说明：本日志是远端链路脚本在「合并提交判定」修复前，把远端 main 的**初始化提交**当成合并提交
+# 跑门禁留下的失败记录（初始化提交只有 README 与 .gitignore，没有 Go 代码，故 vet/单测不通过）。
+# 判定缺陷已修复：scripts/release-gitee.py 的 step_merge_resilient 现在会比对合并前后 main 指针，
+# 指针未变化即判为「合并没有真正发生」并停止。真正的合并提交门禁日志在合并完成后产出，
+# 命名为 evidence/main-gate-<合并短SHA>.log。
+==============================================================================
+# 执行时间      : 2026-11-12T13:53:08.840332+08:00
+# 被检提交      : d75aebd9a3e045080d82699962a7157ea1c242f7
+# 被检提交标题  : d75aebd [docs] [v2.1.0] 初始化题目 05 项目仓库说明
+# 检出方式      : git worktree add --detach（独立目录，不改动主工作区）
+# 门禁项        : gofmt / go vet / go test（含覆盖率）/ coverage-summary
+
+------------------------------------------------------------------------------
+$ gofmt -l .
+# exit=0  elapsed=0.1s
+(无输出)
+
+------------------------------------------------------------------------------
+$ go vet ./...
+# exit=1  elapsed=0.2s
+pattern ./...: directory prefix . does not contain main module or its selected dependencies
+
+------------------------------------------------------------------------------
+$ go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
+# exit=1  elapsed=0.1s
+open C:\Users\26765\AppData\Local\Temp\d5-gate-kzp3q_g4\repo\evidence\coverage.out: The system cannot find the path specified.
+
+------------------------------------------------------------------------------
+$ python scripts/coverage-summary.py --profile evidence/coverage.out --out evidence/coverage-summary.txt
+# exit=2  elapsed=0.1s
+C:\Users\26765\AppData\Local\Programs\Python\Python314\python.exe: can't open file 'C:\\Users\\26765\\AppData\\Local\\Temp\\d5-gate-kzp3q_g4\\repo\\scripts\\coverage-summary.py': [Errno 2] No such file or directory
+
+==============================================================================
+# 结束时间: 2026-11-12T13:53:09.678118+08:00
+# 被检提交: d75aebd9a3e045080d82699962a7157ea1c242f7
+# 结论: 失败 —— go vet ./...、go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic、coverage-summary
+==============================================================================

@@ -1,0 +1,194 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - "dev/**"
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  GO_VERSION: "1.27"
+
+jobs:
+  # ---------------------------------------------------------------
+  # 质量门禁：格式、静态检查、单元测试、覆盖率、竞争检测
+  # ---------------------------------------------------------------
+  quality:
+    name: 质量门禁（gofmt / vet / test / cover / race）
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+
+      - name: 缓存模块
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          restore-keys: ${{ runner.os }}-go-
+
+      - name: 依赖校验
+        run: go mod verify
+
+      - name: 格式检查（gofmt 必须零差异）
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then
+            echo "::error::以下文件未格式化："
+            echo "$out"
+            exit 1
+          fi
+          echo "gofmt 检查通过"
+
+      - name: 静态检查（go vet）
+        run: go vet ./...
+
+      - name: 单元测试与覆盖率采集
+        run: go test ./... -count=1 -coverprofile=coverage.out -covermode=atomic
+
+      - name: 覆盖率门禁（整体与核心包均 ≥85%）
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          stats = {}
+          for line in open("coverage.out", encoding="utf-8"):
+              line = line.strip()
+              if not line or line.startswith("mode:"):
+                  continue
+              parts = line.rsplit(" ", 2)
+              if len(parts) != 3:
+                  continue
+              loc, stmts, cnt = parts
+              try:
+                  stmts, cnt = int(stmts), int(cnt)
+              except ValueError:
+                  continue
+              pkg = loc.split(":")[0].rsplit("/", 1)[0].replace("modelquota/internal/", "")
+              e = stats.setdefault(pkg, {"t": 0, "c": 0})
+              e["t"] += stmts
+              if cnt > 0:
+                  e["c"] += stmts
+          core = ["domain", "store", "service", "httpapi", "upstream"]
+          tt = sum(v["t"] for v in stats.values())
+          tc = sum(v["c"] for v in stats.values())
+          overall = tc * 100.0 / tt if tt else 0
+          print(f"整体覆盖率 {overall:.1f}%")
+          failed = False
+          if overall < 85:
+              print(f"::error::整体覆盖率 {overall:.1f}% 低于 85%")
+              failed = True
+          for pkg in core:
+              e = stats.get(pkg)
+              pct = (e["c"] * 100.0 / e["t"]) if e and e["t"] else 0
+              print(f"核心包 {pkg}: {pct:.1f}%")
+              if pct < 85:
+                  print(f"::error::核心包 {pkg} 覆盖率 {pct:.1f}% 低于 85%")
+                  failed = True
+          sys.exit(1 if failed else 0)
+          PY
+
+      - name: 竞争检测（go test -race）
+        run: go test ./... -count=1 -race
+
+      - name: 上传覆盖率原件
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ github.run_id }}
+          path: |
+            coverage.out
+            evidence/coverage-summary.txt
+          if-no-files-found: warn
+
+      - name: 上传测试日志
+        if: always()
+        run: |
+          go test ./... -count=1 -v 2>&1 | tee evidence/ci-test.log || true
+
+  # ---------------------------------------------------------------
+  # 业务冒烟：真实启动服务 + 模拟上游，跑通完整业务闭环
+  # ---------------------------------------------------------------
+  smoke:
+    name: 业务冒烟（启动服务并核对配额闭环）
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: quality
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装 Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+          check-latest: true
+
+      - name: 启动模拟上游
+        run: |
+          go build -o /tmp/mockupstream ./cmd/mockupstream
+          /tmp/mockupstream -addr 127.0.0.1:9091 > /tmp/mockupstream.log 2>&1 &
+          echo $! > /tmp/mockupstream.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:9091/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:9091/healthz
+
+      - name: 启动服务
+        run: |
+          go build -o /tmp/server ./cmd/server
+          /tmp/server -addr 127.0.0.1:8080 -db /tmp/ci-app.db \
+            -upstream http://127.0.0.1:9091 -enable-test-hooks > /tmp/server.log 2>&1 &
+          echo $! > /tmp/server.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:8080/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+          curl -sf http://127.0.0.1:8080/healthz
+
+      - name: 业务冒烟脚本
+        run: bash scripts/smoke-test.sh
+
+      - name: 收集日志
+        if: always()
+        run: |
+          {
+            echo "=== 模拟上游日志 ==="
+            cat /tmp/mockupstream.log || true
+            echo "=== 服务日志 ==="
+            cat /tmp/server.log || true
+          } > evidence/ci-deploy.log
+
+      - name: 上传冒烟证据
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-${{ github.run_id }}
+          path: evidence/
+          if-no-files-found: warn
+
+      - name: 停止服务
+        if: always()
+        run: |
+          [ -f /tmp/server.pid ] && kill "$(cat /tmp/server.pid)" || true
+          [ -f /tmp/mockupstream.pid ] && kill "$(cat /tmp/mockupstream.pid)" || true

@@ -1,6 +1,6 @@
-# 构建产物
-/deploy/bin/
-/deploy/data/
+# 构建与运行期产物
+/deploy/
+/data/
 *.exe
 
 # 运行期数据
@@ -10,14 +10,18 @@
 *.db-wal
 
 # 覆盖率与临时产物
-coverage.out
+/coverage.out
+/coverage*.out
 .quota-guard-coverage.out
+/evidence/.quota-guard-coverage.out
 
 # 编辑器与系统文件
 .idea/
 .vscode/
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
 
 # 本地覆盖配置（不提交任何密钥）
 .env

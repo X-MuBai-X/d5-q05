@@ -1,0 +1,37 @@
+{
+  "mcp_server": {
+    "endpoint": "https://api.gitee.com/mcp",
+    "server": "gitee-mcp-remote",
+    "protocol": "MCP JSON-RPC over Streamable HTTP"
+  },
+  "tool": "list_repo_pulls",
+  "called_at": "2026-11-12T13:50:54.546883+08:00",
+  "elapsed_ms": 478,
+  "mcp_session_id": null,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "list_repo_pulls",
+      "arguments": {
+        "owner": "xishiyao",
+        "repo": "d5",
+        "state": "open",
+        "per_page": 20
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[{\"id\":19172412,\"title\":\"[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路\",\"html_url\":\"https://gitee.com/xishiyao/d5/pulls/1\",\"number\":1,\"state\":\"open\",\"assignees_number\":1,\"testers_number\":1,\"assignees\":[{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\",\"accept\":false}],\"testers\":[{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\",\"accept\":false}],\"created_at\":\"2026-11-12T13:41:19+08:00\",\"updated_at\":\"2026-11-12T13:50:53+08:00\",\"closed_at\":\"\",\"merged_at\":\"\",\"user\":{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\"},\"head\":{\"ref\":\"dev/05\",\"label\":\"dev/05\",\"sha\":\"20cd1f573ef5edaaad426530db6f927c679f6a57\"},\"base\":{\"ref\":\"main\",\"label\":\"main\",\"sha\":\"d75aebd9a3e045080d82699962a7157ea1c242f7\"},\"can_merge_check\":false,\"draft\":false,\"is_conflict\":false}]"
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{{define "content"}}
+{{$v := .Data}}
+<section>
+  <h2>核查日期</h2>
+  <form class="inline" method="get" action="/app">
+    <label>UTC 自然日 <input type="date" name="day" value="{{$v.Day}}" required></label>
+    <button class="sec" type="submit">查看该日记录</button>
+    <span class="mut">缺省为 UTC 今日（{{.Today}}）。</span>
+  </form>
+</section>
+
+<section>
+  <h2>发起模型调用</h2>
+  <p class="mut">
+    请求必须携带本租户全局唯一编号；相同编号与相同参数重复提交不会再次调用上游、也不会重复计量（R3）。
+    同一编号改用不同参数会被拒绝。上游超过 2 秒按超时处理并归还额度（R4）。
+  </p>
+  <form class="inline" method="post" action="/api/v1/app/invoke">
+    <label>请求编号 <input name="request_no" placeholder="req-001" required></label>
+    <label>模型 <input name="model" value="text-1" size="10"></label>
+    <label>提示词 <input name="prompt" placeholder="你好" size="26" required></label>
+    <label>上游场景
+      <select name="scenario">
+        <option value="success">成功</option>
+        <option value="fail">上游明确失败</option>
+        <option value="timeout">上游超时（&gt;2 秒）</option>
+        <option value="duplicate">重复通知</option>
+      </select>
+    </label>
+    <button type="submit">发起调用</button>
+  </form>
+  <p class="mut">调用接口为 JSON 接口（<code>POST /api/v1/app/invoke</code>），本页表单仅用于浏览器演示。</p>
+</section>
+
+<section>
+  <h2>本凭证的调用记录（{{$v.Day}}）</h2>
+  <p class="mut">应用仅可查询由本凭证创建的请求（R7），看不到其他凭证或其他租户的数据。</p>
+  <table>
+    <tr><th>请求编号</th><th>状态</th><th>模型</th><th>提示词</th><th>结果 / 失败原因</th><th>幂等命中</th><th>受理时间</th><th>完成时间</th></tr>
+    {{range $v.Requests}}
+    <tr>
+      <td><code>{{.RequestNo}}</code></td>
+      <td><span class="tag {{statusClass .Status}}">{{statusLabel .Status}}</span></td>
+      <td>{{.Model}}</td>
+      <td>{{.Prompt}}</td>
+      <td>{{if .UpstreamResult}}{{.UpstreamResult}}{{else if .ErrorReason}}{{.ErrorReason}}{{else}}—{{end}}</td>
+      <td>{{.ReplayCount}}</td>
+      <td>{{.ReceivedAt.Format "15:04:05"}}</td>
+      <td>{{if .CompletedAt}}{{.CompletedAt.Format "15:04:05"}}{{else}}—{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+</section>
+{{end}}

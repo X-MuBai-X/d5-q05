@@ -1,0 +1,117 @@
+{{define "content"}}
+{{$v := .Data}}
+<section>
+  <h2>核查日期</h2>
+  <form class="inline" method="get" action="/ops">
+    <label>UTC 自然日 <input type="date" name="day" value="{{$v.Day}}" required></label>
+    <button class="sec" type="submit">查看该日核查</button>
+    <span class="mut">缺省为 UTC 今日（{{.Today}}）。当前服务时间：{{.Now}}</span>
+  </form>
+</section>
+
+<section>
+  <h2>租户与配额</h2>
+  <p class="mut">配额是租户级属性，租户下所有凭证共享同一份日额度（题面 R2）。降低额度不得低于当日已成功数量加处理中数量（R5）。</p>
+  <table>
+    <tr><th>租户</th><th>名称</th><th>状态</th><th>日额度</th><th>操作</th></tr>
+    {{range $v.Tenants}}
+    <tr>
+      <td><code>{{.ID}}</code></td>
+      <td>{{.Name}}</td>
+      <td><span class="tag">{{tenantStatusLabel .Status}}</span></td>
+      <td>{{.DailyQuota}}</td>
+      <td>
+        <form class="inline" method="post" action="/api/v1/ops/tenants/quota">
+          <input type="hidden" name="tenant_id" value="{{.ID}}">
+          <input type="number" name="daily_quota" value="{{.DailyQuota}}" min="0" max="100000" style="width:90px">
+          <input name="reason" placeholder="变更原因（必填）" required>
+          <button class="sec" type="submit">调整额度</button>
+        </form>
+        <form class="inline" method="post" action="/api/v1/ops/tenants/disable">
+          <input type="hidden" name="tenant_id" value="{{.ID}}">
+          <input name="reason" placeholder="停用原因（必填）" required>
+          <button class="sec" type="submit">停用租户</button>
+        </form>
+      </td>
+    </tr>
+    {{end}}
+  </table>
+  <form class="inline" method="post" action="/api/v1/ops/tenants/open">
+    <label>新租户名称 <input name="name" placeholder="企业名称" required></label>
+    <label>日额度 <input type="number" name="daily_quota" value="10" min="0" max="100000" style="width:90px"></label>
+    <input name="reason" placeholder="开通原因">
+    <button type="submit">开通租户</button>
+  </form>
+</section>
+
+<section>
+  <h2>日终核查（{{$v.Day}}）</h2>
+  <p class="mut">按租户与日期分列成功、失败、超时、处理中与被拒绝请求，并核对「成功记录数 == 计入用量次数」（题面 R8）。</p>
+  <table>
+    <tr>
+      <th>租户</th><th>成功</th><th>失败</th><th>超时</th><th>处理中</th><th>被拒绝</th>
+      <th>额度</th><th>剩余</th><th>一致性</th>
+    </tr>
+    {{range $v.Reports}}
+    <tr>
+      <td><code>{{.TenantID}}</code></td>
+      <td>{{.Report.CountOf "success"}}</td>
+      <td>{{.Report.CountOf "failed"}}</td>
+      <td>{{.Report.CountOf "timeout"}}</td>
+      <td>{{.Report.CountOf "processing"}}</td>
+      <td>{{.Report.CountOf "rejected"}}</td>
+      <td>{{.Report.QuotaLimit}}</td>
+      <td>{{.Report.Remaining}}</td>
+      <td>{{if .Report.Consistent}}<span class="tag ok">一致</span>{{else}}<span class="tag bad">不一致：{{.Report.MismatchNote}}</span>{{end}}</td>
+    </tr>
+    {{end}}
+  </table>
+</section>
+
+<section>
+  <h2>配额变更与停用影响</h2>
+  <table>
+    <tr><th>租户</th><th>变更</th><th>操作人</th><th>原因</th><th>生效时间</th></tr>
+    {{range $v.Reports}}{{$row := .}}{{range .Report.QuotaChanges}}
+    <tr>
+      <td><code>{{$row.TenantID}}</code></td>
+      <td>{{.OldQuota}} → {{.NewQuota}}</td>
+      <td>{{.Operator}}</td>
+      <td>{{.Reason}}</td>
+      <td>{{.EffectiveAt.Format "2006-01-02 15:04:05"}}</td>
+    </tr>
+    {{end}}{{end}}
+  </table>
+  <table style="margin-top:10px">
+    <tr><th>租户</th><th>事件</th><th>操作人</th><th>原因</th><th>说明</th><th>时间</th></tr>
+    {{range $v.Reports}}{{$row := .}}{{range .Report.Events}}
+    <tr>
+      <td><code>{{$row.TenantID}}</code></td>
+      <td>{{.Kind}}</td>
+      <td>{{.Actor}}</td>
+      <td>{{.Reason}}</td>
+      <td>{{.Detail}}</td>
+      <td>{{.OccurredAt.Format "2006-01-02 15:04:05"}}</td>
+    </tr>
+    {{end}}{{end}}
+  </table>
+</section>
+
+<section>
+  <h2>诊断记录（迟到结果）</h2>
+  <p class="mut">迟到结果只作诊断保留，不改变请求终态、不追加扣额、不计入成功量（题面 R4）。</p>
+  <table>
+    <tr><th>租户</th><th>类型</th><th>详情</th><th>记录时间</th></tr>
+    {{range $v.Diagnostics}}
+    <tr>
+      <td><code>{{.TenantID}}</code></td>
+      <td>{{.Diagnostic.Kind}}</td>
+      <td>{{.Diagnostic.Detail}}</td>
+      <td>{{.Diagnostic.RecordedAt.Format "2006-01-02 15:04:05"}}</td>
+    </tr>
+    {{else}}
+    <tr><td colspan="4" class="mut">暂无诊断记录</td></tr>
+    {{end}}
+  </table>
+</section>
+{{end}}

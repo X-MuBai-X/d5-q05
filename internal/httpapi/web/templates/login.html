@@ -1,0 +1,31 @@
+{{define "content"}}
+<section>
+  <h2>登录</h2>
+  <p class="mut">平台运营与租户管理员使用预置账号口令登录；客户应用使用凭证密钥登录。身份与租户归属由服务端签发，请求参数无法指定。</p>
+  <form class="inline" method="post" action="/api/v1/auth/login">
+    <input type="hidden" name="kind" value="admin">
+    <label>用户名 <input name="username" placeholder="ops / admin-a / admin-b" required></label>
+    <label>口令 <input name="password" type="password" placeholder="预置口令" required></label>
+    <button type="submit">管理员登录</button>
+  </form>
+  <form class="inline" method="post" action="/api/v1/auth/login">
+    <input type="hidden" name="kind" value="credential">
+    <label>凭证密钥 <input name="secret" placeholder="sk_..." size="40"></label>
+    <button type="submit">应用登录</button>
+  </form>
+</section>
+<section>
+  <h2>预置账号</h2>
+  <table>
+    <tr><th>账号</th><th>角色</th><th>租户</th><th>口令</th></tr>
+    <tr><td><code>ops</code></td><td>平台运营</td><td>全局</td><td><code>••••••</code></td></tr>
+    <tr><td><code>admin-a</code></td><td>客户管理员</td><td>tenant-a</td><td><code>••••••</code></td></tr>
+    <tr><td><code>admin-b</code></td><td>客户管理员</td><td>tenant-b</td><td><code>••••••</code></td></tr>
+  </table>
+  <p class="mut">
+    口令不在页面上明文展示，初始口令见 <code>docs/04-部署与使用说明.md</code>；
+    首次登录后请在真实环境中替换。登录接口为 JSON 接口（<code>POST /api/v1/auth/login</code>），
+    本页表单仅用于浏览器演示。
+  </p>
+</section>
+{{end}}

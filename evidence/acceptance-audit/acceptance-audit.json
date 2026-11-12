@@ -1,0 +1,467 @@
+{
+  "repo": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5",
+  "verdict": "PASS",
+  "stats": {
+    "pass": 57,
+    "fail": 0,
+    "pending": 0
+  },
+  "items": [
+    {
+      "id": "C-1",
+      "rule": "共同",
+      "name": "项目级 AGENTS.md 与历史版本",
+      "status": "pass",
+      "evidence": "AGENTS.md:31（项目级 AGENTS.md 含计量口径约定）；docs/agents/AGENTS-v1.0.md:1（历史版本保留）",
+      "note": ""
+    },
+    {
+      "id": "C-10",
+      "rule": "共同",
+      "name": "go test 全部通过",
+      "status": "pass",
+      "evidence": "go test ./... 全部通过",
+      "note": ""
+    },
+    {
+      "id": "C-11",
+      "rule": "共同",
+      "name": "整体与核心包覆盖率达标",
+      "status": "pass",
+      "evidence": "整体 89.4%（阈值 85%）；核心包 domain 97.3%、store 94.4%、service 87.7%、httpapi 87.7%、upstream 87.1%",
+      "note": ""
+    },
+    {
+      "id": "C-12",
+      "rule": "共同",
+      "name": "竞争检测记录",
+      "status": "pass",
+      "evidence": "存在：evidence/race-test.log",
+      "note": ""
+    },
+    {
+      "id": "C-13",
+      "rule": "共同",
+      "name": "git 仓库与规范提交消息",
+      "status": "pass",
+      "evidence": "存在：.git/HEAD",
+      "note": ""
+    },
+    {
+      "id": "C-14",
+      "rule": "共同",
+      "name": "证据中无明文口令/密钥",
+      "status": "pass",
+      "evidence": "证据与文档中未发现明文口令/密钥（无白名单，全量扫描）",
+      "note": ""
+    },
+    {
+      "id": "C-15",
+      "rule": "共同",
+      "name": "模拟上游可触发成功/失败/超时/重复",
+      "status": "pass",
+      "evidence": "cmd/mockupstream/main.go:104（失败场景）；cmd/mockupstream/main.go:113（超时场景）；cmd/mockupstream/main.go:128（重复通知场景）",
+      "note": ""
+    },
+    {
+      "id": "C-2",
+      "rule": "共同",
+      "name": "至少两个自编 Skill 且结构完整",
+      "status": "pass",
+      "evidence": "skills/quota-guard/SKILL.md:8（业务专项 Skill）；skills/acceptance-audit/SKILL.md:8（验收检查 Skill）",
+      "note": ""
+    },
+    {
+      "id": "C-3",
+      "rule": "共同",
+      "name": "Skill 真实调用记录",
+      "status": "pass",
+      "evidence": "存在：docs/08-Skill使用记录.md",
+      "note": ""
+    },
+    {
+      "id": "C-4",
+      "rule": "共同",
+      "name": "需求分析文档",
+      "status": "pass",
+      "evidence": "docs/01-需求分析.md:5（需求分析文档）",
+      "note": ""
+    },
+    {
+      "id": "C-5",
+      "rule": "共同",
+      "name": "原型/任务规划/假设清单/会话导出/AI 使用说明",
+      "status": "pass",
+      "evidence": "docs/02-原型设计.md:1（原型文档）；docs/03-任务规划.md:1（任务规划文档）；docs/05-假设清单.md:1（假设清单）；docs/06-会话导出.md:1（会话导出）；docs/09-AI使用说明.md:1（AI 使用说明）",
+      "note": ""
+    },
+    {
+      "id": "C-6",
+      "rule": "共同",
+      "name": "CI 流水线配置",
+      "status": "pass",
+      "evidence": ".github/workflows/ci.yml:1（CI 流水线配置）",
+      "note": ""
+    },
+    {
+      "id": "C-7",
+      "rule": "共同",
+      "name": "真实部署记录",
+      "status": "pass",
+      "evidence": "存在：evidence/deployment.log",
+      "note": ""
+    },
+    {
+      "id": "C-8",
+      "rule": "共同",
+      "name": "gofmt 零差异",
+      "status": "pass",
+      "evidence": "gofmt -l . 无输出",
+      "note": ""
+    },
+    {
+      "id": "C-9",
+      "rule": "共同",
+      "name": "go vet 无告警",
+      "status": "pass",
+      "evidence": "go vet ./... 退出码 0",
+      "note": ""
+    },
+    {
+      "id": "R1-1",
+      "rule": "R1",
+      "name": "按租户创建凭证，租户归属由服务端推导",
+      "status": "pass",
+      "evidence": "internal/httpapi/handlers.go:34（创建凭证接口）；internal/service/service.go:307（服务层按租户创建凭证）",
+      "note": ""
+    },
+    {
+      "id": "R1-2",
+      "rule": "R1",
+      "name": "指定其他租户被显式拒绝",
+      "status": "pass",
+      "evidence": "internal/httpapi/handlers.go:45（显式拒绝指定其他租户）",
+      "note": ""
+    },
+    {
+      "id": "R1-3",
+      "rule": "R1",
+      "name": "凭证数量租户级上限 2 个",
+      "status": "pass",
+      "evidence": "internal/service/service.go:58（凭证上限字段）；internal/service/service.go:315（凭证上限校验）",
+      "note": ""
+    },
+    {
+      "id": "R1-4",
+      "rule": "R1",
+      "name": "预置两管理员一运营，初始日额度 10",
+      "status": "pass",
+      "evidence": "cmd/server/main.go:156（预置租户甲）；cmd/server/main.go:157（预置租户乙）；cmd/server/main.go:140（预置运营账号）；cmd/server/main.go:156（初始日额度 10）",
+      "note": ""
+    },
+    {
+      "id": "R2-1",
+      "rule": "R2",
+      "name": "配额为租户级，所有凭证共享",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:10（租户级额度字段）；internal/domain/domain.go:287（占用口径按租户汇总）",
+      "note": ""
+    },
+    {
+      "id": "R2-2",
+      "rule": "R2",
+      "name": "额度占用原子完成，防止并发超限",
+      "status": "pass",
+      "evidence": "internal/store/store.go:556（原子占用）；internal/store/store.go:558（额度上限在本条语句内实时读取）；internal/store/store.go:576（降额下限判定与写入同一条语句）",
+      "note": ""
+    },
+    {
+      "id": "R2-3",
+      "rule": "R2",
+      "name": "并发争抢最后一个额度的测试",
+      "status": "pass",
+      "evidence": "测试函数：TestReserveInflightConcurrentLastSlot、TestInvokeConcurrentLastQuotaSlot",
+      "note": ""
+    },
+    {
+      "id": "R2-4",
+      "rule": "R2",
+      "name": "UTC 自然日归属与剩余额度计算",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:290（UTC 自然日归属）；internal/domain/domain.go:278（剩余额度计算）",
+      "note": ""
+    },
+    {
+      "id": "R3-1",
+      "rule": "R3",
+      "name": "请求编号租户内唯一（唯一索引）",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:56（请求编号唯一索引）",
+      "note": ""
+    },
+    {
+      "id": "R3-2",
+      "rule": "R3",
+      "name": "同编号同参数幂等，不重复计量",
+      "status": "pass",
+      "evidence": "internal/service/service.go:431（幂等命中）；internal/service/service.go:419（幂等命中计数）",
+      "note": ""
+    },
+    {
+      "id": "R3-2",
+      "rule": "R3",
+      "name": "同编号同参数幂等，不重复计量",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeSameRequestNoSameParamsIsReplay",
+      "note": ""
+    },
+    {
+      "id": "R3-3",
+      "rule": "R3",
+      "name": "同编号不同参数拒绝",
+      "status": "pass",
+      "evidence": "internal/service/service.go:414（参数不一致冲突）",
+      "note": ""
+    },
+    {
+      "id": "R3-3",
+      "rule": "R3",
+      "name": "同编号不同参数拒绝",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeSameRequestNoDifferentParamsIsRejected",
+      "note": ""
+    },
+    {
+      "id": "R4-1",
+      "rule": "R4",
+      "name": "成功/失败/超时三个独立终态",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:48（成功终态）；internal/domain/domain.go:50（失败终态）；internal/domain/domain.go:52（超时终态）",
+      "note": ""
+    },
+    {
+      "id": "R4-1",
+      "rule": "R4",
+      "name": "成功/失败/超时三个独立终态",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeTimeoutAndFailureAreDistinctTerminalStates",
+      "note": ""
+    },
+    {
+      "id": "R4-2",
+      "rule": "R4",
+      "name": "失败与超时释放占用且不计成功量",
+      "status": "pass",
+      "evidence": "internal/service/service.go:494（失败/超时释放占用）；internal/service/service.go:566（成功实扣）",
+      "note": ""
+    },
+    {
+      "id": "R4-2",
+      "rule": "R4",
+      "name": "失败与超时释放占用且不计成功量",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeUpstreamFailureReleasesQuota、TestInvokeUpstreamTimeoutReleasesQuota",
+      "note": ""
+    },
+    {
+      "id": "R4-3",
+      "rule": "R4",
+      "name": "上游超时阈值 2 秒",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:81（2 秒超时阈值）",
+      "note": ""
+    },
+    {
+      "id": "R4-4",
+      "rule": "R4",
+      "name": "迟到结果只落诊断表",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:117（诊断表）；internal/service/service.go:602（迟到结果写诊断）",
+      "note": ""
+    },
+    {
+      "id": "R4-4",
+      "rule": "R4",
+      "name": "迟到结果只落诊断表",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeLateResultOnlyRecordedAsDiagnostic",
+      "note": ""
+    },
+    {
+      "id": "R5-1",
+      "rule": "R5",
+      "name": "配额变更留痕操作人/原因/生效时间",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:90（配额变更留痕表）；internal/domain/domain.go:210（留痕字段）",
+      "note": ""
+    },
+    {
+      "id": "R5-2",
+      "rule": "R5",
+      "name": "变更原因必填",
+      "status": "pass",
+      "evidence": "internal/service/service.go:224（变更原因必填）",
+      "note": ""
+    },
+    {
+      "id": "R5-3",
+      "rule": "R5",
+      "name": "降额不得低于成功数+处理中数",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:346（降额下限校验）",
+      "note": ""
+    },
+    {
+      "id": "R5-3",
+      "rule": "R5",
+      "name": "降额不得低于成功数+处理中数",
+      "status": "pass",
+      "evidence": "测试函数：TestAdjustQuotaLowerBoundUsesSuccessPlusInflight",
+      "note": ""
+    },
+    {
+      "id": "R5-4",
+      "rule": "R5",
+      "name": "配额硬上界 100000",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:78（配额硬上界）",
+      "note": ""
+    },
+    {
+      "id": "R6-1",
+      "rule": "R6",
+      "name": "停用租户后不再受理新调用",
+      "status": "pass",
+      "evidence": "internal/service/service.go:444（租户停用后拒绝受理）",
+      "note": ""
+    },
+    {
+      "id": "R6-1",
+      "rule": "R6",
+      "name": "停用租户后不再受理新调用",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeRejectedAfterTenantDisabled",
+      "note": ""
+    },
+    {
+      "id": "R6-2",
+      "rule": "R6",
+      "name": "停用凭证后不再受理调用",
+      "status": "pass",
+      "evidence": "internal/service/service.go:460（凭证停用后拒绝受理）",
+      "note": ""
+    },
+    {
+      "id": "R6-2",
+      "rule": "R6",
+      "name": "停用凭证后不再受理调用",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeRejectedAfterCredentialDisabled",
+      "note": ""
+    },
+    {
+      "id": "R6-3",
+      "rule": "R6",
+      "name": "停用动作有事件留痕",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:103（停用事件留痕）",
+      "note": ""
+    },
+    {
+      "id": "R7-1",
+      "rule": "R7",
+      "name": "三类身份与服务端签发会话",
+      "status": "pass",
+      "evidence": "internal/service/auth.go:18（身份模型）；internal/service/auth.go:64（服务端签发会话）",
+      "note": ""
+    },
+    {
+      "id": "R7-2",
+      "rule": "R7",
+      "name": "身份与租户归属只来自服务端",
+      "status": "pass",
+      "evidence": "internal/httpapi/server.go:148（身份只从令牌解析）；internal/httpapi/server.go:233（租户参数不被采信）",
+      "note": ""
+    },
+    {
+      "id": "R7-3",
+      "rule": "R7",
+      "name": "运营跨租户核查，其他角色限本租户",
+      "status": "pass",
+      "evidence": "internal/service/auth.go:154（租户访问授权）；internal/service/auth.go:165（运营授权）",
+      "note": ""
+    },
+    {
+      "id": "R7-4",
+      "rule": "R7",
+      "name": "应用仅限本凭证请求，不见租户汇总",
+      "status": "pass",
+      "evidence": "internal/httpapi/handlers.go:214（应用仅可查本凭证请求）",
+      "note": ""
+    },
+    {
+      "id": "R7-4",
+      "rule": "R7",
+      "name": "应用仅限本凭证请求，不见租户汇总",
+      "status": "pass",
+      "evidence": "测试函数：TestAdminCrossTenantQueryRejected",
+      "note": ""
+    },
+    {
+      "id": "R8-1",
+      "rule": "R8",
+      "name": "日终报表按五类分列",
+      "status": "pass",
+      "evidence": "internal/service/service.go:694（日终核查报表）；internal/domain/domain.go:254（五类分列结构）",
+      "note": ""
+    },
+    {
+      "id": "R8-2",
+      "rule": "R8",
+      "name": "被拒绝请求单独计数",
+      "status": "pass",
+      "evidence": "internal/store/schema.sql:65（被拒绝尝试独立表）",
+      "note": ""
+    },
+    {
+      "id": "R8-2",
+      "rule": "R8",
+      "name": "被拒绝请求单独计数",
+      "status": "pass",
+      "evidence": "测试函数：TestInvokeRetrySameRequestNoAfterQuotaIncrease",
+      "note": ""
+    },
+    {
+      "id": "R8-3",
+      "rule": "R8",
+      "name": "成功记录数与用量次数一致性核对",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:383（一致性核对）",
+      "note": ""
+    },
+    {
+      "id": "R8-3",
+      "rule": "R8",
+      "name": "成功记录数与用量次数一致性核对",
+      "status": "pass",
+      "evidence": "测试函数：TestDailyReportSplitsTerminalStates",
+      "note": ""
+    },
+    {
+      "id": "R8-4",
+      "rule": "R8",
+      "name": "报表含配额变更与停用影响",
+      "status": "pass",
+      "evidence": "internal/domain/domain.go:268（报表含配额变更）；internal/domain/domain.go:270（报表含停用事件）",
+      "note": ""
+    },
+    {
+      "id": "R8-5",
+      "rule": "R8",
+      "name": "页面可指定日期查询",
+      "status": "pass",
+      "evidence": "internal/httpapi/server.go:243（日期参数，默认 UTC 今日）；internal/httpapi/web/templates/ops.html:6（运营台日期选择器）；internal/httpapi/web/templates/admin.html:6（管理台日期选择器）",
+      "note": ""
+    }
+  ]
+}

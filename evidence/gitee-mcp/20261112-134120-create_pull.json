@@ -1,0 +1,39 @@
+{
+  "mcp_server": {
+    "endpoint": "https://api.gitee.com/mcp",
+    "server": "gitee-mcp-remote",
+    "protocol": "MCP JSON-RPC over Streamable HTTP"
+  },
+  "tool": "create_pull",
+  "called_at": "2026-11-12T13:41:20.340583+08:00",
+  "elapsed_ms": 2871,
+  "mcp_session_id": null,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "create_pull",
+      "arguments": {
+        "owner": "xishiyao",
+        "repo": "d5",
+        "head": "dev/05",
+        "base": "main",
+        "title": "[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路",
+        "body": "## 需求与缺陷编号\n\n- 需求工作项：#16221249（远端交付链路）、#16220913（企业模型服务配额管理核心业务）\n- 缺陷工作项：#16220917（并发降额超限）、#16220924（缺 tenant_id 返回 500）、#16220925（部署 PID 缺陷）、\n  #16221411（导出未脱敏）、#16221436（提交消息格式校验）\n\n## 变更说明\n\n按共同要求第 8 节补齐远端交付链路：`scripts/gitee_mcp.py`（Gitee 官方 MCP 驱动）、\n`scripts/release-gitee.py`（本链路一键驱动）、`scripts/verify-gate.py`（可在任意指定提交上重跑门禁）、\n`scripts/verify-delivery.py`（D-01~D-09 可复跑自检）、`.github/PULL_REQUEST_TEMPLATE.md`、\n`.github/CODEOWNERS`、`.github/workflows/release.yml`（合并后门禁/构建/制品/部署）、\n`docs/10-交付与发布说明.md`（交付索引）。\n\n## 测试结果\n\n- `gofmt -l .` 无输出；`go vet ./...` 无告警；`go test ./... -count=1` 全部通过\n- 业务冒烟 39/39、五组完整场景 73/73、容器内 `go test ./... -race` 退出码 0 且 0 DATA RACE\n- 交付链路自检 `scripts/test-delivery-checks.py` 全部通过\n\n## 覆盖率\n\n整体 **89.4%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 87.7% / upstream 87.1%，\n各核心包均 ≥85%。原件见 `evidence/coverage.out`、`evidence/coverage-summary.txt`。\n\n## 验收报告\n\n- 独立测试 Agent 报告：`evidence/independent-test-report.md`\n- 独立验收 Agent 报告：`evidence/independent-acceptance-report.md`\n\n## AI / Skill 使用记录\n\n- 全过程提示词与结构化事件清单：`docs/06-会话导出.md`、`evidence/会话事件清单.jsonl`\n- 过程时序（机器反推）：`evidence/过程时序清单.md`\n- AI 使用说明：`docs/09-AI使用说明.md`\n- 自编 Skill 与使用记录：`skills/quota-guard/`、`skills/acceptance-audit/`、`docs/08-Skill使用记录.md`\n"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"id\":19172412,\"title\":\"[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路\",\"html_url\":\"https://gitee.com/xishiyao/d5/pulls/1\",\"number\":1,\"state\":\"open\",\"assignees_number\":1,\"testers_number\":1,\"assignees\":[{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\",\"accept\":false}],\"testers\":[{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\",\"accept\":false}],\"created_at\":\"2026-11-12T13:41:19+08:00\",\"updated_at\":\"2026-11-12T13:41:21+08:00\",\"closed_at\":\"\",\"merged_at\":\"\",\"user\":{\"id\":16731776,\"login\":\"xishiyao\",\"name\":\"xishiyao\",\"avatar_url\":\"https://gitee.com/assets/no_portrait.png\",\"html_url\":\"https://gitee.com/xishiyao\",\"remark\":\"\"},\"head\":{\"ref\":\"dev/05\",\"label\":\"dev/05\",\"sha\":\"b8994353f66d139e4efbd8e8517e84eb4d37312e\"},\"base\":{\"ref\":\"main\",\"label\":\"main\",\"sha\":\"d75aebd9a3e045080d82699962a7157ea1c242f7\"},\"can_merge_check\":false,\"draft\":false,\"is_conflict\":false}"
+        }
+      ]
+    }
+  }
+}
