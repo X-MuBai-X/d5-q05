@@ -29,8 +29,9 @@ if hasattr(sys.stdout, "reconfigure"):
 CST = timezone(timedelta(hours=8))
 
 VALID_TYPES = {"feat", "fix", "hotfix", "opt", "docs", "test"}
-MSG_RE = re.compile(r"^\[(feat|fix|hotfix|opt|docs|test)\](?: \[(v\d+\.\d+\.\d+)\])?"
-                    r"(?: \[#(\d+)\])? .+$")
+TYPE_RE = re.compile(r"^\[([a-z]+)\]")
+VERSION_RE = re.compile(r"^\[(v\d+\.\d+\.\d+)\]")
+NUMBER_RE = re.compile(r"^\[#(\d+)\]")
 SECRET_ASSIGN_RE = re.compile(
     r"(?i)(access[_-]?token|private[_-]?token|api[_-]?key|gitee_access_token|authorization)"
     r"\s*[:=]\s*[\"']?[A-Za-z0-9_\-]{16,}")
@@ -44,6 +45,52 @@ SKIP_DIRS = {".git", "deploy", "node_modules", "__pycache__"}
 SKIP_SUFFIX = {".exe", ".db", ".png", ".jpg", ".zip", ".pdf"}
 # 本脚本自身的输出：上一轮结果可能记录了当时发现的命中，扫描时排除以避免自引用。
 SELF_OUTPUTS = {"evidence/delivery-check.json", "evidence/delivery-check.md"}
+
+
+def parse_message(subject: str) -> tuple[str, str | None, str | None] | None:
+    """结构化解析提交消息 `[类型] [版本号] [#编号] 描述`。
+
+    采用**逐段解析**而非单条正则：单正则会在分段畸形时回溯，
+    把 `[feat] [v2.4.0][#123] xxx` 误判成「无版本号、无编号」，从而放过不合规消息。
+    返回 (类型, 版本号或 None, 编号或 None)；不合规返回 None。
+    """
+    m = TYPE_RE.match(subject)
+    if not m:
+        return None
+    typ = m.group(1)
+    if typ not in VALID_TYPES:
+        return None
+    rest = subject[m.end():]
+    if not rest.startswith(" "):
+        return None
+    rest = rest[1:]
+
+    version: str | None = None
+    number: str | None = None
+
+    if rest.startswith("[v"):
+        mv = VERSION_RE.match(rest)
+        if not mv:
+            return None
+        version = mv.group(1)
+        rest = rest[mv.end():]
+        if not rest.startswith(" "):
+            return None
+        rest = rest[1:]
+
+    if rest.startswith("[#"):
+        mn = NUMBER_RE.match(rest)
+        if not mn:
+            return None
+        number = mn.group(1)
+        rest = rest[mn.end():]
+        if not rest.startswith(" "):
+            return None
+        rest = rest[1:]
+
+    if not rest.strip():
+        return None
+    return typ, version, number
 
 
 def git(repo: Path, *args: str) -> tuple[int, str]:
@@ -78,11 +125,11 @@ def check_commit_messages(repo: Path) -> list[dict]:
         if not line.strip():
             continue
         sha, _, subject = line.partition("\t")
-        m = MSG_RE.match(subject)
-        if not m:
+        parsed = parse_message(subject)
+        if parsed is None:
             bad.append(f"{sha[:7]} 格式不合规：{subject}")
             continue
-        typ, ver, num = m.group(1), m.group(2), m.group(3)
+        typ, ver, num = parsed
         if typ in ("feat", "fix"):
             if not ver:
                 bad.append(f"{sha[:7]} 缺版本号：{subject}")
@@ -169,7 +216,7 @@ def check_merge_and_gate(repo: Path) -> list[dict]:
         return results
     sha, parents, subject = out.strip().split("\t", 2)
     parents = parents.split()
-    msg_ok = bool(MSG_RE.match(subject))
+    msg_ok = parse_message(subject) is not None
     keep = len(parents) >= 2
 
     # 尚未发生合并时如实标为待补证，不把「还没做」误判成「做错了」。
