@@ -69,6 +69,10 @@ REDACT_RULES: list[tuple[re.Pattern, str]] = [
     # URL 查询参数形态的一次性用户码：设备码授权页链接 ?…&usercode=XXXXX-XXXXX
     (re.compile(r"(\busercode=)[A-Za-z0-9\-]{6,}"),
      r"\1（一次性用户码，已掩码）"),
+    # 题面预置的**演示账号口令**：与 docs/04、docs/09 及三份独立报告保持同一口径，
+    # 在导出件中一律以掩码形式出现（完整值只保留在源码 cmd/server/main.go 的 seedData）。
+    (re.compile(r"\b(ops|admin-a|admin-b)-secret\b"),
+     r"\1-****"),
     # GitHub 令牌（classic / fine-grained）形如 ghp_ / github_pat_ / gho_ / ghs_ / ghu_ / ghr_
     (re.compile(r"(?:github_pat_|ghp_|gho_|ghs_|ghu_|ghr_)[A-Za-z0-9_]{16,}"),
      "（访问令牌，已掩码）"),
@@ -87,9 +91,10 @@ REDACT_RULES: list[tuple[re.Pattern, str]] = [
 # `mvs_`（会话 ID）与 `cli_`（Meegle CLI 公开 client id）为标识符前缀，保留可见。
 HEX32_RE = re.compile(r"(?<![0-9a-fA-F])(?<!mvs_)(?<!cli_)[0-9a-f]{32}(?![0-9a-fA-F])")
 # 与 `scripts/verify-delivery.py` 的 SAFE_HEX32_CONTEXT 保持同一口径：
-# SHA-256 摘要、提交 SHA、对象 ID 等**摘要占位符**不是凭据，不应被误伤，
-# 否则会破坏证据的复核性。
-SAFE_HEX32_CONTEXT = re.compile(r"(?i)(sha256|digest|checksum|commit|sha|blob|oid|cli_|mvs_)")
+# SHA-256 摘要、对象 ID 等**摘要占位符**不是凭据，不应被误伤，否则会破坏证据的复核性。
+# 标记必须**紧邻**取值（中间只允许分隔符），避免「上下文里恰好出现过 mvs_/cli_」就把
+# 无关的裸 32 位十六进制串一并放过——`mvs_` / `cli_` 前缀的判定由上面的 lookbehind 负责。
+SAFE_HEX32_CONTEXT = re.compile(r"(?i)(sha256|sha-256|digest|checksum|blob|oid)\s*[:=]\s*$")
 
 # 一次性设备码是 UUID v4 形态。`turn_` / `msg-` / `call-` 前缀的是**会话自身的标识符**，
 # 导出件靠它们关联事件与提示词，予以保留；其余 UUID 一律按一次性凭据掩码。

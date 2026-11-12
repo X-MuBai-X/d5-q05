@@ -12,6 +12,14 @@
 
 > **脱敏补充（2026-11-12 整改轮）**：本报告初稿在「泄密与脱敏」一节引用了
 > ① Meegle 设备码授权返回体中的**一次性设备码明文**，
+> ② 早期版本测试脚本中的**凭据形态字面量**（合成夹具，非真实凭据），
+> ③ 题面预置的**演示账号口令**（`ops-****` 等公开演示种子值）。
+> 三者与前两份独立报告的脱敏口径不一致，已按共同要求第 3 节统一改为掩码形式；
+> 掩码规则直接复用 `scripts/export_session.py` 的 `redact()`，与仓库导出口径完全一致。
+> **判定结论、严重度、证据位置与整改建议均未改动**，仅替换凭据字面量。
+
+> **脱敏补充（2026-11-12 整改轮）**：本报告初稿在「泄密与脱敏」一节引用了
+> ① Meegle 设备码授权返回体中的**一次性设备码明文**，
 > ② 早期版本测试脚本中的**凭据形态字面量**（合成夹具，非真实凭据）。
 > 二者与前两份独立报告的脱敏口径不一致，已按共同要求第 3 节统一改为掩码形式；
 > 掩码规则直接复用 `scripts/export_session.py` 的 `redact()`，与仓库导出口径完全一致。
@@ -62,7 +70,7 @@ Start-Process $T/server.exe -addr 127.0.0.1:8091 -db $T/fresh2/app.db -upstream 
 # 泄密扫描
 git grep -n -I -E "ghp_|github_pat_|gho_|ghs_|ghu_|ghr_" -- .
 git grep -n -I -i -E "bearer[ ]+[A-Za-z0-9_.-]{16,}" -- .
-git grep -n -I -E "ops-secret|admin-a-secret|admin-b-secret" -- .
+git grep -n -I -E "ops-****|admin-a-****|admin-b-****" -- .
 git grep -n -I -o -E "(^|[^0-9a-fA-F])[0-9a-f]{32}([^0-9a-fA-F]|$)" -- .
 git grep -n -I -i -E "device[_-]?code" -- .
 
@@ -390,7 +398,7 @@ D-07 会一直停在 PENDING——**「流水线可执行」与「流水线能�
 | `ghp_` / `github_pat_` / `gho_` / `ghs_` / `ghu_` / `ghr_` | 仅命中 `scripts/export_session.py` 的**正则模式字面量**与 `evidence/会话事件清单.jsonl:2975` 中**记录该正则源码的会话片段**；**无真实令牌** |
 | `Bearer <16+ 字符>` | **0 命中** |
 | `Gitee 32 位十六进制串`（独立出现） | **0 命中**（导出件中已全部替换为「（32 位十六进制串，已掩码）」） |
-| 演示口令 `ops-secret` / `admin-a-secret` / `admin-b-secret` | 仅出现在 `cmd/server/main.go`、`cmd/server/main_test.go`、`internal/**/*_test.go`、`scripts/smoke-test.sh`、`scripts/scenario-verify.py`、`skills/acceptance-audit/scripts/acceptance_audit.py`、以及会话导出件中记录这些文件源码的片段 |
+| 演示口令 `ops-****` / `admin-a-****` / `admin-b-****` | 仅出现在 `cmd/server/main.go`、`cmd/server/main_test.go`、`internal/**/*_test.go`、`scripts/smoke-test.sh`、`scripts/scenario-verify.py`、`skills/acceptance-audit/scripts/acceptance_audit.py`、以及会话导出件中记录这些文件源码的片段 |
 
 **文档侧**：全仓库 `docs/` 下无明文演示口令；`docs/04-部署与使用说明.md:119-121` 以
 `ops-****` / `admin-a-****` / `admin-b-****` 掩码给出，符合「完整值只保留在 `cmd/server/main.go`」的约定。
@@ -524,7 +532,7 @@ D-07 会一直停在 PENDING——**「流水线可执行」与「流水线能�
 
 | # | 陈述 | 实际 | 判定 |
 |---|---|---|---|
-| 1 | N-04「登录页不展示明文口令」 | 实测 `internal/httpapi/web/templates/login.html` **不含** `ops-secret` / `admin-a-secret` | 一致 |
+| 1 | N-04「登录页不展示明文口令」 | 实测 `internal/httpapi/web/templates/login.html` **不含** `ops-****` / `admin-a-****` | 一致 |
 | 2 | N-05「以本机真实进程部署作为教学验收环境」 | `evidence/deployment.log` 记录了真实的双进程启动、健康检查与冒烟 | 一致 |
 | 3 | N-06「工作项编号：由沿用示例编号纠正为真实且已核验的编号」 | 见 8.7 | 一致 |
 

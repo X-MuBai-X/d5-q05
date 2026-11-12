@@ -156,7 +156,7 @@
       "rule": "R1",
       "name": "预置两管理员一运营，初始日额度 10",
       "status": "pass",
-      "evidence": "cmd/server/main.go:151（预置租户甲）；cmd/server/main.go:152（预置租户乙）；cmd/server/main.go:184（预置运营账号）；cmd/server/main.go:151（初始日额度 10）",
+      "evidence": "cmd/server/main.go:156（预置租户甲）；cmd/server/main.go:157（预置租户乙）；cmd/server/main.go:140（预置运营账号）；cmd/server/main.go:156（初始日额度 10）",
       "note": ""
     },
     {

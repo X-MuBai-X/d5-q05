@@ -141,6 +141,14 @@ def test_redaction() -> None:
     digest = ("a1b2c3d4" * 3) + "abcdef12"
     keep_digest = es.redact("sha256: " + digest)
     check("SHA-256 占位符不被误伤", digest in keep_digest, True)
+    # 但「上下文里恰好出现过 mvs_/cli_」不能成为放行无关裸串的理由
+    loose = es.redact("会话 ID mvs_ 前缀说明 " + digest)
+    check("无关裸 32 位串仍被掩码", digest not in loose, True)
+
+    # 题面预置的演示账号口令在导出件中一律掩码
+    demo = es.redact("预置口令 admin-a-secret 与 ops-secret")
+    check("演示种子口令被掩码", "admin-a-secret" not in demo and "ops-secret" not in demo, True)
+    check("演示种子口令掩码标记保留", "admin-a-****" in demo and "ops-****" in demo, True)
 
     # repr 形态（引号被转义）与截断形态的设备码也必须被掩码
     repr_form = es.redact("--device-code-value \\'" + fake_device + "\\' --host meegle.com")
