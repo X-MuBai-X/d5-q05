@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-11-12T18:48:33.715091+08:00",
+  "started_at": "2026-11-12T19:16:11.941545+08:00",
   "owner": "X-MuBai-X",
   "repo": "d5-q05",
   "remote": "github-q05",
@@ -14,78 +14,78 @@
       "step": "推送",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:48:33.801313+08:00"
+      "at": "2026-11-12T19:16:12.038689+08:00"
     },
     {
       "step": "创建 PR",
       "ok": true,
-      "detail": "https://github.com/X-MuBai-X/d5-q05/pull/1",
-      "at": "2026-11-12T18:48:36.960233+08:00"
+      "detail": "https://github.com/X-MuBai-X/d5-q05/pull/4",
+      "at": "2026-11-12T19:16:19.531394+08:00"
     },
     {
       "step": "等待 PR 检查项",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:48:57.794596+08:00"
+      "at": "2026-11-12T19:17:28.827212+08:00"
     },
     {
       "step": "配置分支保护",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:48:58.781904+08:00"
+      "at": "2026-11-12T19:17:30.876664+08:00"
     },
     {
       "step": "读取分支保护",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:48:59.537213+08:00"
+      "at": "2026-11-12T19:17:31.862730+08:00"
     },
     {
       "step": "验证分支保护",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:49:01.208420+08:00"
+      "at": "2026-11-12T19:17:34.162699+08:00"
     },
     {
       "step": "合并 PR",
       "ok": true,
-      "detail": "3b06d206055ada197f85e822cf767daff35b744e",
-      "at": "2026-11-12T18:49:16.358357+08:00"
+      "detail": "fba84970e72003087e976dfd5053e3c8d9895b5f",
+      "at": "2026-11-12T19:17:50.104028+08:00"
     },
     {
       "step": "拉取合并提交",
       "ok": true,
       "detail": "",
-      "at": "2026-11-12T18:49:18.477454+08:00"
+      "at": "2026-11-12T19:17:52.754248+08:00"
     },
     {
       "step": "合并提交门禁",
       "ok": true,
-      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\main-gate-3b06d206055a.log",
-      "at": "2026-11-12T18:49:33.029599+08:00"
+      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\main-gate-fba84970e720.log",
+      "at": "2026-11-12T19:18:07.694817+08:00"
     },
     {
       "step": "合并版本部署",
-      "ok": false,
+      "ok": true,
       "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\deployment-main.log",
-      "at": "2026-11-12T18:49:36.718783+08:00"
+      "at": "2026-11-12T19:18:23.622679+08:00"
     },
     {
       "step": "交付链路自检",
-      "ok": false,
+      "ok": true,
       "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\delivery-check.md",
-      "at": "2026-11-12T18:49:51.569263+08:00"
+      "at": "2026-11-12T19:18:26.600618+08:00"
     },
     {
       "step": "归档主分支流水线",
       "ok": true,
       "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\main-workflow-runs.json",
-      "at": "2026-11-12T18:49:53.421203+08:00"
+      "at": "2026-11-12T19:18:30.170046+08:00"
     }
   ],
-  "pr_url": "https://github.com/X-MuBai-X/d5-q05/pull/1",
-  "pr_number": "1",
-  "merge_sha": "3b06d206055ada197f85e822cf767daff35b744e",
-  "finished_at": "2026-11-12T18:49:53.421211+08:00",
-  "all_ok": false
+  "pr_url": "https://github.com/X-MuBai-X/d5-q05/pull/4",
+  "pr_number": "4",
+  "merge_sha": "fba84970e72003087e976dfd5053e3c8d9895b5f",
+  "finished_at": "2026-11-12T19:18:30.170055+08:00",
+  "all_ok": true
 }
