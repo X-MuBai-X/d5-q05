@@ -1,0 +1,37 @@
+{
+  "mcp_server": {
+    "endpoint": "https://api.gitee.com/mcp",
+    "server": "gitee-mcp-remote",
+    "protocol": "MCP JSON-RPC over Streamable HTTP"
+  },
+  "tool": "manage_pull_review",
+  "called_at": "2026-11-12T14:54:26.243346+08:00",
+  "elapsed_ms": 517,
+  "mcp_session_id": null,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "manage_pull_review",
+      "arguments": {
+        "owner": "xishiyao",
+        "repo": "d5",
+        "number": 2,
+        "action": "approve"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "Operation completed successfully"
+        }
+      ]
+    }
+  }
+}

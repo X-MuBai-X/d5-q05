@@ -556,10 +556,20 @@ def step_deploy(repo: Path, sha: str) -> bool:
     log(f"  工作区树与合并提交树一致（{merge_tree.strip()[:12]}），部署内容即合并版本")
     cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(script),
            "-LogFile", str(out), "-Commit", sha, "-SkipSmoke"]
-    code, msg = run(cmd)
+    # 输出重定向到文件而不是管道：部署脚本会拉起常驻进程（server/mockupstream），
+    # 它们会继承 stdout 管道，使 capture_output 永远等不到 EOF（实测卡死 13 分钟）。
+    stdout_file = EVIDENCE / "deployment-main.stdout.txt"
+    with open(stdout_file, "w", encoding="utf-8", newline="\n") as fh:
+        proc = subprocess.run(cmd, cwd=str(repo), stdout=fh, stderr=subprocess.STDOUT)
+    code = proc.returncode
     log(f"  部署日志：{out}（exit={code}）")
     if code != 0:
-        log(f"  失败：\n{msg.strip()[-600:]}")
+        tail = ""
+        try:
+            tail = stdout_file.read_text(encoding="utf-8", errors="replace").strip()[-600:]
+        except OSError:
+            pass
+        log(f"  失败：\n{tail}")
         return False
     return True
 

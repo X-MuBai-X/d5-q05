@@ -81,7 +81,7 @@ try {
     }
     if ([string]::IsNullOrWhiteSpace($deployCommit)) { $deployCommit = "(未知)" }
     Write-Log "部署提交：$deployCommit"
-    Write-Log "部署提交标题：$(& git -C $repo log -1 --format=%s 2>$null)"
+    Write-Log "部署提交标题：$(& git -C $repo log -1 --format=%s $deployCommit 2>$null)"
 
     Write-Log "--- 步骤 1/6：检查端口占用 ---"
     # 必须先确认端口空闲：否则新进程启动失败，而健康检查与冒烟会打到旧进程上，

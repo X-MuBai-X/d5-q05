@@ -1,10 +1,10 @@
 {
-  "verified_at": "2026-11-12T14:07:01.977026+08:00",
-  "method": "git push gitee cff0b000ff5a:refs/heads/main（真实推送探测；探测提交是以合并提交为父的空提交，树不变）",
-  "probe_sha": "cff0b000ff5aeb113f94569d823b9042504b7b17",
-  "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+  "verified_at": "2026-11-12T14:48:30.856163+08:00",
+  "method": "git push gitee ec74c1ba0c66:refs/heads/main（真实推送探测；探测提交是以合并提交为父的空提交，树不变）",
+  "probe_sha": "ec74c1ba0c666d7439d642b012d0602b64bb4bad",
+  "base_sha": "c068f9a33f8986424c14b4258e06b8c1e57be297",
   "git_exit_code": 1,
   "rejected_by_protection": true,
-  "git_output": "remote: Powered by \u001b[01;33mGITEE.COM \u001b[0m[1.1.23]        \nremote: Set trace flag c343bda6        \nremote: Auth error: No permission to push this protected branch        \nTo https://gitee.com/xishiyao/d5.git\n ! [remote rejected] cff0b000ff5aeb113f94569d823b9042504b7b17 -> main (pre-receive hook declined)\nerror: failed to push some refs to 'https://gitee.com/xishiyao/d5.git'",
+  "git_output": "remote: Powered by \u001b[01;33mGITEE.COM \u001b[0m[1.1.23]        \nremote: Set trace flag a14ac997        \nremote: Auth error: No permission to push this protected branch        \nTo https://gitee.com/xishiyao/d5.git\n ! [remote rejected] ec74c1ba0c666d7439d642b012d0602b64bb4bad -> main (pre-receive hook declined)\nerror: failed to push some refs to 'https://gitee.com/xishiyao/d5.git'",
   "conclusion": "主分支受保护：直推被拒绝"
 }
