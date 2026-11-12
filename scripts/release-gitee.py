@@ -409,6 +409,13 @@ def step_merge_resilient(repo: Path, token: str, owner: str, name: str,
     log(f"  撤保护后再次 MCP 合并（exit={code}），原始报文已归档到 evidence/gitee-mcp/")
     _, sha = _read_main_sha(token, owner, name)
     if not (sha and sha != before_sha):
+        notes.append("撤除保护规则后合并仍被服务端拒绝（该平台的 PR 合并要求「测试通过」，"
+                     "而 PR 的测试人验收只能在账号本人界面完成），"
+                     "已立即恢复保护规则，主分支仍处于受保护状态。")
+        ok, rule = step_protect(token, owner, name, branch)
+        if ok:
+            step_read_protection(token, owner, name, branch, rule)
+            log("  保护规则已恢复并重新归档")
         return None, notes
     notes.append("临时移除保护规则后合并成功，随即恢复保护规则并以真实推送实测拦截。")
     ok, rule = step_protect(token, owner, name, branch)
