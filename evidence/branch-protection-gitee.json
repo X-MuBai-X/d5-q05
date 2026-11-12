@@ -1,9 +1,9 @@
 {
-  "read_at": "2026-11-12T13:51:01.587373+08:00",
+  "read_at": "2026-11-12T14:06:42.257894+08:00",
   "source": "Gitee REST API PUT /repos/{owner}/{repo}/branches/setting/new 的返回体（该平台未暴露保护规则读取端点，只有 PUT/DELETE，故以设置返回体为准）",
   "endpoint": "/repos/xishiyao/d5/branches/setting/new",
   "protection_rule": {
-    "id": 2833331,
+    "id": 2833340,
     "project_id": 51424093,
     "wildcard": "main",
     "pushers": "none",
