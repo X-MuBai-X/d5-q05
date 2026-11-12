@@ -182,12 +182,30 @@ def step_remote(repo: Path, remote: str, remote_url: str) -> bool:
 def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
     log("步骤 1/11：推送 main 与 dev/05")
     env = git_env(token, proxy)
-    for branch in ("main", "dev/05"):
-        code, out = run(["git", "-C", str(repo), "push", "-u", remote, branch], env=env)
-        if code != 0:
-            log(f"  失败：推送 {branch} 失败\n{out.strip()[:600]}")
+    code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
+    if code != 0:
+        log(f"  失败：fetch 远端 main 失败\n{out.strip()[:400]}")
+        return False
+    code, out = run(["git", "-C", str(repo), "push", "-u", remote, "dev/05"], env=env)
+    if code != 0:
+        log(f"  失败：推送 dev/05 失败\n{out.strip()[:600]}")
+        return False
+    log("  已推送 dev/05")
+    code, out = run(["git", "-C", str(repo), "push", "-u", remote, "main"], env=env)
+    if code != 0:
+        # 远端 main 可能已经存在**不同源**的初始化提交（例如仓库在 GitHub 端创建时
+        # 产生的空 Initial commit）。此时不做强制推送：只要远端 main 已被开发分支
+        # 吸收（即它是 dev/05 的祖先），就认为基线已对齐。
+        ancestor, _ = run(["git", "-C", str(repo), "merge-base", "--is-ancestor",
+                           "origin/main", "dev/05"])
+        if ancestor == 0:
+            log("  远端 main 已是 dev/05 的祖先（远端初始化提交已被开发分支吸收），"
+                "不重复推送 main，也不做任何强制推送")
+        else:
+            log(f"  失败：推送 main 失败\n{out.strip()[:600]}")
             return False
-        log(f"  已推送 {branch}")
+    else:
+        log("  已推送 main")
     return True
 
 
