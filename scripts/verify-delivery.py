@@ -114,17 +114,29 @@ def iter_repo_files(repo: Path):
         yield path
 
 
+INIT_COMMIT_RE = re.compile(r"(?i)^(initial\s*commit|init|初始化.*|新建仓库.*)$")
+
+
 def check_commit_messages(repo: Path) -> list[dict]:
-    """D-03 的一部分：提交消息格式与编号必填规则。"""
+    """D-03 的一部分：提交消息格式与编号必填规则。
+
+    共同要求第 8 节第 2 条明确「允许初始化空仓库所必需的 README 等初始记录」，
+    因此**远端初始化提交**（主题为 Initial commit / init / 初始化…）不适用本格式规则。
+    这类提交会被**逐条列出**（不做静默过滤），其余提交一律严格判定。
+    """
     code, out = git(repo, "log", "--format=%H%x09%s", "dev/05")
     if code != 0:
         return [{"id": "MSG", "status": "PENDING", "detail": f"无法读取 dev/05 提交：{out.strip()}"}]
     results = []
     bad = []
+    exempted = []
     for line in out.splitlines():
         if not line.strip():
             continue
         sha, _, subject = line.partition("\t")
+        if INIT_COMMIT_RE.match(subject.strip()):
+            exempted.append(f"{sha[:7]} {subject}")
+            continue
         parsed = parse_message(subject)
         if parsed is None:
             bad.append(f"{sha[:7]} 格式不合规：{subject}")
@@ -135,32 +147,68 @@ def check_commit_messages(repo: Path) -> list[dict]:
                 bad.append(f"{sha[:7]} 缺版本号：{subject}")
             elif not num:
                 bad.append(f"{sha[:7]} 缺工作项编号：{subject}")
+    detail = ("dev/05 全部提交符合 `[类型] [版本号] [#编号] 描述`，且 feat/fix 均带版本号与编号"
+              if not bad else "；".join(bad[:10]))
+    if exempted:
+        detail += (f"；另有 {len(exempted)} 条远端初始化提交按共同要求第 8 节第 2 条豁免格式规则："
+                   + "、".join(exempted))
     results.append({
         "id": "提交消息格式与编号必填",
         "status": "PASS" if not bad else "FAIL",
-        "detail": "dev/05 全部提交符合 `[类型] [版本号] [#编号] 描述`，且 feat/fix 均带版本号与编号"
-        if not bad else "；".join(bad[:10]),
+        "detail": detail,
     })
     return results
 
 
 def check_mcp_repo_creation(repo: Path) -> list[dict]:
-    """D-01：MCP 建仓报文存在，含工具名、请求、结果、时间与仓库 URL。"""
-    d = repo / "evidence" / "gitee-mcp"
-    files = sorted(d.glob("*create_repo*.json")) if d.is_dir() else []
-    if not files:
+    """D-01：MCP 建仓报文存在，含工具名、请求、结果、时间与仓库 URL。
+
+    题面第 8 节第 1 条写的主平台是 GitHub，本机可用的等价平台是 Gitee，
+    因此两个平台的 MCP 报文目录都接受（工具名分别为 create_repository / create_repo），
+    但**只认已落盘的原始报文**，不接受手工说明。
+    """
+    hits = []
+    for platform, tool_names in (("github-mcp", ("create_repository",)),
+                                 ("gitee-mcp", ("create_repo",))):
+        d = repo / "evidence" / platform
+        if not d.is_dir():
+            continue
+        for f in sorted(d.glob("*.json")):
+            if not any(t in f.name for t in tool_names):
+                continue
+            try:
+                payload = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                continue
+            hits.append((f, payload, tool_names))
+    if not hits:
         return [{"id": "D-01 MCP 建仓证据", "status": "PENDING",
-                 "detail": "evidence/gitee-mcp/ 下暂无 create_repo 报文（远端建仓动作未执行）"}]
-    payload = json.loads(files[0].read_text(encoding="utf-8"))
-    need = ["tool", "called_at", "request", "response"]
-    missing = [k for k in need if not payload.get(k)]
-    blob = json.dumps(payload, ensure_ascii=False)
-    has_url = "gitee.com" in blob
-    status = "PASS" if not missing and has_url and payload.get("tool") == "create_repo" else "FAIL"
-    return [{"id": "D-01 MCP 建仓证据",
-              "status": status,
-              "detail": f"{files[0].name}：工具={payload.get('tool')}，时间={payload.get('called_at')}，"
-                        f"含仓库 URL={'是' if has_url else '否'}"}]
+                 "detail": "evidence/{github,gitee}-mcp/ 下暂无建仓报文（远端建仓动作未执行）"}]
+    results = []
+    for f, payload, tool_names in hits:
+        need = ["tool", "called_at", "request", "response"]
+        missing = [k for k in need if not payload.get(k)]
+        resp = payload.get("response") or {}
+        resp_blob = json.dumps(resp, ensure_ascii=False)
+        is_error = bool(resp.get("isError")) or bool((resp.get("result") or {}).get("isError"))
+        # 仓库 URL 必须出现在**响应**里，且是仓库页地址（不是 API 端点）
+        repo_url = re.search(r"https://(?:www\.)?(?:github|gitee)\.com/(?!api\.)[\w.\-]+/[\w.\-]+",
+                             resp_blob)
+        failed = is_error or bool(re.search(r"(?i)(failed to create|403|forbidden|not accessible)",
+                                            resp_blob))
+        ok = (not missing and not failed and payload.get("tool") in tool_names
+              and repo_url is not None)
+        detail = (f"{f.name}：工具={payload.get('tool')}，时间={payload.get('called_at')}，"
+                  f"响应中的仓库 URL={repo_url.group(0) if repo_url else '未出现'}")
+        if failed:
+            detail += "；服务端返回失败：" + resp_blob[:200]
+        if missing:
+            detail += "；报文缺字段：" + "、".join(missing)
+        results.append({
+            "id": "D-01 MCP 建仓证据",
+            "status": "PASS" if ok else "FAIL",
+            "detail": detail})
+    return results
 
 
 def check_pr_description(repo: Path) -> list[dict]:
@@ -187,11 +235,18 @@ def check_pr_description(repo: Path) -> list[dict]:
 
 
 def check_branch_protection(repo: Path) -> list[dict]:
-    """D-05：主分支保护读取结果。"""
-    p = repo / "evidence" / "branch-protection.json"
-    if not p.is_file():
+    """D-05：主分支保护读取结果。
+
+    保护规则的归档文件名随平台不同（GitHub 侧 branch-protection.json，
+    Gitee 侧 branch-protection-gitee.json），两个都接受，但**只认已落盘的归档**。
+    """
+    candidates = [repo / "evidence" / name for name in
+                  ("branch-protection.json", "branch-protection-gitee.json",
+                   "branch-protection-github.json")]
+    p = next((c for c in candidates if c.is_file()), None)
+    if p is None:
         return [{"id": "D-05 主分支保护", "status": "PENDING",
-                 "detail": "evidence/branch-protection.json 不存在（保护规则尚未读取归档）"}]
+                 "detail": "evidence/branch-protection*.json 不存在（保护规则尚未读取归档）"}]
     blob = p.read_text(encoding="utf-8", errors="replace")
     checks = {
         "禁止直接推送": r"(?i)(push|push_permission|禁止推送|allowed_pushes)",
@@ -202,8 +257,8 @@ def check_branch_protection(repo: Path) -> list[dict]:
     missing = [k for k, pat in checks.items() if not re.search(pat, blob)]
     return [{"id": "D-05 主分支保护",
               "status": "PASS" if not missing else "FAIL",
-              "detail": "保护规则读取结果含禁止直推/删除/强推与 PR 合并要求"
-              if not missing else "读取结果中未见：" + "、".join(missing)}]
+              "detail": f"{p.name}：保护规则读取结果含禁止直推/删除/强推与 PR 合并要求"
+              if not missing else f"{p.name}：读取结果中未见：" + "、".join(missing)}]
 
 
 def check_merge_and_gate(repo: Path) -> list[dict]:
@@ -281,35 +336,84 @@ def check_secret_scan(repo: Path) -> list[dict]:
 
 
 def check_remote_branches(repo: Path) -> list[dict]:
-    """D-02：远端 main 仅初始化提交，业务提交在 dev/05。"""
+    """D-02：远端分支承载与主分支内容的来源。
+
+    共同要求第 8 节第 2/3 条：默认主分支 main；**允许**初始化空仓库所必需的
+    README 等初始记录留在 main；业务内容先在 dev/<题号> 分支提交，再经 PR 合入 main。
+    因此远端 main 的合法状态有两种：
+      ① 仅含初始化提交（尚未合并 PR 的早期状态）；
+      ② 由 PR 合并而来的**合并提交**（父提交数为 2，且第二父提交 == 远端 dev/05 头部）。
+    两种状态都判定为合规；「直接推送业务内容到 main」由分支保护的**真实推送实测**
+    证据判定（evidence/branch-protection*-verify.json 的 rejected_by_protection）。
+
+    远端平台可能是 GitHub 或 Gitee（题面主平台与本机可用平台差异已在 docs/10 登记），
+    因此逐个尝试已配置的远端，取**第一个能连通**的（优先 gitee，其次 origin）。
+    """
     code, out = git(repo, "remote")
     if code != 0 or not out.strip():
         return [{"id": "D-02 远端分支承载", "status": "PENDING", "detail": "仓库尚未配置远端"}]
-    code, refs = git(repo, "ls-remote", "--heads", "origin")
-    if code != 0:
+    remotes = out.split()
+    order = ([r for r in ("gitee", "origin") if r in remotes]
+             + [r for r in remotes if r not in ("gitee", "origin")])
+    branches: dict[str, str] = {}
+    used_remote = ""
+    errors: list[str] = []
+    for remote in order:
+        code, refs = git(repo, "ls-remote", "--heads", remote)
+        if code != 0:
+            errors.append(f"{remote}: {refs.strip()[:160]}")
+            continue
+        branches = {}
+        for line in refs.splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                branches[parts[1].replace("refs/heads/", "")] = parts[0]
+        used_remote = remote
+        break
+    if not used_remote:
         return [{"id": "D-02 远端分支承载", "status": "PENDING",
-                 "detail": f"无法读取远端分支：{refs.strip()}"}]
-    branches = {}
-    for line in refs.splitlines():
-        parts = line.split()
-        if len(parts) == 2:
-            branches[parts[1].replace("refs/heads/", "")] = parts[0]
+                 "detail": "无法读取任何远端分支：" + "；".join(errors)}]
     need = {"main", "dev/05"}
     missing = need - set(branches)
     if missing:
         return [{"id": "D-02 远端分支承载", "status": "FAIL",
-                 "detail": "远端缺少分支：" + "、".join(sorted(missing))}]
-    # 远端 main 是否只有初始化提交
-    code, out = git(repo, "ls-remote", "--heads", "origin", "main")
-    main_sha = out.split()[0] if out.split() else ""
+                 "detail": f"远端 {used_remote} 缺少分支：" + "、".join(sorted(missing))}]
+
+    main_sha = branches["main"]
+    dev_sha = branches["dev/05"]
+    code, cat = git(repo, "cat-file", "-p", main_sha)
+    parents = [ln.split()[1] for ln in cat.splitlines() if ln.startswith("parent ")] if code == 0 else []
     code2, count = git(repo, "rev-list", "--count", main_sha)
     n = count.strip() if code2 == 0 else "?"
-    results = [{
-        "id": "D-02 远端分支承载",
-        "status": "PASS" if n == "1" else ("FAIL" if n != "?" else "PENDING"),
-        "detail": f"远端分支 {sorted(branches)}；远端 main 提交数={n}（应为 1，即仅初始化提交）",
-    }]
-    return results
+
+    # 分支保护实测证据（直推是否被服务端拒绝）
+    protect = ""
+    for name in ("branch-protection-gitee-verify.json", "branch-protection-verify.json",
+                 "branch-protection-github-verify.json"):
+        p = repo / "evidence" / name
+        if p.is_file():
+            blob = p.read_text(encoding="utf-8", errors="replace")
+            protect = ("真实推送实测直推被服务端拒绝"
+                       if '"rejected_by_protection": true' in blob.replace("True", "true")
+                       else "保护实测证据存在但未标记为已拒绝直推")
+            break
+
+    if len(parents) >= 2 and parents[1] == dev_sha:
+        status = "PASS"
+        detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 头部 {main_sha[:7]} 是"
+                  f"**合并提交**（父提交数={len(parents)}，第二父提交 = 远端 dev/05 头部 {dev_sha[:7]}），"
+                  f"业务内容经 PR 合入 main 而非直推；main 提交数={n}"
+                  + (f"；{protect}" if protect else ""))
+    elif len(parents) <= 1 and n == "1":
+        status = "PASS"
+        detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 仅含初始化提交"
+                  f"（提交数=1，{main_sha[:7]}），业务提交在 dev/05"
+                  + (f"；{protect}" if protect else ""))
+    else:
+        status = "FAIL"
+        detail = (f"远端 {used_remote} 的 main 既不是初始化单提交，也不是来自 dev/05 的合并提交"
+                  f"（父提交数={len(parents)}，提交数={n}）")
+    return [{"id": "D-02 远端分支承载", "status": status, "detail": detail}]
 
 
 def main() -> int:
