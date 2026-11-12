@@ -1,6 +1,6 @@
 {
   "source_events": "evidence\\会话事件清单.jsonl",
-  "repo_file_write_events": 346,
+  "repo_file_write_events": 358,
   "milestones": [
     {
       "milestone": "需求分析（docs/01）",
@@ -66,28 +66,28 @@
       "via": "task_call"
     },
     {
-      "seq": 2634,
+      "seq": 2685,
       "time": "2026-11-11T14:38:48.785000+08:00",
       "agent": "explore",
       "description": "子会话首条投递消息（父会话下发的任务提示词原文）",
       "via": "session_delivery"
     },
     {
-      "seq": 2700,
+      "seq": 2751,
       "time": "2026-11-11T20:14:40.343000+08:00",
       "agent": "worker",
       "description": "子会话首条投递消息（父会话下发的任务提示词原文）",
       "via": "session_delivery"
     },
     {
-      "seq": 2990,
+      "seq": 3041,
       "time": "2026-11-11T21:40:49.037000+08:00",
       "agent": "verifier",
       "description": "子会话首条投递消息（父会话下发的任务提示词原文）",
       "via": "session_delivery"
     },
     {
-      "seq": 3235,
+      "seq": 3286,
       "time": "2026-11-11T21:41:01.268000+08:00",
       "agent": "verifier",
       "description": "子会话首条投递消息（父会话下发的任务提示词原文）",
@@ -146,7 +146,7 @@
       "tool": "bash"
     },
     {
-      "seq": 3026,
+      "seq": 3077,
       "time": "2026-11-11T21:41:50.742000+08:00",
       "tool": "bash"
     }
@@ -246,6 +246,21 @@
       "sha": "089c66a",
       "time": "2026-11-12T09:24:54+08:00",
       "subject": "[opt] [v2.3.0] 增加工作项编号核验脚本并归档真实核验输出"
+    },
+    {
+      "sha": "68397a0",
+      "time": "2026-11-12T09:36:33+08:00",
+      "subject": "[opt] [v2.3.0] 扩展会话导出覆盖子会话并新增过程时序推导脚本"
+    },
+    {
+      "sha": "914c83b",
+      "time": "2026-11-12T09:36:33+08:00",
+      "subject": "[docs] [v2.3.0] 重新导出会话事件清单并归档过程时序与编号改写证据"
+    },
+    {
+      "sha": "1aa0fbe",
+      "time": "2026-11-12T09:36:34+08:00",
+      "subject": "[docs] [v2.3.0] 订正工作项编号与开发顺序记录并补齐需求分析第十一节"
     }
   ]
 }

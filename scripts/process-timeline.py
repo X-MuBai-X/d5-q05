@@ -182,9 +182,10 @@ def main() -> int:
     md.append("")
 
     Path(args.out_md).parent.mkdir(parents=True, exist_ok=True)
-    Path(args.out_md).write_text("\n".join(md) + "\n", encoding="utf-8")
-    Path(args.out_json).write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-                                   encoding="utf-8")
+    with open(args.out_md, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write("\n".join(md) + "\n")
+    with open(args.out_json, "w", encoding="utf-8", newline="\n") as fh:
+        fh.write(json.dumps(payload, ensure_ascii=False, indent=2) + "\n")
     print(f"[process-timeline] milestones={len(milestones)} writes={len(files)} -> {args.out_md}")
     for m in milestones:
         print(f"  {m['first_write']}  {m['milestone']}  ({m['path']})")

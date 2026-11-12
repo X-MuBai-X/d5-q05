@@ -261,7 +261,7 @@ def main() -> int:
     events = extract_events(msgs)
 
     os.makedirs(os.path.dirname(out_jsonl) or ".", exist_ok=True)
-    with open(out_jsonl, "w", encoding="utf-8") as fh:
+    with open(out_jsonl, "w", encoding="utf-8", newline="\n") as fh:
         for ev in events:
             fh.write(json.dumps(ev, ensure_ascii=False) + "\n")
 
@@ -397,7 +397,7 @@ def main() -> int:
     lines.append("")
 
     os.makedirs(os.path.dirname(out_md) or ".", exist_ok=True)
-    with open(out_md, "w", encoding="utf-8") as fh:
+    with open(out_md, "w", encoding="utf-8", newline="\n") as fh:
         fh.write("\n".join(lines))
 
     print(f"[export_session] events={len(events)} prompts={len(prompts)} "
