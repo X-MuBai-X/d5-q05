@@ -1,0 +1,37 @@
+{
+  "mcp_server": {
+    "endpoint": "https://api.gitee.com/mcp",
+    "server": "gitee-mcp-remote",
+    "protocol": "MCP JSON-RPC over Streamable HTTP"
+  },
+  "tool": "list_repo_pulls",
+  "called_at": "2026-11-12T15:50:45.282827+08:00",
+  "elapsed_ms": 299,
+  "mcp_session_id": null,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "list_repo_pulls",
+      "arguments": {
+        "owner": "xishiyao",
+        "repo": "d5",
+        "state": "open",
+        "per_page": 20
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[]"
+        }
+      ]
+    }
+  }
+}
