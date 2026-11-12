@@ -1,0 +1,14 @@
+{
+  "read_at": "2026-11-12T16:03:24.286023+08:00",
+  "head_sha": "e71aa46ca123066b9fe64d2d5c96f0d2a68ddbcb",
+  "check_runs": [
+    {
+      "name": "质量门禁（gofmt / vet / test / cover / race）",
+      "status": "in_progress",
+      "conclusion": null,
+      "started_at": "2026-11-12T08:03:13Z",
+      "completed_at": null,
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43179815473/job/131052789143"
+    }
+  ]
+}
