@@ -215,6 +215,7 @@ func TestBuildDailyReportConsistent(t *testing.T) {
 	}
 }
 
+// TestBuildDailyReportDetectsMismatch 验证成功记录数与用量次数不一致时日报报警。
 func TestBuildDailyReportDetectsMismatch(t *testing.T) {
 	counts := map[RequestStatus]int{RequestSuccess: 2}
 	usage := Usage{TenantID: "t", Day: "2026-01-01", QuotaLimit: 10, Success: 5}
@@ -225,6 +226,52 @@ func TestBuildDailyReportDetectsMismatch(t *testing.T) {
 	if report.MismatchNote == "" {
 		t.Fatalf("不一致时应给出差异说明")
 	}
+}
+
+// TestBuildDailyReportFlagsOccupancyAboveQuota 验证占用超过额度时日报必须报警。
+//
+// 独立验收 Agent 实测：并发降额可让占用超过额度，
+// 而当时的日报仍返回 consistent=true，运营看不出超额（D1）。
+func TestBuildDailyReportFlagsOccupancyAboveQuota(t *testing.T) {
+	counts := map[RequestStatus]int{RequestSuccess: 3}
+	usage := Usage{TenantID: "t", Day: "2026-01-01", QuotaLimit: 2, Success: 3}
+	report := BuildDailyReport("t", "2026-01-01", counts, usage, nil, nil)
+	if report.Consistent {
+		t.Fatalf("占用 3 超过额度 2，Consistent 应为 false")
+	}
+	if report.MismatchNote == "" {
+		t.Fatalf("占用超过额度时应给出差异说明")
+	}
+	if report.Remaining != 0 {
+		t.Fatalf("Remaining = %d, 期望 0（超额时不得出现负数）", report.Remaining)
+	}
+}
+
+// TestBuildDailyReportFlagsBothInconsistencies 验证两类不一致同时出现时都要写进差异说明。
+func TestBuildDailyReportFlagsBothInconsistencies(t *testing.T) {
+	counts := map[RequestStatus]int{RequestSuccess: 1}
+	usage := Usage{TenantID: "t", Day: "2026-01-01", QuotaLimit: 1, Success: 5}
+	report := BuildDailyReport("t", "2026-01-01", counts, usage, nil, nil)
+	if report.Consistent {
+		t.Fatalf("两类不一致同时存在，Consistent 应为 false")
+	}
+	note := report.MismatchNote
+	if note == "" {
+		t.Fatalf("不一致时应给出差异说明")
+	}
+	if !containsAll(note, "成功记录数", "超过日额度") {
+		t.Fatalf("差异说明应同时包含两类问题，实际 %q", note)
+	}
+}
+
+// containsAll 判断文本是否包含全部关键字。
+func containsAll(text string, keys ...string) bool {
+	for _, k := range keys {
+		if !strings.Contains(text, k) {
+			return false
+		}
+	}
+	return true
 }
 
 // TestBuildDailyReportListsAllStatuses 验证日报始终列出 R8 要求的五类终态，

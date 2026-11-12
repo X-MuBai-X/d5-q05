@@ -59,6 +59,14 @@ func seedTenant(t *testing.T, db *DB, id string, quota int) {
 	}
 }
 
+// setQuota 调整租户日额度（额度以 tenants.daily_quota 为唯一事实来源）。
+func setQuota(t *testing.T, db *DB, tenantID string, quota int) {
+	t.Helper()
+	if err := db.UpdateTenantQuota(context.Background(), tenantID, quota); err != nil {
+		t.Fatalf("调整租户额度失败: %v", err)
+	}
+}
+
 // ---------- 租户 ----------
 
 func TestTenantCRUD(t *testing.T) {
@@ -443,16 +451,17 @@ func TestRejectedAttempts(t *testing.T) {
 func TestReserveInflightRespectsQuota(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
+	setQuota(t, db, "t1", 2)
 
-	ok, err := db.ReserveInflight(ctx, "t1", "2026-01-01", 2)
+	ok, err := db.ReserveInflight(ctx, "t1", "2026-01-01")
 	if err != nil || !ok {
 		t.Fatalf("第一次占用应成功: ok=%v err=%v", ok, err)
 	}
-	ok, err = db.ReserveInflight(ctx, "t1", "2026-01-01", 2)
+	ok, err = db.ReserveInflight(ctx, "t1", "2026-01-01")
 	if err != nil || !ok {
 		t.Fatalf("第二次占用应成功: ok=%v err=%v", ok, err)
 	}
-	ok, err = db.ReserveInflight(ctx, "t1", "2026-01-01", 2)
+	ok, err = db.ReserveInflight(ctx, "t1", "2026-01-01")
 	if err != nil {
 		t.Fatalf("第三次占用不应报错: %v", err)
 	}
@@ -475,7 +484,8 @@ func TestReserveInflightRespectsQuota(t *testing.T) {
 func TestCommitSuccessAndRelease(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
-	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01", 5); err != nil {
+	setQuota(t, db, "t1", 5)
+	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01"); err != nil {
 		t.Fatalf("占用失败: %v", err)
 	}
 	if err := db.CommitSuccess(ctx, "t1", "2026-01-01"); err != nil {
@@ -489,7 +499,7 @@ func TestCommitSuccessAndRelease(t *testing.T) {
 		t.Fatalf("占用数 = %d, 期望 1", usage.Occupied())
 	}
 
-	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01", 5); err != nil {
+	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01"); err != nil {
 		t.Fatalf("占用失败: %v", err)
 	}
 	if err := db.ReleaseInflight(ctx, "t1", "2026-01-01"); err != nil {
@@ -529,6 +539,7 @@ func TestGetDayUsageWithoutRow(t *testing.T) {
 func TestReserveInflightConcurrentLastSlot(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
+	setQuota(t, db, "t1", 1)
 
 	const workers = 16
 	var wg sync.WaitGroup
@@ -539,7 +550,7 @@ func TestReserveInflightConcurrentLastSlot(t *testing.T) {
 	for i := 0; i < workers; i++ {
 		go func() {
 			defer wg.Done()
-			ok, err := db.ReserveInflight(ctx, "t1", "2026-01-01", 1)
+			ok, err := db.ReserveInflight(ctx, "t1", "2026-01-01")
 			if err != nil {
 				t.Errorf("并发占用出错: %v", err)
 				return
@@ -559,6 +570,100 @@ func TestReserveInflightConcurrentLastSlot(t *testing.T) {
 	usage, _ := db.GetDayUsage(ctx, "t1", "2026-01-01", 1)
 	if usage.InFlight != 1 {
 		t.Fatalf("处理中计数 = %d, 期望 1", usage.InFlight)
+	}
+}
+
+// TestReserveInflightNeverExceedsLiveQuota 验证并发占用与并发降额下
+// 「当日占用不超过额度」始终成立（D1 回归）。
+//
+// 额度上限必须在同一条语句内读取 tenants.daily_quota 的实时值，
+// 否则并发降额与并发占用交错时会出现占用超过额度。
+func TestReserveInflightNeverExceedsLiveQuota(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	for trial := 0; trial < 20; trial++ {
+		setQuota(t, db, "t1", 100)
+		usage, err := db.GetDayUsage(ctx, "t1", "2026-01-01", 100)
+		if err != nil {
+			t.Fatalf("读取用量失败: %v", err)
+		}
+		target := usage.Occupied()
+
+		var wg sync.WaitGroup
+		start := make(chan struct{})
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			<-start
+			// 降到当前占用：单线程语义下合法，并发抬高占用时应被拒绝。
+			_, _ = db.UpdateTenantQuotaWithFloor(ctx, "t1", "2026-01-01", target)
+		}()
+		for i := 0; i < 8; i++ {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				<-start
+				_, _ = db.ReserveInflight(ctx, "t1", "2026-01-01")
+			}()
+		}
+		close(start)
+		wg.Wait()
+
+		tenant, terr := db.GetTenant(ctx, "t1")
+		if terr != nil {
+			t.Fatalf("读取租户失败: %v", terr)
+		}
+		final, err := db.GetDayUsage(ctx, "t1", "2026-01-01", tenant.DailyQuota)
+		if err != nil {
+			t.Fatalf("读取用量失败: %v", err)
+		}
+		if final.Occupied() > tenant.DailyQuota {
+			t.Fatalf("第 %d 轮：占用 %d 超过额度 %d", trial, final.Occupied(), tenant.DailyQuota)
+		}
+	}
+}
+
+// TestUpdateTenantQuotaWithFloorRejectsBelowOccupied 验证降额下限判定与写入是同一条语句。
+func TestUpdateTenantQuotaWithFloorRejectsBelowOccupied(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+	setQuota(t, db, "t1", 5)
+
+	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01"); err != nil {
+		t.Fatalf("占用失败: %v", err)
+	}
+
+	// 占用为 1 时降到 0 必须被拒绝。
+	ok, err := db.UpdateTenantQuotaWithFloor(ctx, "t1", "2026-01-01", 0)
+	if err != nil {
+		t.Fatalf("降额不应报错: %v", err)
+	}
+	if ok {
+		t.Fatalf("占用高于新额度时不应更新")
+	}
+	tenant, _ := db.GetTenant(ctx, "t1")
+	if tenant.DailyQuota != 5 {
+		t.Fatalf("被拒绝的降额不应改变额度，实际 %d", tenant.DailyQuota)
+	}
+
+	// 降到与占用相等必须允许。
+	ok, err = db.UpdateTenantQuotaWithFloor(ctx, "t1", "2026-01-01", 1)
+	if err != nil {
+		t.Fatalf("降额报错: %v", err)
+	}
+	if !ok {
+		t.Fatalf("降到等于占用时应允许")
+	}
+	tenant, _ = db.GetTenant(ctx, "t1")
+	if tenant.DailyQuota != 1 {
+		t.Fatalf("额度 = %d, 期望 1", tenant.DailyQuota)
+	}
+
+	// 升额永远允许。
+	ok, err = db.UpdateTenantQuotaWithFloor(ctx, "t1", "2026-01-01", 9)
+	if err != nil || !ok {
+		t.Fatalf("升额应允许: ok=%v err=%v", ok, err)
 	}
 }
 
@@ -787,7 +892,7 @@ func TestOperationsOnClosedDB(t *testing.T) {
 	if err := db.IncrementReplay(ctx, "r1"); err == nil {
 		t.Fatalf("关闭后记录幂等命中应报错")
 	}
-	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01", 1); err == nil {
+	if _, err := db.ReserveInflight(ctx, "t1", "2026-01-01"); err == nil {
 		t.Fatalf("关闭后占用额度应报错")
 	}
 	if err := db.DeleteSession(ctx, "tok"); err == nil {

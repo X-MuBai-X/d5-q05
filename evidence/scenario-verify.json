@@ -7,7 +7,7 @@
       "scenario": "场景1",
       "assertion": "运营登录取得会话令牌",
       "status": "pass",
-      "detail": "HTTP 200，令牌 1605b8…(48位)"
+      "detail": "HTTP 200，令牌 00a18e…(48位)"
     },
     {
       "scenario": "场景1",
@@ -37,13 +37,13 @@
       "scenario": "场景1",
       "assertion": "管理员创建第一个凭证",
       "status": "pass",
-      "detail": "HTTP 200｜密钥 sk_347…(19位)"
+      "detail": "HTTP 200｜密钥 sk_111…(19位)"
     },
     {
       "scenario": "场景1",
       "assertion": "管理员创建第二个凭证",
       "status": "pass",
-      "detail": "HTTP 200｜密钥 sk_358…(19位)"
+      "detail": "HTTP 200｜密钥 sk_e63…(19位)"
     },
     {
       "scenario": "场景1",
@@ -145,7 +145,7 @@
       "scenario": "场景2",
       "assertion": "额度变更留痕：记录了操作人、原因与生效时间",
       "status": "pass",
-      "detail": "operator=ops｜reason=场景2 活动增额：演示活动临时扩容 5 次｜effective_at=2026-11-11T13:34:17.7867962Z"
+      "detail": "operator=ops｜reason=场景2 活动增额：演示活动临时扩容 5 次｜effective_at=2026-11-12T00:58:58.9165603Z"
     },
     {
       "scenario": "场景3",
@@ -247,7 +247,7 @@
       "scenario": "场景4",
       "assertion": "超时判定在 2 秒硬时限附近作出",
       "status": "pass",
-      "detail": "耗时 2.01s"
+      "detail": "耗时 2.03s"
     },
     {
       "scenario": "场景4",
@@ -421,7 +421,7 @@
       "scenario": "场景5",
       "assertion": "新请求归属新的 UTC 自然日",
       "status": "pass",
-      "detail": "HTTP 200｜当日=2026-11-11｜次日=2026-11-13"
+      "detail": "HTTP 200｜当日=2026-11-12｜次日=2026-11-14"
     },
     {
       "scenario": "场景5",

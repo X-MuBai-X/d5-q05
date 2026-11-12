@@ -246,7 +246,7 @@ func seedProcessingRequest(t *testing.T, db *store.DB, requestNo string) *domain
 	if err := db.InsertRequest(ctx, req); err != nil {
 		t.Fatalf("写入请求失败: %v", err)
 	}
-	if _, err := db.ReserveInflight(ctx, testTenantA, testDay, 10); err != nil {
+	if _, err := db.ReserveInflight(ctx, testTenantA, testDay); err != nil {
 		t.Fatalf("占用额度失败: %v", err)
 	}
 	return req

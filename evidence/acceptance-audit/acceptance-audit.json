@@ -28,7 +28,7 @@
       "rule": "共同",
       "name": "整体与核心包覆盖率达标",
       "status": "pass",
-      "evidence": "整体 89.2%（阈值 85%）；核心包 domain 97.1%、store 94.9%、service 87.2%、httpapi 87.5%、upstream 87.1%",
+      "evidence": "整体 89.4%（阈值 85%）；核心包 domain 97.3%、store 94.4%、service 87.7%、httpapi 87.7%、upstream 87.1%",
       "note": ""
     },
     {
@@ -52,7 +52,7 @@
       "rule": "共同",
       "name": "证据中无明文口令/密钥",
       "status": "pass",
-      "evidence": "证据与文档中未发现明文口令/密钥",
+      "evidence": "证据与文档中未发现明文口令/密钥（无白名单，全量扫描）",
       "note": ""
     },
     {
@@ -132,7 +132,7 @@
       "rule": "R1",
       "name": "按租户创建凭证，租户归属由服务端推导",
       "status": "pass",
-      "evidence": "internal/httpapi/handlers.go:34（创建凭证接口）；internal/service/service.go:287（服务层按租户创建凭证）",
+      "evidence": "internal/httpapi/handlers.go:34（创建凭证接口）；internal/service/service.go:307（服务层按租户创建凭证）",
       "note": ""
     },
     {
@@ -148,7 +148,7 @@
       "rule": "R1",
       "name": "凭证数量租户级上限 2 个",
       "status": "pass",
-      "evidence": "internal/service/service.go:58（凭证上限字段）；internal/service/service.go:295（凭证上限校验）",
+      "evidence": "internal/service/service.go:58（凭证上限字段）；internal/service/service.go:315（凭证上限校验）",
       "note": ""
     },
     {
@@ -172,7 +172,7 @@
       "rule": "R2",
       "name": "额度占用原子完成，防止并发超限",
       "status": "pass",
-      "evidence": "internal/store/store.go:550（原子占用）；internal/store/store.go:551（带条件的额度判定）",
+      "evidence": "internal/store/store.go:556（原子占用）；internal/store/store.go:558（额度上限在本条语句内实时读取）；internal/store/store.go:576（降额下限判定与写入同一条语句）",
       "note": ""
     },
     {
@@ -204,7 +204,7 @@
       "rule": "R3",
       "name": "同编号同参数幂等，不重复计量",
       "status": "pass",
-      "evidence": "internal/service/service.go:411（幂等命中）；internal/service/service.go:399（幂等命中计数）",
+      "evidence": "internal/service/service.go:431（幂等命中）；internal/service/service.go:419（幂等命中计数）",
       "note": ""
     },
     {
@@ -220,7 +220,7 @@
       "rule": "R3",
       "name": "同编号不同参数拒绝",
       "status": "pass",
-      "evidence": "internal/service/service.go:394（参数不一致冲突）",
+      "evidence": "internal/service/service.go:414（参数不一致冲突）",
       "note": ""
     },
     {
@@ -252,7 +252,7 @@
       "rule": "R4",
       "name": "失败与超时释放占用且不计成功量",
       "status": "pass",
-      "evidence": "internal/service/service.go:473（失败/超时释放占用）；internal/service/service.go:545（成功实扣）",
+      "evidence": "internal/service/service.go:494（失败/超时释放占用）；internal/service/service.go:566（成功实扣）",
       "note": ""
     },
     {
@@ -276,7 +276,7 @@
       "rule": "R4",
       "name": "迟到结果只落诊断表",
       "status": "pass",
-      "evidence": "internal/store/schema.sql:117（诊断表）；internal/service/service.go:581（迟到结果写诊断）",
+      "evidence": "internal/store/schema.sql:117（诊断表）；internal/service/service.go:602（迟到结果写诊断）",
       "note": ""
     },
     {
@@ -300,7 +300,7 @@
       "rule": "R5",
       "name": "变更原因必填",
       "status": "pass",
-      "evidence": "internal/service/service.go:215（变更原因必填）",
+      "evidence": "internal/service/service.go:224（变更原因必填）",
       "note": ""
     },
     {
@@ -332,7 +332,7 @@
       "rule": "R6",
       "name": "停用租户后不再受理新调用",
       "status": "pass",
-      "evidence": "internal/service/service.go:424（租户停用后拒绝受理）",
+      "evidence": "internal/service/service.go:444（租户停用后拒绝受理）",
       "note": ""
     },
     {
@@ -348,7 +348,7 @@
       "rule": "R6",
       "name": "停用凭证后不再受理调用",
       "status": "pass",
-      "evidence": "internal/service/service.go:440（凭证停用后拒绝受理）",
+      "evidence": "internal/service/service.go:460（凭证停用后拒绝受理）",
       "note": ""
     },
     {
@@ -412,7 +412,7 @@
       "rule": "R8",
       "name": "日终报表按五类分列",
       "status": "pass",
-      "evidence": "internal/service/service.go:673（日终核查报表）；internal/domain/domain.go:254（五类分列结构）",
+      "evidence": "internal/service/service.go:694（日终核查报表）；internal/domain/domain.go:254（五类分列结构）",
       "note": ""
     },
     {
