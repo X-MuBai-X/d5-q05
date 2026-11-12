@@ -1,0 +1,125 @@
+# 合并到 main 后的门禁、构建与部署（题目 05）
+#
+# 共同要求第 8 节第 7 条：「合并后必须针对主分支实际合并版本重新执行质量门禁、
+# 构建和部署，记录部署提交、流水线及制品。」
+#
+# 本工作流在 **push 到 main** 时触发，输入即为主分支的合并版本；
+# 产出的制品与部署日志都携带触发该次构建的提交 SHA，便于核对「部署的是哪个版本」。
+
+name: main-gate-and-deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    name: 质量门禁（gofmt / vet / 单测 / 覆盖率 / -race）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: 记录被检提交
+        run: |
+          echo "GATE_COMMIT=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "提交：$(git rev-parse HEAD)  标题：$(git log -1 --format=%s)"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+
+      - name: gofmt
+        run: |
+          out=$(gofmt -l .)
+          if [ -n "$out" ]; then echo "gofmt 未通过："; echo "$out"; exit 1; fi
+          echo "gofmt 通过"
+
+      - name: go vet
+        run: go vet ./...
+
+      - name: 单元测试与覆盖率
+        run: |
+          go test ./... -count=1 -coverprofile=coverage.out -covermode=atomic
+          go tool cover -func=coverage.out | tail -n 1
+
+      - name: 覆盖率汇总
+        run: python scripts/coverage-summary.py --profile coverage.out --out coverage-summary.txt
+
+      - name: 竞态检测
+        run: go test ./... -race
+
+      - name: 上传覆盖率与门禁产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-gate-coverage-${{ github.sha }}
+          path: |
+            coverage.out
+            coverage-summary.txt
+          if-no-files-found: error
+
+  smoke:
+    name: 业务冒烟
+    runs-on: ubuntu-latest
+    needs: gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.27'
+      - name: 构建并启动双进程
+        run: |
+          mkdir -p deploy/bin deploy/data
+          go build -o deploy/bin/mockupstream ./cmd/mockupstream
+          go build -o deploy/bin/server ./cmd/server
+          ./deploy/bin/mockupstream -addr 127.0.0.1:9091 &
+          ./deploy/bin/server -addr 127.0.0.1:8080 -db deploy/data/main-gate.db -upstream http://127.0.0.1:9091 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz
+      - name: 冒烟断言
+        run: bash scripts/smoke-test.sh
+      - name: 上传冒烟记录
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-gate-smoke-${{ github.sha }}
+          path: evidence/smoke-test.log
+          if-no-files-found: error
+
+  deploy:
+    name: 部署（合并版本）
+    runs-on: ubuntu-latest
+    needs: [gate, smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - name: 构建制品
+        run: |
+          mkdir -p deploy/bin
+          go build -trimpath -o deploy/bin/server ./cmd/server
+          go build -trimpath -o deploy/bin/mockupstream ./cmd/mockupstream
+          sha256sum deploy/bin/server deploy/bin/mockupstream
+      - name: 部署并记录版本
+        run: |
+          ./deploy/bin/mockupstream -addr 127.0.0.1:9091 &
+          ./deploy/bin/server -addr 127.0.0.1:8080 -db deploy/data/deployed.db -upstream http://127.0.0.1:9091 &
+          for i in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:8080/healthz >/dev/null; then break; fi
+            sleep 1
+          done
+          curl -fsS http://127.0.0.1:8080/healthz
+          echo "部署提交：$(git rev-parse HEAD)"
+      - name: 上传部署记录与制品
+        uses: actions/upload-artifact@v4
+        with:
+          name: main-deploy-${{ github.sha }}
+          path: |
+            deploy/bin/**
+            deploy/data/**
+          if-no-files-found: error

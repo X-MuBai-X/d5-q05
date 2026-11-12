@@ -1,0 +1,23 @@
+# 代码归属与评审要求
+#
+# 共同要求第 8 节第 5 条要求主分支配置「禁止直接推送及删除、禁止强推，
+# 要求通过 PR 合并并通过规定的状态检查」。本文件声明各路径的评审责任人，
+# 供平台侧配置 CODEOWNERS / 评审人时使用。
+#
+# 注意：CODEOWNERS 里的 @账号 需替换为实际评审人；替换前该项属于待补证，
+# 详见 docs/10-交付与发布说明.md 的「待补证清单」。
+
+* @xishiyao
+
+# 计量口径与数据层改动必须由业务口径负责人评审
+/internal/domain/ @xishiyao
+/internal/store/ @xishiyao
+/internal/service/ @xishiyao
+
+# 交付链路（脚本、流水线、部署）改动必须评审
+/scripts/ @xishiyao
+/.github/ @xishiyao
+
+# 证据与文档改动
+/evidence/ @xishiyao
+/docs/ @xishiyao
