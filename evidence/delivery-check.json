@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-11-12T09:53:31.615215+08:00",
+  "counts": {
+    "PASS": 2,
+    "PENDING": 6,
+    "FAIL": 0
+  },
+  "checks": [
+    {
+      "id": "D-01 MCP 建仓证据",
+      "status": "PENDING",
+      "detail": "evidence/gitee-mcp/ 下暂无 create_repo 报文（远端建仓动作未执行）"
+    },
+    {
+      "id": "D-02 远端分支承载",
+      "status": "PENDING",
+      "detail": "仓库尚未配置远端"
+    },
+    {
+      "id": "提交消息格式与编号必填",
+      "status": "PASS",
+      "detail": "dev/05 全部提交符合 `[类型] [版本号] [#编号] 描述`，且 feat/fix 均带版本号与编号"
+    },
+    {
+      "id": "D-04 PR 描述要素",
+      "status": "PENDING",
+      "detail": "暂无 create_pull 报文（PR 未发起）"
+    },
+    {
+      "id": "D-05 主分支保护",
+      "status": "PENDING",
+      "detail": "evidence/branch-protection.json 不存在（保护规则尚未读取归档）"
+    },
+    {
+      "id": "D-06 合并提交保留原始提交",
+      "status": "PENDING",
+      "detail": "main 头部提交 d75aebd9a3e0，父提交数=0，消息=[docs] [v2.1.0] 初始化题目 05 项目仓库说明（尚未发生合并动作，待补证）"
+    },
+    {
+      "id": "D-07 合并提交上的门禁与部署",
+      "status": "PENDING",
+      "detail": "尚无 main-gate-*.log / deployment-main*.log"
+    },
+    {
+      "id": "D-09 仓库无令牌明文",
+      "status": "PASS",
+      "detail": "扫描 101 个文本文件，未命中令牌模式"
+    }
+  ]
+}
