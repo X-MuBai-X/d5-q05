@@ -399,18 +399,32 @@ def step_merge(repo: Path, token: str, owner: str, name: str, pr_number: str,
     return sha
 
 
-def step_fetch(repo: Path, remote: str, token: str, proxy: str, sha: str) -> bool:
+def step_fetch(repo: Path, remote: str, token: str, proxy: str, sha: str,
+               owner: str, name: str) -> bool:
     log(f"步骤 8/11：拉取合并提交 {sha[:12]} 到本地")
     env = git_env(token, proxy)
     code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
     if code != 0:
-        log(f"  失败：fetch 失败\n{out.strip()[:400]}")
-        return False
+        # 备用通道：git 传输主机不可达时，用 GitHub REST API 取回提交元数据并在本地重建对象。
+        log(f"  git fetch 失败（{out.strip()[:200]}），改用 GitHub API 重建提交对象 ...")
+        api_script = repo / "scripts" / "fetch-commit-via-github-api.py"
+        if api_script.is_file():
+            code2, out2 = run([sys.executable, str(api_script), "--repo", str(repo),
+                               "--owner", owner, "--name", name,
+                               "--sha", sha], env=env)
+            if code2 == 0:
+                log(f"  已通过 API 重建本地提交对象：{out2.strip()[-200:]}")
+            else:
+                log(f"  失败：API 重建提交对象失败\n{out2.strip()[-400:]}")
+                return False
+        else:
+            log("  失败：fetch 失败且缺少 scripts/fetch-commit-via-github-api.py")
+            return False
     code, out = run(["git", "-C", str(repo), "cat-file", "-t", sha])
-    if code != 0:
+    if code != 0 or out.strip() != "commit":
         log("  失败：本地拿不到合并提交对象")
         return False
-    log("  已拉取")
+    log("  已拉取（本地持有与远端一致的合并提交对象）")
     return True
 
 
@@ -599,7 +613,7 @@ def main() -> int:
     summary["pr_number"] = pr_number
     summary["merge_sha"] = sha
 
-    if not step_fetch(repo, args.remote, token, args.proxy, sha):
+    if not step_fetch(repo, args.remote, token, args.proxy, sha, args.owner, args.name):
         record("拉取合并提交", False)
         return 1
     record("拉取合并提交", True)
