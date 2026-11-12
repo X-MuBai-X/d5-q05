@@ -17,12 +17,15 @@
 evidence/gitee-mcp/ 与 evidence/github-mcp/，两者不混用、不互相冒充。
 
 令牌只经环境变量 `GITEE_ACCESS_TOKEN` 传入（供 REST API 与 MCP 使用），不入库、不写 git 配置、不进证据归档；
-git 推送的账号口令只经环境变量 `GITEE_GIT_PASSWORD` 传入，并在单次进程内通过一次性 askpass 脚本注入
-（脚本放在仓库外的临时目录，只引用环境变量，不含口令本身）。
+git 推送的凭据只经环境变量 `GITEE_GIT_PASSWORD` 传入（不设时回退为令牌本身），并在单次进程内通过一次性
+askpass 脚本注入（脚本放在仓库外的临时目录，只引用环境变量，不含凭据本身）。
+
+注意：本机 Git Credential Manager 内存有 gitee.com 的**历史凭据**，若不屏蔽，git 会抢先使用它并报
+「Access denied」，根本不会走 askpass。因此本脚本所有 git 命令统一带 `-c credential.helper=`，
+清空凭据助手链（见 `git_run()`）。
 
 用法：
     $env:GITEE_ACCESS_TOKEN = "<Gitee 私人令牌>"
-    $env:GITEE_GIT_PASSWORD = "<Gitee 账号口令>"
     python scripts/release-gitee.py --repo . --owner xishiyao --name d5
 """
 from __future__ import annotations
@@ -96,6 +99,16 @@ def run(cmd: list[str], cwd: Path | None = None,
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
+def git_run(args: list[str], repo: Path, env: dict[str, str] | None = None) -> tuple[int, str]:
+    """执行 git 命令。
+
+    统一带上 `-c credential.helper=`：**清空凭据助手链**。本机 Git Credential Manager 里
+    存有 gitee.com 的历史凭据，若不屏蔽，git 会抢先使用它并以「Access denied」失败，
+    根本不会走 GIT_ASKPASS（实测：屏蔽后 askpass 被调用，推送干跑通过）。
+    """
+    return run(["git", "-c", "credential.helper=", "-C", str(repo)] + args, env=env)
+
+
 def askpass_env(git_secret: str) -> tuple[dict[str, str], Path]:
     """生成一次性 askpass 脚本（放在仓库外的临时目录），认证只经环境变量注入。
 
@@ -162,16 +175,16 @@ def mcp_call(repo: Path, token: str, tool: str, args: dict) -> tuple[int, str]:
 def step_push(repo: Path, remote: str, remote_url: str, git_secret: str,
               login: str) -> tuple[bool, dict[str, str]]:
     log("步骤 1/9：推送 main 与 dev/05")
-    code, out = run(["git", "-C", str(repo), "remote"])
+    code, out = git_run(["remote"], repo)
     if remote not in out.split():
-        code, out = run(["git", "-C", str(repo), "remote", "add", remote, remote_url])
+        code, out = git_run(["remote", "add", remote, remote_url], repo)
         if code != 0:
             log(f"  失败：添加远端失败：{out.strip()[:300]}")
             return False, {}
     env, tmpdir = askpass_env(git_secret)
     env["GITEE_LOGIN"] = login
     for branch in ("main", "dev/05"):
-        code, out = run(["git", "-C", str(repo), "push", "-u", remote, f"{branch}:{branch}"], env=env)
+        code, out = git_run(["push", "-u", remote, f"{branch}:{branch}"], repo, env=env)
         if code != 0:
             log(f"  失败：推送 {branch} 失败\n{out.strip()[:600]}")
             return False, env
@@ -239,12 +252,12 @@ def step_verify_protection(repo: Path, remote: str, env: dict[str, str],
     被拒绝时远端内容不变，因此该探测不会污染仓库。
     """
     log("步骤 5/9：验证主分支受保护（直推应被拒绝）")
-    code, head = run(["git", "-C", str(repo), "rev-parse", "dev/05"])
+    code, head = git_run(["rev-parse", "dev/05"], repo)
     if code != 0:
         log("  失败：无法解析 dev/05")
         return False
     sha = head.strip()
-    code, out = run(["git", "-C", str(repo), "push", remote, f"{sha}:refs/heads/{branch}"], env=env)
+    code, out = git_run(["push", remote, f"{sha}:refs/heads/{branch}"], repo, env=env)
     rejected = code != 0
     detail = out.strip()[-600:]
     path = EVIDENCE / "branch-protection-gitee-verify.json"
@@ -303,11 +316,11 @@ def step_merge(repo: Path, token: str, owner: str, name: str,
 
 def step_fetch(repo: Path, remote: str, env: dict[str, str], sha: str) -> bool:
     log(f"步骤 8/9：拉取合并提交 {sha[:12]} 到本地")
-    code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
+    code, out = git_run(["fetch", remote, "main"], repo, env=env)
     if code != 0:
         log(f"  失败：fetch 失败\n{out.strip()[:400]}")
         return False
-    code, _ = run(["git", "-C", str(repo), "cat-file", "-t", sha])
+    code, _ = git_run(["cat-file", "-t", sha], repo)
     if code != 0:
         log("  失败：本地拿不到合并提交对象")
         return False
@@ -381,8 +394,8 @@ def main() -> int:
         return 2
     git_secret = os.environ.get("GITEE_GIT_PASSWORD", "") or token
     if not os.environ.get("GITEE_GIT_PASSWORD", ""):
-        log("提示：未设置 GITEE_GIT_PASSWORD，git 推送将尝试使用私人令牌作为口令"
-            "（Gitee 的 git HTTPS 推送只接受账号口令，此路径可能失败）。")
+        log("提示：未设置 GITEE_GIT_PASSWORD，git 推送将使用私人令牌作为口令"
+            "（实测 Gitee 的 git HTTPS 推送接受私人令牌）。")
 
     repo = Path(args.repo).resolve()
     EVIDENCE.mkdir(parents=True, exist_ok=True)
