@@ -403,6 +403,17 @@ def step_deploy(repo: Path, sha: str) -> bool:
     log("步骤 9/11：在合并版本上重新部署")
     out = EVIDENCE / "deployment-main.log"
     script = repo / "scripts" / "deploy-local.ps1"
+    # 部署产物取自当前工作区：先核对工作区 HEAD 的树与合并提交的树是否一致，
+    # 一致才说明「部署的就是合并版本」；不一致则拒绝部署，避免拿别的版本充当。
+    code, out_tree = run(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"])
+    code2, merge_tree = run(["git", "-C", str(repo), "rev-parse", f"{sha}^{tree}"])
+    if code != 0 or code2 != 0:
+        log("  失败：无法比较工作区树与合并提交树")
+        return False
+    if out_tree.strip() != merge_tree.strip():
+        log(f"  失败：工作区树 {out_tree.strip()[:12]} 与合并提交树 {merge_tree.strip()[:12]} 不一致，拒绝部署")
+        return False
+    log(f"  工作区树与合并提交树一致（{merge_tree.strip()[:12]}），部署内容即合并版本")
     cmd = ["powershell", "-ExecutionPolicy", "Bypass", "-File", str(script),
            "-LogFile", str(out), "-Commit", sha, "-SkipSmoke"]
     code, msg = run(cmd)
