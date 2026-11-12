@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -78,6 +79,29 @@ def git_commits(repo: Path, ref: str) -> list[dict]:
     return rows
 
 
+def parse_since(value: str, repo: Path) -> str | None:
+    """把 --since 归一化为 ISO 时间字符串。
+
+    支持三种写法：
+      · `2026-11-12`          —— 当日 00:00:00 起
+      · `2026-11-12T09:46`    —— 精确到分钟
+      · `HEAD~3` / `<sha>`    —— 取该提交的提交者时间（迭代窗口的起点）
+    """
+    value = value.strip()
+    if not value:
+        return None
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", value):
+        return value + "T00:00:00"
+    if re.match(r"^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}", value):
+        return value.replace(" ", "T")
+    out = subprocess.run(
+        ["git", "-C", str(repo), "log", "-1", "--format=%cI", value],
+        capture_output=True, text=True, encoding="utf-8", errors="replace")
+    if out.returncode == 0 and out.stdout.strip():
+        return out.stdout.strip()
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--events", default="evidence/会话事件清单.jsonl")
@@ -85,11 +109,20 @@ def main() -> int:
     ap.add_argument("--out-md", default="evidence/过程时序清单.md")
     ap.add_argument("--out-json", default="evidence/过程时序清单.json")
     ap.add_argument("--ref", default="dev/05")
+    ap.add_argument("--since", default="",
+                    help="迭代窗口起点：日期(YYYY-MM-DD) / 时间戳 / 提交(HEAD~3、sha)；"
+                         "只统计该时刻之后的事件与提交，用于复核「某次迭代内」的阶段顺序")
     args = ap.parse_args()
 
     events = [json.loads(l) for l in open(args.events, encoding="utf-8") if l.strip()]
-    files = repo_file_events(events)
     repo = Path(args.repo).resolve()
+
+    since = parse_since(args.since, repo) if args.since else None
+    if args.since and not since:
+        print(f"无法解析 --since={args.since!r}，已按全量时间线输出", file=sys.stderr)
+    if since:
+        events = [ev for ev in events if (ev.get("time") or "") >= since]
+    files = repo_file_events(events)
 
     # 关键产物分类
     def is_req(p: str) -> bool:
@@ -130,9 +163,12 @@ def main() -> int:
     bg_prompts = [ev for ev in events if ev.get("kind") == "prompt"
                   and ev.get("origin") == "background_task"]
     commits = git_commits(repo, args.ref)
+    if since:
+        commits = [c for c in commits if (c["time"] or "") >= since]
 
     payload = {
         "source_events": args.events,
+        "since": since or "",
         "repo_file_write_events": len(files),
         "milestones": milestones,
         "subagent_task_prompts": [
@@ -148,6 +184,9 @@ def main() -> int:
     md.append("")
     md.append(f"> 由 `scripts/process-timeline.py` 从 `{args.events}` 反推，")
     md.append("> 不依赖人工回忆，也不依赖文件最终修改时间；结论与 `evidence/会话事件清单.jsonl` 一一可查。")
+    if since:
+        md.append(f"> **迭代窗口**：`--since {args.since}`（归一化为 `{since}`），"
+                  "只统计该时刻之后的事件与提交，用于复核某一次迭代内部的阶段顺序。")
     md.append("> 事件条数：文件写入/编辑事件 "
               f"{len(files)} 条；子 Agent 任务提示词 {len(task_prompts)} 条；"
               f"后台任务指令 {len(bg_prompts)} 条。")

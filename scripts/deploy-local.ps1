@@ -18,6 +18,11 @@
 .PARAMETER DbPath
     SQLite 数据库路径，默认 ./deploy/data/app.db。
 
+.PARAMETER Commit
+    本次部署对应的提交标识（合并后部署时传入合并提交 SHA）。
+    留空时取当前工作区的 HEAD。无论哪种取值都会写入部署日志头部，
+    使「部署的是哪个版本」可被逐条核对。
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File scripts/deploy-local.ps1
 #>
@@ -26,6 +31,7 @@ param(
     [int]$UpstreamPort = 9091,
     [string]$DbPath = "",
     [string]$LogFile = "",
+    [string]$Commit = "",
     [switch]$SkipSmoke,
     [switch]$KeepRunning
 )
@@ -65,6 +71,17 @@ try {
     Write-Log "服务地址：http://127.0.0.1:$Port"
     Write-Log "模拟上游：http://127.0.0.1:$UpstreamPort"
     Write-Log "数据库路径：$DbPath"
+    # 部署提交标识：优先用调用方传入的 -Commit（合并后部署时传入合并提交 SHA），
+    # 否则取当前工作区的 HEAD。写入部署日志，使「部署的是哪个版本」可被逐条核对
+    # （scripts/verify-delivery.py 的 D-07 校验即依赖日志中出现合并提交 SHA）。
+    $deployCommit = if ([string]::IsNullOrWhiteSpace($Commit)) {
+        (& git -C $repo rev-parse HEAD 2>$null)
+    } else {
+        $Commit
+    }
+    if ([string]::IsNullOrWhiteSpace($deployCommit)) { $deployCommit = "(未知)" }
+    Write-Log "部署提交：$deployCommit"
+    Write-Log "部署提交标题：$(& git -C $repo log -1 --format=%s 2>$null)"
 
     Write-Log "--- 步骤 1/6：检查端口占用 ---"
     # 必须先确认端口空闲：否则新进程启动失败，而健康检查与冒烟会打到旧进程上，
