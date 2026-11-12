@@ -1,10 +1,24 @@
 #!/usr/bin/env python3
 """从本地会话存储导出结构化事件清单与可读会话导出。
 
-数据源：MiniMax Code 本地会话目录下的 messages.jsonl（可见消息记录）。
+数据源：MiniMax Code 本地会话目录下的 messages.jsonl 与快照 jsonl（可见消息记录）。
 输出：
   evidence/会话事件清单.jsonl  结构化事件清单（每行一个 JSON）
   docs/06-会话导出.md          可读会话导出（含索引与阶段对照）
+
+导出范围（全部为**本次会话树内可见**的记录）：
+  1. 根会话的各次压缩快照 + 实时消息记录；
+  2. 由根会话派生的子会话（Explore / Worker / Verifier）各自的实时消息记录。
+
+归类口径：
+  - `kind=prompt`：**所有向 Agent 发出指令的提示词**，包含三类来源，用 `origin` 区分：
+      · `user`          —— 用户在根会话中输入的提示词；
+      · `subagent_task` —— 根会话通过 `task` 工具下发给子 Agent 的任务提示词（原文全文保留）；
+      · `background_task` —— 通过 `run_in_background` 启动的后台任务所执行的指令原文。
+    早期版本只把 `user` 归为 `kind=prompt`，后台任务与子 Agent 的指令仅混在 `kind=tool_result`
+    中，无法单独核查，本次按共同要求第 5 节「导出全部可见会话」的口径统一归类。
+  - `kind=tool_call` / `kind=tool_result`：工具调用与其返回结果。
+  - `kind=assistant_text` / `kind=system_reminder` / `kind=compaction`：其余消息类型。
 
 说明：平台未在每条消息上提供时间戳时，事件清单的 time 字段标记为 null，
 并在 Markdown 中说明「不可获取」，不做臆测。
@@ -32,6 +46,9 @@ PHASES = [
     ("P7", "CI、部署与冒烟", "编写 CI 流水线，本机真实进程部署，执行健康检查与 39 项业务冒烟"),
     ("P8", "提交与验收审计", "按提交规范分阶段提交，运行 student-project-audit 产出检查报告与评分"),
 ]
+
+# 不同来源提示词在 Markdown 中允许的最大正文字数。
+PROMPT_LIMIT = {"user": 800, "subagent_task": 6000, "background_task": 2000}
 
 
 def load_messages(path: str) -> list[dict]:
@@ -108,13 +125,28 @@ def extract_events(msgs: list[dict]) -> list[dict]:
         inline_results = [c for c in content if isinstance(c, dict) and c.get("type") == "toolResult"]
 
         if role == "user" and texts:
+            raw = "\n".join(texts)
+            # 子会话的「首条投递消息」是父会话下发的任务提示词，不是用户输入。
+            if "SESSION ROLE: branch" in raw:
+                m_agent = re.search(r"agentName:\s*(\S+)", raw)
+                m_bg = re.search(r"TASK RESULT DELIVERY", raw)
+                origin, limit, extra = "subagent_task", PROMPT_LIMIT["subagent_task"], {
+                    "agent": m_agent.group(1) if m_agent else "",
+                    "via": "session_delivery",
+                    "description": "子会话首条投递消息（父会话下发的任务提示词原文）",
+                    "background": bool(m_bg),
+                }
+            else:
+                origin, limit, extra = "user", PROMPT_LIMIT["user"], {}
             seq += 1
-            events.append({
-                "seq": seq, "kind": "prompt", "role": role, "turn_id": turn,
+            ev = {
+                "seq": seq, "kind": "prompt", "origin": origin, "role": role, "turn_id": turn,
                 "message_id": mid, "time": ts,
-                "summary": summarize_text("\n".join(texts), 800),
-                "raw_chars": sum(len(t) for t in texts),
-            })
+                "summary": summarize_text(raw, limit),
+                "raw_chars": len(raw),
+            }
+            ev.update(extra)
+            events.append(ev)
 
         if role == "assistant":
             if texts:
@@ -127,13 +159,20 @@ def extract_events(msgs: list[dict]) -> list[dict]:
             for call in calls:
                 seq += 1
                 args = call.get("arguments", {})
+                tool = call.get("name", "")
                 events.append({
                     "seq": seq, "kind": "tool_call", "role": role, "turn_id": turn,
                     "message_id": mid, "time": ts,
-                    "tool": call.get("name", ""),
+                    "tool": tool,
                     "tool_call_id": call.get("id", ""),
                     "arguments": args if isinstance(args, dict) else {"_raw": str(args)},
                 })
+                # 指令型工具调用：把「下发给 Agent / 后台任务的指令」单列为 kind=prompt。
+                prompt_ev = build_instruction_prompt(tool, args, role, turn, mid, ts)
+                if prompt_ev is not None:
+                    seq += 1
+                    prompt_ev["seq"] = seq
+                    events.append(prompt_ev)
             for res in inline_results:
                 seq += 1
                 events.append({
@@ -154,6 +193,46 @@ def extract_events(msgs: list[dict]) -> list[dict]:
                 "summary": summarize_text(str(msg.get("content", "")), 300),
             })
     return events
+
+
+def build_instruction_prompt(tool: str, args: dict, role: str, turn: str,
+                             mid: str, ts: str | None) -> dict | None:
+    """把「下发给子 Agent / 后台任务」的指令还原成 prompt 事件。
+
+    早期版本只把用户输入归为 kind=prompt，子 Agent 任务提示词与后台任务指令只混在
+    tool_result 里，无法单独核查指令内容，因此按 origin 拆开单列。
+    """
+    if not isinstance(args, dict):
+        return None
+
+    if tool == "task":
+        prompt = args.get("prompt")
+        if not isinstance(prompt, str) or not prompt.strip():
+            return None
+        return {
+            "seq": 0, "kind": "prompt", "origin": "subagent_task", "role": role,
+            "turn_id": turn, "message_id": mid, "time": ts,
+            "tool": tool,
+            "agent": args.get("agent_name", ""),
+            "description": args.get("description", ""),
+            "via": "task_call",
+            "background": bool(args.get("run_in_background")),
+            "summary": summarize_text(prompt, PROMPT_LIMIT["subagent_task"]),
+            "raw_chars": len(prompt),
+        }
+
+    if args.get("run_in_background"):
+        command = args.get("command") or args.get("prompt") or ""
+        if not isinstance(command, str) or not command.strip():
+            return None
+        return {
+            "seq": 0, "kind": "prompt", "origin": "background_task", "role": role,
+            "turn_id": turn, "message_id": mid, "time": ts,
+            "tool": tool,
+            "summary": summarize_text(command, PROMPT_LIMIT["background_task"]),
+            "raw_chars": len(command),
+        }
+    return None
 
 
 def main() -> int:
@@ -194,6 +273,7 @@ def main() -> int:
     timed = [ev for ev in events if ev.get("time")]
 
     prompts = [ev for ev in events if ev["kind"] == "prompt"]
+    origins = Counter(ev.get("origin", "") for ev in prompts)
 
     lines = []
     lines.append("# 会话导出（题目 05 开发全过程）")
@@ -206,20 +286,27 @@ def main() -> int:
     lines.append("")
     lines.append("| 项 | 值 |")
     lines.append("|---|---|")
-    lines.append(f"| 会话数据源 | {len(sources)} 个文件（快照 + 实时消息） |")
+    lines.append(f"| 会话数据源 | {len(sources)} 个文件（根会话压缩快照 + 根会话实时消息 + 派生子会话消息） |")
     for s in sources:
         lines.append(f"| 数据源文件 | `{s}` |")
     lines.append(f"| 会话目录 | `{source_dir}` |")
     lines.append(f"| 去重后消息条数 | {len(msgs)}（按 message_id 去重，重复 {dup} 条） |")
     lines.append(f"| 结构化事件条数 | {len(events)} |")
     lines.append(f"| 会话轮次（turn）数 | {len(turns)} |")
-    lines.append(f"| 可见用户提示词条数 | {len(prompts)} |")
+    lines.append(f"| 提示词条数（`kind=prompt`） | {len(prompts)} |")
+    lines.append("| 其中：用户输入（origin=user） | " + str(origins.get("user", 0)) + " |")
+    lines.append("| 其中：子 Agent 任务提示词（origin=subagent_task） | " + str(origins.get("subagent_task", 0)) + " |")
+    lines.append("| 其中：后台任务指令（origin=background_task） | " + str(origins.get("background_task", 0)) + " |")
     lines.append(f"| 带时间戳的事件数 | {len(timed)} / {len(events)} |")
     lines.append("")
     lines.append("> **时间戳可得性说明**：本会话存储仅对部分系统事件记录了毫秒级时间戳，")
     lines.append("> 助手消息与工具消息未记录逐条时间戳（**平台不提供，不可获取**）。")
     lines.append("> 因此事件清单中 `time` 字段对无时间戳的事件置为 `null`，")
     lines.append("> 阶段时间以实际命令执行日志、产物文件时间与提交记录为准。")
+    lines.append("")
+    lines.append("> **导出范围说明**：本导出来源包含根会话的全部压缩快照与实时消息记录，")
+    lines.append("> 以及根会话派生的子会话（Explore / Worker / Verifier）的消息记录，")
+    lines.append("> 即**本次会话树内全部可见消息**。平台未在会话目录外暴露的内容不在导出范围内。")
     lines.append("")
     lines.append("## 2. 事件类型统计")
     lines.append("")
@@ -261,24 +348,39 @@ def main() -> int:
         rng = f"{min(seqs)}–{max(seqs)}" if seqs else "（未在本导出中定位到）"
         lines.append(f"| {code} | {name} | {action} | {rng} |")
     lines.append("")
-    lines.append("## 5. 可见用户提示词全文")
+    lines.append("## 5. 提示词全文（`kind=prompt`，按 origin 分类）")
     lines.append("")
-    lines.append("以下为本次会话中**用户可见的全部提示词**（平台系统提醒与上下文注入已剥离，")
-    lines.append("其原文仍可在 `evidence/会话事件清单.jsonl` 的 `kind=prompt` 事件中按 `seq` 查得）。")
+    lines.append("以下为本次会话树中**所有向 Agent 发出的指令**。平台系统提醒与上下文注入已剥离，")
+    lines.append("其原文仍可在 `evidence/会话事件清单.jsonl` 的 `kind=prompt` 事件中按 `seq` 查得。")
     lines.append("")
-    for ev in prompts:
-        lines.append(f"### 提示词 #{ev['seq']}（turn `{ev['turn_id']}`）")
+    origin_titles = [
+        ("user", "5.1 用户输入的提示词"),
+        ("subagent_task", "5.2 下发给子 Agent 的任务提示词"),
+        ("background_task", "5.3 后台任务指令"),
+    ]
+    for origin, title in origin_titles:
+        subset = [ev for ev in prompts if ev.get("origin") == origin]
+        lines.append(f"### {title}（{len(subset)} 条）")
         lines.append("")
-        lines.append("```text")
-        lines.append(ev["summary"])
-        lines.append("```")
-        lines.append("")
+        for ev in subset:
+            extra = ""
+            if origin == "subagent_task":
+                extra = (f"，子 Agent `{ev.get('agent','')}`"
+                         f"（{ev.get('description','')}）"
+                         f"，后台运行：{'是' if ev.get('background') else '否'}"
+                         f"，载体：{ev.get('via','task_call')}")
+            lines.append(f"#### 提示词 #{ev['seq']}（turn `{ev['turn_id']}`，时间 {ev.get('time') or '不可获取'}{extra}）")
+            lines.append("")
+            lines.append("```text")
+            lines.append(ev["summary"])
+            lines.append("```")
+            lines.append("")
     lines.append("## 6. 事件清单索引")
     lines.append("")
     lines.append("| 事件文件 | 说明 |")
     lines.append("|---|---|")
     lines.append(f"| `evidence/会话事件清单.jsonl` | {len(events)} 条结构化事件，每行一个 JSON 对象，字段含 "
-                 "`seq`/`kind`/`role`/`turn_id`/`message_id`/`time`/`tool`/`arguments`/`summary` |")
+                 "`seq`/`kind`/`origin`/`role`/`turn_id`/`message_id`/`time`/`tool`/`arguments`/`summary` |")
     lines.append(f"| `{os.path.basename(sources[-1])}` | 原始可见消息记录（只读引用，未修改） |")
     lines.append("")
     lines.append("## 7. 关联索引：从事件到产物")
@@ -298,7 +400,9 @@ def main() -> int:
     with open(out_md, "w", encoding="utf-8") as fh:
         fh.write("\n".join(lines))
 
-    print(f"[export_session] events={len(events)} prompts={len(prompts)} turns={len(turns)} -> {out_jsonl}, {out_md}")
+    print(f"[export_session] events={len(events)} prompts={len(prompts)} "
+          f"(user={origins.get('user',0)} task={origins.get('subagent_task',0)} "
+          f"bg={origins.get('background_task',0)}) turns={len(turns)} -> {out_jsonl}, {out_md}")
     return 0
 
 
