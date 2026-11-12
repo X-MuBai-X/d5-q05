@@ -1,0 +1,21 @@
+{
+  "authorized_at": "2026-11-12T15:36:36.625817+08:00",
+  "method": "GitHub OAuth 设备码流程（GitHub 官方 MCP Server 公共客户端）",
+  "client_id": "Iv1.b507a08c87ecfe98",
+  "scope": "repo read:user",
+  "verification_uri": "https://github.com/login/device",
+  "token_file": "C:\\Users\\26765\\.minimax\\github_oauth_token.txt",
+  "token_length": 40,
+  "token_prefix": "ghu_",
+  "token_sha256_prefix": "8284398a",
+  "token_scope_granted": "",
+  "note": "令牌本身不写入本文件，仅记录指纹前 8 位与授权范围",
+  "capability_probe": {
+    "mcp_initialize": "ok",
+    "mcp_tools_list": "47 个工具可列举",
+    "mcp_list_branches": "ok（实读 X-MuBai-X/d5 的分支列表）",
+    "mcp_create_repository": "403 Resource not accessible by integration",
+    "reason": "该公共客户端签发的是 integration 令牌（x-oauth-scopes 为空），没有账号级建仓权限",
+    "probe_archive": "evidence/github-mcp/20261112-154308-list_branches.json、evidence/github-mcp/20261112-154323-create_repository.json"
+  }
+}
