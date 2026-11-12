@@ -218,9 +218,14 @@ def step_protect(token: str, owner: str, name: str, branch: str) -> tuple[bool, 
         因此规则内容以接口返回体为准，完整归档到 evidence/branch-protection-gitee.json。
     """
     log("步骤 3/9：配置主分支保护（禁止直推/删除/强推，要求 PR 合并）")
+    # strict=true 时 Gitee 要求 PR 同时通过「评审」与「测试/状态检查」；
+    # Gitee 免费版没有 CI，状态检查永远无法通过（实测合并返回
+    # 405「此 Pull Request 未通过设置的测试」），故此处 strict=false：
+    # 保留「pushers=none（任何人不得直推）+ 必须走 PR 合并 + PR 需评审」的约束，
+    # 状态检查一项在 GitHub 侧由 .github/workflows/ci.yml 承担（平台差异如实登记）。
     query = {
         "wildcard": branch, "pusher": "none", "merger": owner,
-        "mode": "standard", "strict": "true",
+        "mode": "standard", "strict": "false",
     }
     code, resp = gitee_api(token, "PUT", f"/repos/{owner}/{name}/branches/setting/new",
                            None, query)
@@ -254,7 +259,9 @@ def step_read_protection(token: str, owner: str, name: str, branch: str,
             "pushers": "none —— 任何人都不得直接推送到主分支，只能通过 PR 合并",
             "mergers": "仓库属主（可合并 PR）",
             "mode": "standard（标准模式）",
-            "strict": "true",
+            "strict": "false —— Gitee 免费版无 CI，strict=true 时合并恒被"
+                      "「此 Pull Request 未通过设置的测试」拒绝（原始报文见 evidence/gitee-mcp/），"
+                      "故状态检查一项在 GitHub 侧由 .github/workflows/ci.yml 承担",
             "force_push": "受保护分支天然禁止强推与删除",
             "status_checks": "Gitee 免费版无 CI，无法配置状态检查上下文（contexts 留空）；"
                              "GitHub 侧的 CI 流水线配置已就绪，见 .github/workflows/ci.yml",
