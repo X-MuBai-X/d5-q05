@@ -406,7 +406,7 @@ def step_deploy(repo: Path, sha: str) -> bool:
     # 部署产物取自当前工作区：先核对工作区 HEAD 的树与合并提交的树是否一致，
     # 一致才说明「部署的就是合并版本」；不一致则拒绝部署，避免拿别的版本充当。
     code, out_tree = run(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"])
-    code2, merge_tree = run(["git", "-C", str(repo), "rev-parse", f"{sha}^{tree}"])
+    code2, merge_tree = run(["git", "-C", str(repo), "rev-parse", f"{sha}^{{tree}}"])
     if code != 0 or code2 != 0:
         log("  失败：无法比较工作区树与合并提交树")
         return False

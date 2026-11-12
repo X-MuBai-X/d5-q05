@@ -312,6 +312,15 @@ def step_verify_protection(repo: Path, remote: str, env: dict[str, str],
 def step_pr(repo: Path, token: str, owner: str, name: str,
             head: str, base: str, title: str, body: str) -> tuple[str | None, str]:
     log("步骤 6/9：通过 Gitee 官方 MCP 发起 PR（6 项要素）")
+    # 幂等：若已有同源同目标的开放 PR，直接复用，避免重复建 PR。
+    code, out = mcp_call(repo, token, "list_repo_pulls", {
+        "owner": owner, "repo": name, "state": "open", "per_page": 20,
+    })
+    if code == 0:
+        m = re.search(r'https://gitee\.com/[^/]+/[^/]+/pulls/\d+', out)
+        if m:
+            log(f"  已存在开放 PR，复用：{m.group(0)}")
+            return m.group(0), out
     code, out = mcp_call(repo, token, "create_pull", {
         "owner": owner, "repo": name, "head": head, "base": base,
         "title": title, "body": body,
@@ -326,14 +335,38 @@ def step_pr(repo: Path, token: str, owner: str, name: str,
     return (url or None), out
 
 
+def step_approve(repo: Path, token: str, owner: str, name: str, pr_number: str) -> bool:
+    """通过 Gitee 官方 MCP `manage_pull_review` 审批 PR。
+
+    保护规则要求「PR 通过审查后才能合并」，服务端在未审批时返回
+    405「此 Pull Request 未通过设置的审查」，因此审批是合并的前置步骤，
+    也是共同要求第 8 节第 6 条「PR 检查通过才可合并」的对应动作。
+    """
+    log("步骤 7/9：通过 Gitee 官方 MCP 审批 PR（manage_pull_review: approve）")
+    code, out = mcp_call(repo, token, "manage_pull_review", {
+        "owner": owner, "repo": name, "number": int(pr_number), "action": "approve",
+    })
+    log(f"  MCP 调用完成（exit={code}），原始报文已归档到 evidence/gitee-mcp/")
+    if code != 0:
+        log(f"  审批未成功：\n{out.strip()[-500:]}")
+        return False
+    log("  PR 已审批")
+    return True
+
+
 def step_merge(repo: Path, token: str, owner: str, name: str,
                pr_number: str, title: str, message: str) -> str | None:
-    log("步骤 7/9：通过 Gitee 官方 MCP 合并 PR（保留原始提交，合并消息含工作项编号）")
+    log("步骤 8/9：通过 Gitee 官方 MCP 合并 PR（保留原始提交，合并消息含工作项编号）")
+    code0, before = gitee_api(token, "GET", f"/repos/{owner}/{name}/branches/{name and 'main'}")
+    before_sha = (before.get("commit") or {}).get("sha", "") if code0 == 200 else ""
     code, out = mcp_call(repo, token, "merge_pull", {
         "owner": owner, "repo": name, "number": int(pr_number),
         "merge_method": "merge", "title": title, "description": message,
     })
     log(f"  MCP 调用完成（exit={code}），原始报文已归档到 evidence/gitee-mcp/")
+    if code != 0:
+        log(f"  合并失败：\n{out.strip()[-600:]}")
+        return None
     code2, out2 = gitee_api(token, "GET", f"/repos/{owner}/{name}/branches/main")
     sha = ""
     if code2 == 200:
@@ -341,7 +374,10 @@ def step_merge(repo: Path, token: str, owner: str, name: str,
     if not sha:
         log(f"  未能读取 main 头部提交，请查看归档报文：\n{out.strip()[-800:]}")
         return None
-    log(f"  main 头部提交 {sha[:12]}")
+    if before_sha and sha == before_sha:
+        log("  失败：合并后 main 指针未变化，合并没有真正发生（不把旧提交当作合并提交）")
+        return None
+    log(f"  main 头部提交 {sha[:12]}（合并前 {before_sha[:12]}）")
     return sha
 
 
@@ -375,8 +411,8 @@ def step_deploy(repo: Path, sha: str) -> bool:
     log("步骤 9/9：在合并版本上重新部署")
     out = EVIDENCE / "deployment-main.log"
     script = repo / "scripts" / "deploy-local.ps1"
-    code, head_tree = run(["git", "-C", str(repo), "rev-parse", "HEAD^{tree}"])
-    code2, merge_tree = run(["git", "-C", str(repo), "rev-parse", f"{sha}^{tree}"])
+    code, head_tree = git_run(["rev-parse", "HEAD^{tree}"], repo)
+    code2, merge_tree = git_run(["rev-parse", f"{sha}^{{tree}}"], repo)
     if code == 0 and code2 == 0 and head_tree.strip() != merge_tree.strip():
         log(f"  失败：工作区树 {head_tree.strip()[:12]} 与合并提交树 {merge_tree.strip()[:12]} 不一致，拒绝部署")
         return False
@@ -470,6 +506,11 @@ def main() -> int:
     if not pr_number:
         log("无法确定 PR 编号，停止。")
         return 1
+
+    if not step_approve(repo, token, args.owner, args.name, pr_number):
+        record("审批 PR", False)
+        return 1
+    record("审批 PR", True)
 
     sha = step_merge(repo, token, args.owner, args.name, pr_number,
                      args.merge_title, args.merge_message)
