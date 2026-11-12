@@ -50,6 +50,37 @@ PHASES = [
 # 不同来源提示词在 Markdown 中允许的最大正文字数。
 PROMPT_LIMIT = {"user": 800, "subagent_task": 6000, "background_task": 2000}
 
+# 导出脱敏（AGENTS.md §8 第 3 条：导出文件不得出现明文口令、密钥、令牌）。
+# 只针对**一次性凭据**做掩码，其余内容逐字保留，不破坏步骤与时间的对应关系。
+REDACT_RULES: list[tuple[re.Pattern, str]] = [
+    (re.compile(r"--device-code-value\s+'[0-9a-fA-F\-]{16,}'"),
+     "--device-code-value '（已用完的一次性设备码，已掩码）'"),
+    (re.compile(r"(--device-code-value\s+)[0-9a-fA-F\-]{16,}"),
+     r"\1（已用完的一次性设备码，已掩码）"),
+    # 独立出现的 32 位十六进制串按凭据处理并掩码（Gitee 私人令牌即此形态）。
+    # `mvs_`（会话 ID）与 `cli_`（Meegle CLI 公开 client id）为标识符前缀，保留可见。
+    (re.compile(r"(?<![0-9a-fA-F])(?<!mvs_)(?<!cli_)[0-9a-f]{32}(?![0-9a-fA-F])"),
+     "（32 位十六进制串，已掩码）"),
+]
+
+
+def redact(text: str) -> str:
+    """对一次性凭据做掩码，其余内容原样保留。"""
+    for pattern, repl in REDACT_RULES:
+        text = pattern.sub(repl, text)
+    return text
+
+
+def redact_obj(obj):
+    """递归脱敏结构化内容（工具参数等）。"""
+    if isinstance(obj, str):
+        return redact(obj)
+    if isinstance(obj, dict):
+        return {k: redact_obj(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [redact_obj(v) for v in obj]
+    return obj
+
 
 def load_messages(path: str) -> list[dict]:
     msgs = []
@@ -78,6 +109,7 @@ def ms_to_iso(ms) -> str | None:
 
 
 def summarize_text(text: str, limit: int = 400) -> str:
+    text = redact(text)
     text = re.sub(r"<system-reminder>.*?</system-reminder>", "", text, flags=re.S)
     text = re.sub(r"<[^>]+>", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
@@ -165,7 +197,7 @@ def extract_events(msgs: list[dict]) -> list[dict]:
                     "message_id": mid, "time": ts,
                     "tool": tool,
                     "tool_call_id": call.get("id", ""),
-                    "arguments": args if isinstance(args, dict) else {"_raw": str(args)},
+                    "arguments": redact_obj(args) if isinstance(args, dict) else {"_raw": redact(str(args))},
                 })
                 # 指令型工具调用：把「下发给 Agent / 后台任务的指令」单列为 kind=prompt。
                 prompt_ev = build_instruction_prompt(tool, args, role, turn, mid, ts)

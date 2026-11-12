@@ -1,0 +1,1 @@
+{"time": "2026-11-12T09:44:57.248422+08:00", "tool": "tools/list", "request": {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}, "result_is_error": false, "elapsed_ms": 0, "archive": "20261112-094457-tools_list.json"}
