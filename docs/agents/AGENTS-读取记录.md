@@ -16,6 +16,7 @@
 | v1.3 | `docs/agents/AGENTS-v1.3.md` | 五组完整场景逐条验证与审计整改后 | 增补 6 条规则，对应五组场景验证与审计整改中真实暴露的缺陷（迟到结果不可观测、日报缺零值类别、列表返回 null、参数缺失落 500、端口被占用导致测到旧二进制、验证污染数据库）。 |
 | v1.4 | 仓库根目录 `AGENTS.md` | 独立测试/验收 Agent 复核后 | 增补 3 条规则，对应独立验收 Agent 实测复现的缺陷 D1/D4/D5（额度判定与写入跨语句、脱敏扫描白名单与文档表述不符）。 |
 | v2.0 | 仓库根目录 `AGENTS.md`（归档：`docs/agents/AGENTS-v2.0.md`） | v2.4.0 迭代的需求→原型→计划阶段之后、**开发阶段开工前** | 增补 §10「远端交付纪律」6 条，对应共同要求第 8 节的 D-01~D-09 口径（见 `docs/01-需求分析.md` §12）。**该版本的落盘时点早于本迭代全部业务代码提交**，满足「约束先于代码」的要求。 |
+| v2.5.0 | 仓库根目录 `AGENTS.md` | v2.5.0 迭代的**远端交付链路实跑阶段，本轮代码改动之前** | 增补 §11「远端通道与凭据纪律」6 条，并订正 §10 第 1 条（主平台明确为 GitHub MCP）。六条条款均来自本轮实跑中真实踩到的问题：直连 `github.com:443` 不通、`Authorization: Bearer` 头被 git 拒绝、`git push` 需要认证但不能落盘、保护规则的「状态检查上下文名」必须与流水线作业名一致。**该版本的落盘时点早于本迭代的代码改动（`scripts/release-github.py`）**，与 v2.0 一样满足「约束先于代码」。 |
 
 ---
 
@@ -36,6 +37,7 @@
 | 11 | 2026-11-12 08:45 | AI 助手（编码会话） | v1.4 | D1 修复后的回归与复验 | 按 §7 补 D1/F2/F3/F4/F6 五类回归用例；`skills/quota-guard` 静态不变量由 8 项扩到 10 项 |
 | 12 | 2026-11-12 09:50 | AI 助手（编码会话） | v1.4 | 工作项编号核验与提交消息改写 | 按 §8 第 5 条把 `feat`/`fix` 的编号换成**已核验的真实工作项 ID**，并把改写过程与 SHA 变化写入 `docs/07-提交规范说明.md` §4.3 |
 | 13 | 2026-11-12 09:55 | AI 助手（编码会话） | v2.0 | v2.4.0 迭代的**开发阶段开工前** | 按 §10 远端交付纪律 6 条推进：① 远端仓库必须经 **MCP `create_repo`** 创建并归档工具名/请求/结果/时间/URL；② 令牌只经 `GITEE_ACCESS_TOKEN` 环境变量传入，不入库；③ 业务提交只落 `dev/05`；④ PR 描述必须带齐编号/变更/测试/覆盖率/验收/AI-Skill 记录位置；⑤ `main` 禁止直推·删除·强推并要求 PR 合并，保护规则读取结果归档；⑥ 合并后以**合并提交 SHA** 重跑门禁与部署 |
+| 14 | 2026-11-12 11:40 | AI 助手（编码会话） | v2.5.0 | v2.5.0 迭代的**远端交付链路实跑阶段，本轮代码改动之前** | 按 §11 远端通道与凭据纪律 6 条推进：① 直连 `github.com:443` 不通时按「系统代理 → `api.github.com` → SSH」处置并如实记录；② 代理与认证只走进程级 `GIT_CONFIG_KEY_*`，不写 `.git/config`；③ 令牌只经环境变量，不进命令行/远端 URL/归档；④ 分支保护必须用「更新 `main` 为同一 SHA」实测拒绝；⑤ 合并前必须等 `check-runs` 全部成功，上下文名须与 `ci.yml` 作业名一致；⑥ 合并提交必须拉到本地后再跑门禁与部署。同时订正 §10 第 1 条：主平台是 **GitHub MCP**（Gitee MCP 为备选，差异如实登记） |
 
 > **说明（2026-11-12 订正，如实记录时间差）**：
 >
@@ -110,3 +112,20 @@ D1 的回归用例：`TestConcurrentQuotaChangeNeverExceedsQuota`（service 层�
 | §7 测试要求（7 条） | `*_test.go` 全仓库 | `go test ./... -coverprofile`、并发用例、`go test -race` |
 | §8 证据与提交（5 条） | `evidence/`、`docs/`、git 提交消息 | `docs/07-提交规范说明.md`、`skills/acceptance-audit` 的 C-14（无白名单）、git log |
 | §9 Skill 调用约定 | `skills/quota-guard`、`skills/acceptance-audit` | `docs/08-Skill使用记录.md` |
+| §10 远端交付纪律（6 条） | `scripts/github_mcp.py`、`scripts/gitee_mcp.py`、`scripts/release-github.py`、`.github/PULL_REQUEST_TEMPLATE.md`、`.github/CODEOWNERS`、`.github/workflows/release.yml` | `evidence/github-mcp/`、`evidence/branch-protection.json`、`evidence/pr-checks.json`、`evidence/main-gate-*.log`、`evidence/deployment-main.log`、`scripts/verify-delivery.py` |
+| §11 远端通道与凭据纪律（6 条） | `scripts/release-github.py`（`git_env()` 进程级认证与代理注入、`step_verify_protection()` 保护实测、`step_wait_checks()` 检查项等待） | `evidence/branch-protection-verify.json`、`evidence/pr-checks.json`、`evidence/github-remote-chain.json`、`evidence/main-workflow-runs.json` |
+
+---
+
+## 5. v2.5.0 增补条目与触发问题对照
+
+本轮实跑远端交付链路时真实遇到的问题，逐条对应到 §11 的新增条款：
+
+| 增补条款 | 本轮真实遇到的问题 | 问题如何被发现 | 处置落点 |
+|---|---|---|---|
+| §11 第 1 条：通道受阻按固定顺序处置并如实记录 | `git ls-remote https://github.com/...` 报 `Failed to connect to github.com port 443`，而 `api.github.com` 直连正常；本机 `HKCU\...\Internet Settings` 里存在未生效于 git 的系统代理 `127.0.0.1:7890` | 推送前先做 TCP 可达性探测（`Test-NetConnection`）与 `curl` 对照 | `scripts/release-github.py` 的 `--proxy` 参数；探测与失败原因写入 `evidence/github-remote-chain.json` |
+| §11 第 2 条：代理与认证只走进程级环境 | `Authorization: Bearer <PAT>` 被 git 拒收（`invalid credentials`）；改用 Basic 可行，但把认证写进 `.git/config` 会长期留在本机 | 依次试 `Bearer` 与 `Basic` 两种头 | `scripts/release-github.py` 的 `git_env()`：用 `GIT_CONFIG_COUNT`/`GIT_CONFIG_KEY_*` 在单次进程内注入，**不落盘** |
+| §11 第 3 条：令牌只经环境变量 | 令牌若写进命令行，会进入进程命令行与本机命令历史 | 代码走查 | 全部脚本只读 `os.environ`；`scripts/verify-delivery.py` 的 D-09 扫描持续复核 |
+| §11 第 4 条：分支保护必须实测验证 | 只「读取规则」无法区分「规则已生效」与「规则只是写进去了」 | 设计保护验证步骤 | `step_verify_protection()`：把 `main` 更新为同一 SHA，受保护时必须被拒（403/409/422），结果归档 `evidence/branch-protection-verify.json` |
+| §11 第 5 条：合并前必须等检查项通过 | 原脚本要求的状态检查上下文名 `quality-gate` 与 `ci.yml` 的作业名 `质量门禁（gofmt / vet / test / cover / race）` 不一致，合并会被 GitHub 以「缺少必需状态检查」拒绝 | 通读 `ci.yml` 的 `jobs.*.name` 后发现 | `DEFAULT_STATUS_CONTEXTS` 与 `ci.yml` 作业名对齐；新增 `step_wait_checks()` 轮询 `check-runs` 并归档 `evidence/pr-checks.json` |
+| §11 第 6 条：合并提交必须在本地可复现 | 合并发生在远端，本地若没有该提交就无法在「合并版本」上跑门禁 | 合并后检查本地对象库 | `step_fetch()` 拉取合并提交后再跑 `scripts/verify-gate.py --commit <合并SHA>` |
