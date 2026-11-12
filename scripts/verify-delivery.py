@@ -398,12 +398,22 @@ def check_remote_branches(repo: Path) -> list[dict]:
                        else "保护实测证据存在但未标记为已拒绝直推")
             break
 
-    if len(parents) >= 2 and parents[1] == dev_sha:
-        status = "PASS"
-        detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 头部 {main_sha[:7]} 是"
-                  f"**合并提交**（父提交数={len(parents)}，第二父提交 = 远端 dev/05 头部 {dev_sha[:7]}），"
-                  f"业务内容经 PR 合入 main 而非直推；main 提交数={n}"
-                  + (f"；{protect}" if protect else ""))
+    if len(parents) >= 2:
+        # 第二父提交必须是远端 dev/05 头部的**祖先**（而不必相等）：
+        # 合并之后 dev/05 上可能又产生新提交（例如发布后的文档回填），
+        # 那时 main 的合并点仍是 dev/05 的某个祖先，属正常状态。
+        code3, anc = git(repo, "merge-base", "--is-ancestor", parents[1], dev_sha)
+        merged_from_dev = code3 == 0
+        if merged_from_dev:
+            status = "PASS"
+            detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 头部 {main_sha[:7]} 是"
+                      f"**合并提交**（父提交数={len(parents)}，第二父提交 {parents[1][:7]} 是远端 dev/05 头部"
+                      f" {dev_sha[:7]} 的祖先），业务内容经 PR 合入 main 而非直推；main 提交数={n}"
+                      + (f"；{protect}" if protect else ""))
+        else:
+            status = "FAIL"
+            detail = (f"远端 {used_remote} 的 main 头部 {main_sha[:7]} 虽是合并提交，"
+                      f"但第二父提交 {parents[1][:7]} 不在远端 dev/05 的历史中")
     elif len(parents) <= 1 and n == "1":
         status = "PASS"
         detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 仅含初始化提交"
