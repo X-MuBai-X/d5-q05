@@ -1,0 +1,35 @@
+{
+  "mcp_server": {
+    "endpoint": "https://api.gitee.com/mcp",
+    "server": "gitee-mcp-remote",
+    "protocol": "MCP JSON-RPC over Streamable HTTP"
+  },
+  "tool": "merge_pull",
+  "called_at": "2026-11-12T14:54:28.437534+08:00",
+  "elapsed_ms": 382,
+  "mcp_session_id": null,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "merge_pull",
+      "arguments": {
+        "owner": "xishiyao",
+        "repo": "d5",
+        "number": 2,
+        "merge_method": "merge",
+        "title": "[feat] [v2.5.0] [#16221249] 合并题目 05 企业模型服务配额管理实现",
+        "description": "从 dev/05 发起 PR 并合并，保留开发分支原始提交；主要工作项 #16221249，关联需求 #16220913 与缺陷 #16220917 / #16220924 / #16220925 / #16221411 / #16221436。"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "error": {
+      "code": -32603,
+      "message": "[api_error] API returned error status: 405 (code: 405, details: 此 Pull Request 未通过设置的测试)"
+    }
+  }
+}

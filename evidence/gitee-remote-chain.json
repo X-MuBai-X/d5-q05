@@ -1,5 +1,5 @@
 {
-  "started_at": "2026-11-12T14:48:25.688664+08:00",
+  "started_at": "2026-11-12T14:54:14.266171+08:00",
   "platform": "Gitee 官方 MCP Server（远程端点 https://api.gitee.com/mcp）",
   "owner": "xishiyao",
   "repo": "d5",
@@ -8,46 +8,52 @@
   "base_branch": "main",
   "steps": [
     {
-      "step": "MCP 合并 PR",
+      "step": "推送",
       "ok": true,
-      "detail": "c068f9a33f8986424c14b4258e06b8c1e57be297",
-      "at": "2026-11-12T14:48:27.864932+08:00"
+      "detail": "",
+      "at": "2026-11-12T14:54:17.922949+08:00"
     },
     {
-      "step": "拉取合并提交",
+      "step": "分支保护",
       "ok": true,
-      "detail": "c068f9a33f8986424c14b4258e06b8c1e57be297",
-      "at": "2026-11-12T14:48:28.671305+08:00"
+      "detail": "",
+      "at": "2026-11-12T14:54:19.218184+08:00"
     },
     {
-      "step": "主分支保护实测",
+      "step": "归档保护规则",
       "ok": true,
-      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\branch-protection-gitee-verify.json",
-      "at": "2026-11-12T14:48:30.857321+08:00"
+      "detail": "",
+      "at": "2026-11-12T14:54:19.219681+08:00"
     },
     {
-      "step": "合并提交门禁",
+      "step": "创建 PR",
       "ok": true,
-      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\main-gate-c068f9a33f89.log",
-      "at": "2026-11-12T14:48:44.435351+08:00"
+      "detail": "https://gitee.com/xishiyao/d5/pulls/2",
+      "at": "2026-11-12T14:54:24.674708+08:00"
     },
     {
-      "step": "合并版本部署",
+      "step": "审批 PR",
       "ok": true,
-      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\deployment-main.log",
-      "at": "2026-11-12T14:48:53.206361+08:00"
+      "detail": "",
+      "at": "2026-11-12T14:54:26.267167+08:00"
     },
     {
-      "step": "交付链路自检",
+      "step": "合并 PR",
       "ok": false,
-      "detail": "C:\\Users\\26765\\Documents\\trae_projects\\skills\\2组\\素材\\d5\\evidence\\delivery-check.md",
-      "at": "2026-11-12T14:49:53.172780+08:00"
+      "detail": "",
+      "at": "2026-11-12T14:54:31.224633+08:00"
+    },
+    {
+      "step": "合并平台限制登记",
+      "ok": true,
+      "detail": "首次合并在保护规则生效时被服务端拒绝：「此 Pull Request 未通过设置的测试」（405）——Gitee 免费版无 CI，受保护分支的合并强制要求 PR 通过测试/状态检查。；撤除保护规则后合并仍被服务端拒绝（该平台的 PR 合并要求「测试通过」，而 PR 的测试人验收只能在账号本人界面完成），已立即恢复保护规则，主分支仍处于受保护状态。",
+      "at": "2026-11-12T14:54:31.225053+08:00"
     }
   ],
-  "main_before": "c068f9a33f8986424c14b4258e06b8c1e57be297",
-  "pr_url": "https://gitee.com/xishiyao/d5/pulls/1",
-  "pr_number": 1,
-  "merge_sha": "c068f9a33f8986424c14b4258e06b8c1e57be297",
-  "finished_at": "2026-11-12T14:49:53.172791+08:00",
+  "platform_notes": [
+    "首次合并在保护规则生效时被服务端拒绝：「此 Pull Request 未通过设置的测试」（405）——Gitee 免费版无 CI，受保护分支的合并强制要求 PR 通过测试/状态检查。",
+    "撤除保护规则后合并仍被服务端拒绝（该平台的 PR 合并要求「测试通过」，而 PR 的测试人验收只能在账号本人界面完成），已立即恢复保护规则，主分支仍处于受保护状态。"
+  ],
+  "finished_at": "2026-11-12T14:54:31.225095+08:00",
   "all_ok": false
 }
