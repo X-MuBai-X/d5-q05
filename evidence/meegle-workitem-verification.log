@@ -8,7 +8,7 @@ cli=meegle
 === auth status ===
 {
   "authenticated": true,
-  "expires_in_minutes": 114,
+  "expires_in_minutes": 35,
   "host": "meegle.com"
 }
 
@@ -38,7 +38,7 @@ cli=meegle
     "retryable": false
   },
   "meta": {
-    "logid": "20261112092353CC17FB0744C8002CC523"
+    "logid": "2026111210421210A10F31E25687378381"
   }
 }
 
@@ -57,32 +57,16 @@ cli=meegle
     },
     "role_members": [
       {
-        "key": "LineMaster",
-        "name": "业务线 master"
+        "key": "Server",
+        "name": "Server"
       },
       {
         "key": "UI",
         "name": "UI&UX"
       },
       {
-        "key": "Server",
-        "name": "Server"
-      },
-      {
-        "key": "RD",
-        "name": "RD"
-      },
-      {
         "key": "QA",
         "name": "QA"
-      },
-      {
-        "key": "iOS",
-        "name": "iOS"
-      },
-      {
-        "key": "Tech_Owner",
-        "name": "技术 owner"
       },
       {
         "key": "PM",
@@ -99,12 +83,28 @@ cli=meegle
         "name": "DA"
       },
       {
+        "key": "RD",
+        "name": "RD"
+      },
+      {
         "key": "Android",
         "name": "Android"
       },
       {
         "key": "FE",
         "name": "FE"
+      },
+      {
+        "key": "Tech_Owner",
+        "name": "技术 owner"
+      },
+      {
+        "key": "iOS",
+        "name": "iOS"
+      },
+      {
+        "key": "LineMaster",
+        "name": "业务线 master"
       }
     ],
     "template": {
@@ -236,6 +236,10 @@ cli=meegle
     },
     "role_members": [
       {
+        "key": "operator",
+        "name": "经办人"
+      },
+      {
         "key": "reporter",
         "members": [
           {
@@ -244,10 +248,6 @@ cli=meegle
           }
         ],
         "name": "报告人"
-      },
-      {
-        "key": "operator",
-        "name": "经办人"
       }
     ],
     "template": {
@@ -304,6 +304,10 @@ cli=meegle
     },
     "role_members": [
       {
+        "key": "operator",
+        "name": "经办人"
+      },
+      {
         "key": "reporter",
         "members": [
           {
@@ -312,10 +316,6 @@ cli=meegle
           }
         ],
         "name": "报告人"
-      },
-      {
-        "key": "operator",
-        "name": "经办人"
       }
     ],
     "template": {
@@ -357,4 +357,251 @@ cli=meegle
 }
 [判定] 编号 16220925 核验通过：类型=缺陷，标题=部署脚本未写入 PID 文件，scripts/stop-local.ps1 回退实际无法停服（回退链路失效），与本题相关
 
-汇总：共核验 4 个编号，失败 0 个。
+=== workitem get --work-item-id 16221249 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:46:30Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "QA",
+        "name": "QA"
+      },
+      {
+        "key": "DA",
+        "name": "DA"
+      },
+      {
+        "key": "iOS",
+        "name": "iOS"
+      },
+      {
+        "key": "RD",
+        "name": "RD"
+      },
+      {
+        "key": "Android",
+        "name": "Android"
+      },
+      {
+        "key": "Server",
+        "name": "Server"
+      },
+      {
+        "key": "UI",
+        "name": "UI&UX"
+      },
+      {
+        "key": "PM",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "PM"
+      },
+      {
+        "key": "Tech_Owner",
+        "name": "技术 owner"
+      },
+      {
+        "key": "FE",
+        "name": "FE"
+      },
+      {
+        "key": "LineMaster",
+        "name": "业务线 master"
+      }
+    ],
+    "template": {
+      "id": 1706352,
+      "name": "标准产研流程"
+    },
+    "update_time": "2026-11-12T01:46:31Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16221249",
+    "work_item_mod": "Node-driven workflow",
+    "work_item_name": "题目05 远端交付链路：MCP 建仓、开发分支 PR、主分支保护、合并后门禁与部署",
+    "work_item_status": {
+      "key": "sub_stage_1653484259327",
+      "name": "待线内初评"
+    },
+    "work_item_type": {
+      "key": "story",
+      "name": "需求"
+    }
+  },
+  "work_item_current_node": [
+    {
+      "actual_begin_time": "2026-11-12T01:46:29Z",
+      "id": "doing",
+      "name": "发起评审"
+    }
+  ],
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "group_type",
+      "name": "Chat group",
+      "value": {
+        "label": "Do not create",
+        "value": "disabled"
+      }
+    }
+  ]
+}
+[判定] 编号 16221249 核验通过：类型=需求，标题=题目05 远端交付链路：MCP 建仓、开发分支 PR、主分支保护、合并后门禁与部署，与本题相关
+
+=== workitem get --work-item-id 16221411 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:53:47Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "operator",
+        "name": "经办人"
+      },
+      {
+        "key": "reporter",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "报告人"
+      }
+    ],
+    "template": {
+      "id": 1706349,
+      "name": "技术缺陷"
+    },
+    "update_time": "2026-11-12T01:53:47Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16221411",
+    "work_item_mod": "Status-driven workflow",
+    "work_item_name": "会话导出包含一次性设备码与访问令牌明文，违反证据脱敏要求",
+    "work_item_status": {
+      "key": "OPEN",
+      "name": "OPEN"
+    },
+    "work_item_type": {
+      "key": "issue",
+      "name": "缺陷"
+    }
+  },
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "priority",
+      "name": "优先级",
+      "value": {
+        "label": "P1",
+        "value": "1"
+      }
+    }
+  ]
+}
+[判定] 编号 16221411 核验通过：类型=缺陷，标题=会话导出包含一次性设备码与访问令牌明文，违反证据脱敏要求，与本题相关
+
+=== workitem get --work-item-id 16221436 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:55:51Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "reporter",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "报告人"
+      },
+      {
+        "key": "operator",
+        "name": "经办人"
+      }
+    ],
+    "template": {
+      "id": 1706349,
+      "name": "技术缺陷"
+    },
+    "update_time": "2026-11-12T01:55:52Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16221436",
+    "work_item_mod": "Status-driven workflow",
+    "work_item_name": "提交消息格式校验用单条正则，分段畸形时回溯放过不合规消息",
+    "work_item_status": {
+      "key": "OPEN",
+      "name": "OPEN"
+    },
+    "work_item_type": {
+      "key": "issue",
+      "name": "缺陷"
+    }
+  },
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "priority",
+      "name": "优先级",
+      "value": {
+        "label": "P2",
+        "value": "2"
+      }
+    }
+  ]
+}
+[判定] 编号 16221436 核验通过：类型=缺陷，标题=提交消息格式校验用单条正则，分段畸形时回溯放过不合规消息，与本题相关
+
+汇总：共核验 7 个编号，失败 0 个。
