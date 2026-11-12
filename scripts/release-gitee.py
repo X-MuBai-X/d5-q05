@@ -595,6 +595,8 @@ def main() -> int:
     ap.add_argument("--head", default="dev/05")
     ap.add_argument("--base", default="main")
     ap.add_argument("--pr-title", default="[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路")
+    ap.add_argument("--pr-body-file", default="",
+                    help="PR 描述文件（UTF-8 Markdown）；不填则使用内置模板")
     ap.add_argument("--merge-title", default="[feat] [v2.5.0] [#16221249] 合并题目 05 企业模型服务配额管理实现")
     ap.add_argument("--merge-message", default="从 dev/05 发起 PR 并合并，保留开发分支原始提交；"
                                               "主要工作项 #16221249，关联需求 #16220913 与缺陷 "
@@ -663,8 +665,16 @@ def _chain(args, token: str, git_secret: str, repo: Path, remote_url: str,
         return 1
     record("归档保护规则", True)
 
+    pr_body = PR_BODY
+    if args.pr_body_file:
+        body_path = Path(args.pr_body_file)
+        if not body_path.is_file():
+            log(f"  失败：PR 描述文件不存在：{body_path}")
+            return 1
+        pr_body = body_path.read_text(encoding="utf-8")
+        log(f"PR 描述取自 {body_path}")
     pr_url, _ = step_pr(repo, token, args.owner, args.name, args.head, args.base,
-                        args.pr_title, PR_BODY)
+                        args.pr_title, pr_body)
     record("创建 PR", bool(pr_url), pr_url or "")
     if not pr_url:
         return 1
