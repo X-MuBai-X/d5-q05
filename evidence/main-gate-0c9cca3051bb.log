@@ -1,7 +1,7 @@
 ==============================================================================
 题目 05 质量门禁执行日志（针对指定提交）
 ==============================================================================
-# 执行时间      : 2026-11-12T15:03:33.683644+08:00
+# 执行时间      : 2026-11-12T16:24:47.832702+08:00
 # 被检提交      : 0c9cca3051bbf9a15413dc4857406eaf678fec9d
 # 被检提交标题  : 0c9cca3 [feat] [v2.6.0] [#16221249] 合并题目 05 企业模型服务配额管理与远端交付链路 从 dev/05 发起 PR 并合并，保留开发分支原始提交；主要工作项 #16221249，关联需求 #16220913 与缺陷 #16220917 / #16220924 / #16220925 / #16221411 / #16221436。
 # 检出方式      : git worktree add --detach（独立目录，不改动主工作区）
@@ -18,27 +18,27 @@ $ go vet ./...
 (无输出)
 
 ------------------------------------------------------------------------------
-$ go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
-# exit=0  elapsed=10.8s
-ok  	modelquota/cmd/mockupstream	5.389s	coverage: 91.9% of statements
-ok  	modelquota/cmd/server	0.867s	coverage: 82.1% of statements
-ok  	modelquota/internal/domain	1.239s	coverage: 97.3% of statements
-ok  	modelquota/internal/httpapi	2.927s	coverage: 87.7% of statements
-ok  	modelquota/internal/service	6.963s	coverage: 87.7% of statements
-ok  	modelquota/internal/store	3.569s	coverage: 94.4% of statements
-ok  	modelquota/internal/upstream	5.825s	coverage: 87.1% of statements
+$ go test ./... -count=1 -coverprofile=C:\Users\26765\AppData\Local\Temp\d5-gate-4jw7ptsx\repo\evidence\coverage.out -covermode=atomic
+# exit=0  elapsed=10.5s
+ok  	modelquota/cmd/mockupstream	5.381s	coverage: 91.9% of statements
+ok  	modelquota/cmd/server	1.010s	coverage: 82.1% of statements
+ok  	modelquota/internal/domain	1.550s	coverage: 97.3% of statements
+ok  	modelquota/internal/httpapi	3.196s	coverage: 87.7% of statements
+ok  	modelquota/internal/service	6.693s	coverage: 87.7% of statements
+ok  	modelquota/internal/store	3.632s	coverage: 94.4% of statements
+ok  	modelquota/internal/upstream	5.965s	coverage: 87.1% of statements
 
 ------------------------------------------------------------------------------
-$ python scripts/coverage-summary.py --profile evidence/coverage.out --out evidence/coverage-summary.txt
+$ python scripts/coverage-summary.py --profile C:\Users\26765\AppData\Local\Temp\d5-gate-4jw7ptsx\repo\evidence\coverage.out --out C:\Users\26765\AppData\Local\Temp\d5-gate-4jw7ptsx\repo\evidence\coverage-summary.txt
 # exit=0  elapsed=0.4s
-coverage-summary: overall=89.4% core_ok=True out=evidence\coverage-summary.txt
+coverage-summary: overall=89.4% core_ok=True out=C:\Users\26765\AppData\Local\Temp\d5-gate-4jw7ptsx\repo\evidence\coverage-summary.txt
 
 ---- evidence/coverage-summary.txt ----
 # 覆盖率汇总（题目 05）
-# 执行时间：2026-11-12 15:03:47 +0800（本机时间，UTC+8）
+# 执行时间：2026-11-12 16:25:01 +0800（本机时间，UTC+8）
 # Go 版本：go version go1.27.1 windows/amd64
 # 命令：go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
-# 覆盖率原件：evidence/coverage.out（由上述命令直接产出，未做人工修改）
+# 覆盖率原件：C:\Users\26765\AppData\Local\Temp\d5-gate-4jw7ptsx\repo\evidence\coverage.out（由上述命令直接产出，未做人工修改）
 # 统计口径：按覆盖率剖面逐块统计语句数（covered/total），非函数最小值口径
 
 ### 一、核心业务包（阈值 85%，任一不达标即不合规）
@@ -56,8 +56,10 @@ coverage-summary: overall=89.4% core_ok=True out=evidence\coverage-summary.txt
 
 结论：整体与全部核心业务包均达到阈值。
 
+# 已同步本轮产物到 C:\Users\26765\Documents\trae_projects\skills\2组\素材\d5\evidence\coverage.out
+# 已同步本轮产物到 C:\Users\26765\Documents\trae_projects\skills\2组\素材\d5\evidence\coverage-summary.txt
 ==============================================================================
-# 结束时间: 2026-11-12T15:03:47.656516+08:00
+# 结束时间: 2026-11-12T16:25:01.477773+08:00
 # 被检提交: 0c9cca3051bbf9a15413dc4857406eaf678fec9d
 # 结论: 全部门禁通过
 ==============================================================================

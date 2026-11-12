@@ -1,8 +1,8 @@
 # 覆盖率汇总（题目 05）
-# 执行时间：2026-11-12 16:18:47 +0800（本机时间，UTC+8）
+# 执行时间：2026-11-12 18:49:32 +0800（本机时间，UTC+8）
 # Go 版本：go version go1.27.1 windows/amd64
 # 命令：go test ./... -count=1 -coverprofile=<绝对路径> -covermode=atomic
-# 覆盖率原件：C:\Users\26765\AppData\Local\Temp\d5-gate-me_4i7jb\repo\evidence\coverage.out（由上述命令直接产出，未做人工修改）
+# 覆盖率原件：C:\Users\26765\AppData\Local\Temp\d5-gate-1btnl154\repo\evidence\coverage.out（由上述命令直接产出，未做人工修改）
 # 统计口径：按覆盖率剖面逐块统计语句数（covered/total），非函数最小值口径
 
 ### 一、核心业务包（阈值 85%，任一不达标即不合规）

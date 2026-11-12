@@ -269,18 +269,31 @@ def step_wait_checks(token: str, owner: str, name: str, head_sha: str,
                 ],
             }
             by_name = {r.get("name"): r for r in runs}
-            pending = [c for c in contexts
-                       if c not in by_name or by_name[c].get("status") != "completed"]
-            # 只有「已完成且结论不成功」才算失败；仍在运行的检查属于 pending，
-            # 不能提前判失败（此前把 in_progress 当失败，导致 CI 刚起步就被误停）。
-            failed = [c for c in contexts
-                      if c in by_name and by_name[c].get("status") == "completed"
-                      and by_name[c].get("conclusion") not in ("success", "neutral", "skipped")]
+            # 同一个上下文可能有多条 check-run（push 事件与 pull_request 事件各触发一次），
+            # 因此**按上下文**判定，而不是按 run 判定：
+            #   该上下文的 run 里只要有一条成功 → 通过；
+            #   没有任何一条成功、但还有未完成的 → 仍在进行；
+            #   全部完成且都不成功 → 失败。
+            passed: list[str] = []
+            pending: list[str] = []
+            failed: list[str] = []
+            for ctx in contexts:
+                ctx_runs = [r for r in runs if r.get("name") == ctx]
+                if not ctx_runs:
+                    pending.append(ctx)
+                elif any(r.get("status") == "completed"
+                         and r.get("conclusion") in ("success", "neutral", "skipped")
+                         for r in ctx_runs):
+                    passed.append(ctx)
+                elif any(r.get("status") != "completed" for r in ctx_runs):
+                    pending.append(ctx)
+                else:
+                    failed.append(ctx)
             if failed:
                 log("  检查项未通过：" + "、".join(failed))
                 break
             if not pending:
-                log(f"  检查项全部完成且通过（{len(by_name)} 个检查）")
+                log(f"  检查项全部完成且通过（{len(contexts)} 个上下文：{'、'.join(contexts)}）")
                 break
             log(f"  仍在进行：{'、'.join(pending[:3])}（已用 {int(timeout - (deadline - time.time()))}s）")
         if time.time() > deadline:
@@ -291,9 +304,15 @@ def step_wait_checks(token: str, owner: str, name: str, head_sha: str,
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(last, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
     log(f"  检查项归档：{out}")
-    ok = bool(last.get("check_runs")) and all(
-        r.get("status") == "completed" and r.get("conclusion") in ("success", "neutral", "skipped")
-        for r in last.get("check_runs", []) if r.get("name") in contexts)
+    # 最终判定同样按**上下文**算：每个期望上下文至少有一条成功且完成的 check-run。
+    ok = True
+    for ctx in contexts:
+        ctx_runs = [r for r in last.get("check_runs", []) if r.get("name") == ctx]
+        if not any(r.get("status") == "completed"
+                   and r.get("conclusion") in ("success", "neutral", "skipped")
+                   for r in ctx_runs):
+            ok = False
+            break
     return ok, last
 
 

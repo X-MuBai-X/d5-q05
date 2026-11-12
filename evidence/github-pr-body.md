@@ -6,23 +6,31 @@
 
 ## 变更说明
 
-本 PR 从 `dev/05` 发起，把开发分支上尚未进入 `main` 的提交合入 `main`：
+本 PR 从 `dev/05` 发起，把 PR !1 之后开发分支上新增的提交合入 `main`（题目 05 的业务实现
+已随 PR !1 进入 `main`）：
 
-1. `b43ab07` docs：回填 PR !2 合并提交与合并版本的门禁、部署证据；
-2. `dbe5774` fix：修正交付自检对「合并来源」与「建仓成功」的判定口径；
-3. `feat` 提交：新增 GitHub 官方 MCP 的设备码授权脚本（`scripts/github_oauth_device.py`），
-   修正 MCP 客户端把 JSON-RPC 错误当成功的缺陷，并让远端链路脚本支持「新建仓库首个分支」的推送处理。
-
-题目 05 的业务实现（配额开通、调用、停用与用量核查）随前序 PR !1 / !2 已经进入 `main`，
-本次 PR 补齐的是最后一轮修正与 GitHub 侧交付链路。
+1. `435222a` test：补齐 `internal/httpapi` 与 `internal/upstream` 的异常分支用例
+   （方法不符 405、非法 JSON 400、运营缺少租户范围 400；迟到等待窗口未配置、上游地址非法、
+   调用方已取消、响应体读取失败、迟到窗口内才拿到结果），把核心包覆盖率抬到阈值以上；
+2. `9b8f352` fix：修正 `go test -coverprofile` 的**产出路径**（相对路径会写到包目录、目录不存在时
+   静默不写，导致统计脚本读到**陈旧剖面**），并让 **CI 与本机门禁共用同一个** `scripts/coverage-summary.py`，
+   消除两处统计逻辑的口径漂移；
+3. `8a79a58` fix：修正 GitHub MCP 合并工具的参数名（`pullNumber`）与主分支保护「禁止删除」的判定口径，
+   并让链路在合并未真正发生时中止（不再把旧 main 当作合并提交去跑门禁和部署）；
+4. `a81d472` feat：新增 `scripts/push-via-github-api.py` 与 `scripts/fetch-commit-via-github-api.py`
+   —— 本机到 `github.com` 的 git 传输端口不可达时，用 GitHub REST Git Data API 推送，
+   并按远端元数据**逐字节重建**提交对象（每一步 SHA 复核，不一致即中止）；
+5. `131647d` / `dacc11a`：归档 GitHub 侧建仓 → PR → CI → 分支保护 → 合并 → 合并提交门禁 → 合并版本部署
+   的完整证据（含合并提交 `3b06d206055a` 的门禁日志与部署流水），并回填 `docs/10`、`docs/11`
+   的发布版本、合并 SHA 与班级群消息。
 
 ## 测试结果
 
 - `gofmt -l .` 无输出；`go vet ./...` 无告警；`go test ./... -count=1` 全部通过
+- 全量接口能力测试 113/113 通过（`scripts/api-full-test.py`，归档 `evidence/api-full-test.log`）
 - 业务冒烟 39/39、五组完整场景 73/73、容器内 `go test ./... -race` 退出码 0 且 0 DATA RACE
-- 交付链路自检 `scripts/test-delivery-checks.py` 全部通过
-- 本 PR 的 CI（`.github/workflows/ci.yml`）在本次 PR 上真实运行：质量门禁与业务冒烟两个作业
-  的检查结论见本 PR 的 Checks，合并后在**合并提交**上再跑一次本地门禁并重新部署
+- 交付链路自检 `scripts/verify-delivery.py`：**PASS=8 / PENDING=0 / FAIL=0**
+  （`evidence/delivery-check.md`）
 
 ## 覆盖率
 
