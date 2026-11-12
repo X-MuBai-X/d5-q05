@@ -128,6 +128,34 @@ def test_redaction() -> None:
     check("Bearer 掩码标记保留", "已掩码" in masked_bearer, True)
     check("普通文本不误掩码", es.redact("bearer of the token idea"), "bearer of the token idea")
 
+    # JSON 形态的一次性设备码 / 用户码（Meegle 设备码授权 init 阶段返回体）
+    fake_device = "27c9bbff" + "-017c-4a24-88c3-5d34e72b1639"
+    json_device = es.redact('{"client_id": "cli_x", "device_code": "' + fake_device + '"}')
+    check("JSON 形态设备码被掩码", fake_device not in json_device, True)
+    check("JSON 形态设备码标记保留", "已掩码" in json_device, True)
+    fake_user = "4GQS7" + "-G5TWK"
+    json_user = es.redact('{"device_code": "' + fake_device + '", "user_code": "' + fake_user + '"}')
+    check("JSON 形态用户码被掩码", fake_user not in json_user, True)
+
+    # 摘要/提交号占位符不应被 32 位规则误伤（与 verify-delivery.py 同一口径）
+    digest = ("a1b2c3d4" * 3) + "abcdef12"
+    keep_digest = es.redact("sha256: " + digest)
+    check("SHA-256 占位符不被误伤", digest in keep_digest, True)
+
+    # repr 形态（引号被转义）与截断形态的设备码也必须被掩码
+    repr_form = es.redact("--device-code-value \\'" + fake_device + "\\' --host meegle.com")
+    check("repr 形态设备码被掩码", fake_device not in repr_form, True)
+    truncated = es.redact("--device-code-value '" + fake_device + "\\r\\n next")
+    check("截断形态设备码被掩码", fake_device not in truncated, True)
+    repr_json = es.redact('{\\"device_code\\": \\"' + fake_device + '\\", \\"expires_in\\": 1800}')
+    check("repr 形态 JSON 设备码被掩码", fake_device not in repr_json, True)
+
+    # UUID v4 形态的一次性凭据：会话自身标识符（turn_/msg-/call-）必须保留
+    uuid = "27c9bbff-017c-4a24-88c3-5d34e72b1639"
+    check("裸 UUID 一次性凭据被掩码", uuid not in es.redact("device code = " + uuid), True)
+    turn = "1f3f3a8b-45c5-4d63-916d-0e8f9a2cb83c"
+    check("turn_ 会话标识符保留", turn in es.redact("turn_" + turn), True)
+
 
 def test_merge_status() -> None:
     print("[用例组] 合并状态判定")

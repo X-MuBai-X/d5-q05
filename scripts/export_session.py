@@ -53,14 +53,22 @@ PROMPT_LIMIT = {"user": 800, "subagent_task": 6000, "background_task": 2000}
 # 导出脱敏（AGENTS.md §8 第 3 条：导出文件不得出现明文口令、密钥、令牌）。
 # 只针对**一次性凭据**做掩码，其余内容逐字保留，不破坏步骤与时间的对应关系。
 REDACT_RULES: list[tuple[re.Pattern, str]] = [
-    (re.compile(r"--device-code-value\s+'[0-9a-fA-F\-]{16,}'"),
+    # 设备码的 CLI 形态：`--device-code-value '<code>'`。
+    # 会话记录中该参数可能出现在 Python repr 里（引号被转义为 \'），也可能被截断
+    # （后面直接接转义符或换行），因此引号与转义符都按可选处理。
+    (re.compile(r"--device-code-value\s+(?:\\?['\"])?[0-9a-fA-F\-]{16,}"),
      "--device-code-value '（已用完的一次性设备码，已掩码）'"),
-    (re.compile(r"(--device-code-value\s+)[0-9a-fA-F\-]{16,}"),
-     r"\1（已用完的一次性设备码，已掩码）"),
-    # 独立出现的 32 位十六进制串按凭据处理并掩码（Gitee 私人令牌即此形态）。
-    # `mvs_`（会话 ID）与 `cli_`（Meegle CLI 公开 client id）为标识符前缀，保留可见。
-    (re.compile(r"(?<![0-9a-fA-F])(?<!mvs_)(?<!cli_)[0-9a-f]{32}(?![0-9a-fA-F])"),
-     "（32 位十六进制串，已掩码）"),
+    # JSON 形态的一次性设备码：Meegle 设备码授权 init 阶段的返回体
+    # （{"device_code": "<uuid>", ...}），与 CLI 的 --device-code-value 形态同源同性质。
+    # 同样兼容 repr 形态的转义引号（\"device_code\": \"…\"）以及嵌套转义（\\\\\"…）。
+    (re.compile(r'(device_code\\*"\s*:\s*\\*")[^"\\]{8,}(\\*")'),
+     r"\1（已用完的一次性设备码，已掩码）\2"),
+    # JSON 形态的一次性用户码：设备码授权页面上由人工输入的短码，同属一次性凭据。
+    (re.compile(r'(user_code\\*"\s*:\s*\\*")[^"\\]{4,}(\\*")'),
+     r"\1（一次性用户码，已掩码）\2"),
+    # URL 查询参数形态的一次性用户码：设备码授权页链接 ?…&usercode=XXXXX-XXXXX
+    (re.compile(r"(\busercode=)[A-Za-z0-9\-]{6,}"),
+     r"\1（一次性用户码，已掩码）"),
     # GitHub 令牌（classic / fine-grained）形如 ghp_ / github_pat_ / gho_ / ghs_ / ghu_ / ghr_
     (re.compile(r"(?:github_pat_|ghp_|gho_|ghs_|ghu_|ghr_)[A-Za-z0-9_]{16,}"),
      "（访问令牌，已掩码）"),
@@ -75,12 +83,39 @@ REDACT_RULES: list[tuple[re.Pattern, str]] = [
      r"\1（凭据，已掩码）"),
 ]
 
+# 独立出现的 32 位十六进制串按凭据处理并掩码（Gitee 私人令牌即此形态）。
+# `mvs_`（会话 ID）与 `cli_`（Meegle CLI 公开 client id）为标识符前缀，保留可见。
+HEX32_RE = re.compile(r"(?<![0-9a-fA-F])(?<!mvs_)(?<!cli_)[0-9a-f]{32}(?![0-9a-fA-F])")
+# 与 `scripts/verify-delivery.py` 的 SAFE_HEX32_CONTEXT 保持同一口径：
+# SHA-256 摘要、提交 SHA、对象 ID 等**摘要占位符**不是凭据，不应被误伤，
+# 否则会破坏证据的复核性。
+SAFE_HEX32_CONTEXT = re.compile(r"(?i)(sha256|digest|checksum|commit|sha|blob|oid|cli_|mvs_)")
+
+# 一次性设备码是 UUID v4 形态。`turn_` / `msg-` / `call-` 前缀的是**会话自身的标识符**，
+# 导出件靠它们关联事件与提示词，予以保留；其余 UUID 一律按一次性凭据掩码。
+UUID_V4_RE = re.compile(
+    r"(?<![A-Za-z0-9_])(?<!turn_)(?<!msg-)(?<!call-)"
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-4[0-9a-fA-F]{3}-[89ab][0-9a-fA-F]{3}-[0-9a-fA-F]{12}")
+
+
+def _mask_hex32(text: str) -> str:
+    """掩码独立的 32 位十六进制串，但保留摘要/提交号等占位符。"""
+
+    def repl(match: re.Match) -> str:
+        ctx = text[max(0, match.start() - 40):match.start()]
+        if SAFE_HEX32_CONTEXT.search(ctx):
+            return match.group(0)
+        return "（32 位十六进制串，已掩码）"
+
+    return HEX32_RE.sub(repl, text)
+
 
 def redact(text: str) -> str:
     """对一次性凭据做掩码，其余内容原样保留。"""
     for pattern, repl in REDACT_RULES:
         text = pattern.sub(repl, text)
-    return text
+    text = _mask_hex32(text)
+    return UUID_V4_RE.sub("（UUID 一次性凭据，已掩码）", text)
 
 
 def redact_obj(obj):
