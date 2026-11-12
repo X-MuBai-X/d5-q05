@@ -57,6 +57,7 @@
 | 2 | 2026-11-11 20:09 | 第 1 次 FAIL：静态 8 项全 PASS、行为回归 PASS，但覆盖率被误判 | 同上（修正覆盖率口径后） | **PASS**（退出码 0） | `evidence/skill-quota-guard.md` |
 | 3 | 2026-11-11 20:12 后 | 每次改动 `internal/service`、`internal/store`、`internal/domain` 后复跑 | 同上 | PASS | 报告被覆盖更新 |
 | 4 | 2026-11-11 21:25 | 五组完整场景验证后的整改（迟到结果链路、日报归一化、列表空数组）完成后复跑，确认计量口径没有被破坏 | 同上 | **PASS**（8 项静态检查全过、行为回归 PASS、覆盖率 PASS） | `evidence/skill-quota-guard.md` |
+| 5 | 2026-11-12 08:45 | 独立验收 Agent 实测复现 D1（并发降额突破额度上限）并修复后复跑；同时把静态不变量由 8 项扩到 10 项，把「额度上限必须在本条语句内实时读取」「降额下限判定与写入同语句」「日报须识别占用超额度」写成硬性规则 | 同上 | **PASS**（10 项静态检查全过、行为回归 PASS、覆盖率 PASS） | `evidence/skill-quota-guard.md` |
 
 **第 1 次 FAIL 的原因与修正（这是 Skill 自身的缺陷，不是业务代码缺陷）**：
 初版用"各函数覆盖率的最小值"近似包级覆盖率，导致 `domain` 被算成 0.0%、
@@ -83,6 +84,8 @@
 | 1 | 2026-11-11 20:05 | 交付前自查：确认共同要求与 R1–R8 是否有遗漏 | `python skills/acceptance-audit/scripts/acceptance_audit.py --out-dir evidence/acceptance-audit` | **FAIL**（退出码 1）：50 pass / 7 fail / 1 pending |
 | 2 | 2026-11-11 20:40 | 补齐文档、CI、git、竞态检测后复跑 | 同上 | **FAIL**（退出码 1）：54 pass / 3 fail / 0 pending（C-11、C-12、C-14） |
 | 3 | 2026-11-11 21:25 | 竞态检测补齐、HTTP 层覆盖率补测、文档脱敏后复跑 | 同上 | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending |
+| 4 | 2026-11-12 08:40 | 独立验收 Agent 指出 C-14 存在文件级白名单（`allow={docs/01, docs/04, docs/08}`），被抑制的正是 `docs/04` 的 4 行明文演示口令，与 `docs/09` 的表述不符 | 同上（**删除白名单**后复跑） | **FAIL**（退出码 1）：57 pass / 1 fail / 0 pending —— C-14 如实报出 `docs/04` 的命中 |
+| 5 | 2026-11-12 08:43 | 按第 4 次结果把 `docs/04` 与两份独立报告里的演示口令真正改为掩码（`ops-****`），完整值只留在源码 `cmd/server/main.go`；同时把 R2-2 的判定从「条件里带额度参数」改为「条件里实时读取 `tenants.daily_quota`」 | 同上 | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending；C-14 证据改为「无白名单，全量扫描」 |
 
 **第 1 次 FAIL 列出的 7 项与处理**：
 

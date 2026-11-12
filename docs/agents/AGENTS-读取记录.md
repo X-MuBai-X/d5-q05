@@ -13,6 +13,8 @@
 | v1.0 | `docs/agents/AGENTS-v1.0.md` | 需求分析确认后 → 业务编码前 | 首版。规则来源是需求分析阶段的 12 项确认结论（Q1–Q12）与假设清单（A1–A13），在写第一行业务代码之前定稿。 |
 | v1.1 | 本文件下方「增补说明」+ `AGENTS.md` | 单元测试与代码评审后 | 增补 5 条规则，每条都对应实现过程中**实际暴露的缺陷**（见 §3）。 |
 | v1.2 | 仓库根目录 `AGENTS.md` | 部署与验收前 | 增补自编 Skill 调用留痕、并发测试场景清单、证据脱敏三项要求。 |
+| v1.3 | `docs/agents/AGENTS-v1.3.md` | 五组完整场景逐条验证与审计整改后 | 增补 6 条规则，对应五组场景验证与审计整改中真实暴露的缺陷（迟到结果不可观测、日报缺零值类别、列表返回 null、参数缺失落 500、端口被占用导致测到旧二进制、验证污染数据库）。 |
+| v1.4 | 仓库根目录 `AGENTS.md` | 独立测试/验收 Agent 复核后 | 增补 3 条规则，对应独立验收 Agent 实测复现的缺陷 D1/D4/D5（额度判定与写入跨语句、脱敏扫描白名单与文档表述不符）。 |
 
 ---
 
@@ -27,6 +29,10 @@
 | 5 | 2026-11-11 20:05 | AI 助手（编码会话） | v1.0 | 单元测试暴露首批缺陷 | 按 §6/§7 补测试并修缺陷，见 §3 的 v1.1 增补清单 |
 | 6 | 2026-11-11 20:12 | AI 助手（编码会话） | v1.1 | 准备覆盖率冲刺 | 按 §7 拆出 `Service.settle` 使终态结算可被精确单测，拆分前先确认不改变 §4 的三条计量分支 |
 | 7 | 2026-11-11 20:30 | AI 助手（编码会话） | v1.2 | 准备部署与验收 | 按 §8/§9 准备真实部署记录、调用两个自编 Skill 并留存原始输出 |
+| 8 | 2026-11-11 21:10 | AI 助手（编码会话） | v1.2 | 五组完整场景逐条验证前 | 按 §7「业务分支验证必须用未污染的数据库」改造部署脚本，新增 `-SkipSmoke` 与端口预检 |
+| 9 | 2026-11-11 21:30 | AI 助手（编码会话） | v1.2 | 审计整改阶段 | 按 §4 第 10 条补「五类终态恒列出」，按 §6 第 7 条把列表函数改为返回空数组 |
+| 10 | 2026-11-11 21:44 | AI 助手（编码会话） | v1.3 | 独立测试/验收 Agent 报告回收后 | 按 §4 第 11/12 条把额度判定与写入合并进同一条语句；按 §8 第 4 条删除脱敏扫描白名单并对演示口令做掩码 |
+| 11 | 2026-11-12 08:45 | AI 助手（编码会话） | v1.4 | D1 修复后的回归与复验 | 按 §7 补 D1/F2/F3/F4/F6 五类回归用例；`skills/quota-guard` 静态不变量由 8 项扩到 10 项 |
 
 > 说明：v1.0 的定稿时点早于第一行业务代码；v1.1 / v1.2 的增补条目均在下表逐条给出
 > 「触发缺陷 → 规则条款 → 代码落点」的可追溯关系。
@@ -52,13 +58,42 @@
 
 ---
 
+## 3b. v1.4 增补条目与触发缺陷对照
+
+来源：2026-11-11 21:41 起独立运行的两个子会话（独立测试 Agent、独立验收 Agent），
+二者均以题面原文与仓库为唯一输入，不接收开发会话的结论。报告原文见
+`evidence/independent-test-report.md` 与 `evidence/independent-acceptance-report.md`。
+
+| 增补条款 | 触发的真实缺陷 | 缺陷如何被发现 | 代码落点 |
+|---|---|---|---|
+| §4 第 11 条：额度上限与降额下限的判定必须与写入在同一条语句内完成 | **D1（中）**：额度上限以参数形式从 `service` 层传入 `ReserveInflight`，并发降额与并发受理交错时实测出现 `occupied=3, quota=0`；降额侧同样是「先读占用、再写额度」两步 | 独立验收 Agent 用 `Barrier` 并发 1 次降额 + 5 次调用，**两次复现**，并直查 SQLite 确认状态持久化 | `internal/store/store.go`（`ReserveInflight` 改为子查询实时读取 `tenants.daily_quota`；新增 `UpdateTenantQuotaWithFloor`）、`internal/service/service.go`（不再传快照） |
+| §4 第 12 条：日终报表必须能识别「占用超过额度」 | **D1 加重项**：出现超额后日报仍返回 `consistent=true, mismatch_note=null`，运营看不出超额 | 同上（独立验收 Agent 复现后立即核对日报返回值） | `internal/domain/domain.go`（`BuildDailyReport` 增加 `Occupied() > QuotaLimit` 判定） |
+| §8 第 4 条：泄密扫描不得使用白名单 | **D4/D5（低）**：`skills/acceptance-audit` 的 C-14 存在文件级白名单 `allow={docs/01, docs/04, docs/08}`，被抑制的正是 `docs/04` 的 4 行明文口令；而 `docs/09` 却写「不是加白名单绕过」，**文档与代码不符** | 独立验收 Agent 去掉白名单重扫，比对唯一被抑制的行 | `skills/acceptance-audit/scripts/acceptance_audit.py`（删除 `allow`）、`docs/04-部署与使用说明.md`（演示口令改掩码）、`docs/09-AI使用说明.md`（表述改为与代码一致） |
+
+此外，独立测试 Agent 指出 4 处**测试覆盖缺口**（F2/F3/F4/F6，均为低 severity、非功能缺陷），
+按 §7「关键业务任务必须有实现及验证链」补齐了回归用例：
+
+| 覆盖缺口 | 补齐用例 | 落点 |
+|---|---|---|
+| F2：同租户跨凭证越权读取的 403 分支无回归保护 | `TestAppCannotReadRequestOfOtherCredentialInSameTenant` | `internal/httpapi/isolation_test.go` |
+| F3：并发提交同编号不同参数的冲突分支未覆盖 | `TestInvokeConcurrentSameRequestNoDifferentParamsConflict` | `internal/service/concurrency_test.go` |
+| F4：写入失败必须归还额度的兜底路径未覆盖 | `TestInvokeReleasesQuotaWhenInsertFails`（用 SQLite 触发器注入故障） | `internal/service/concurrency_test.go` |
+| F6：报表「处理中」计数只被断言为 0 | `TestDailyReportShowsInFlightWhileRequestProcessing` | `internal/service/concurrency_test.go` |
+
+D1 的回归用例：`TestConcurrentQuotaChangeNeverExceedsQuota`（service 层）、
+`TestReserveInflightNeverExceedsLiveQuota`（store 层）、
+`TestUpdateTenantQuotaWithFloorRejectsBelowOccupied`（store 层）、
+`TestBuildDailyReportFlagsOccupancyAboveQuota`（domain 层）。
+
+---
+
 ## 4. 规则到实现的映射索引
 
 | AGENTS.md 条款 | 实现落点 | 验证方式 |
 |---|---|---|
-| §4 计量口径（8 条） | `internal/domain/domain.go`（`Usage.Remaining/Occupied`、`ValidateQuotaChange`、`BuildDailyReport`）、`internal/store/store.go`（`ReserveInflight`/`CommitSuccess`/`ReleaseInflight`）、`internal/service/service.go`（`Invoke`/`settle`） | `internal/domain/domain_test.go`、`internal/store/store_test.go`、`internal/service/invoke_test.go`；`skills/quota-guard` |
-| §5 身份与权限（6 条） | `internal/service/auth.go`（`Identity`/`issueSession`/`AuthorizeTenantAccess`）、`internal/httpapi/server.go`（`identityFrom`/`tenantScope`/`tenantAdminOnly`） | `internal/service/auth_test.go`、`internal/httpapi/server_test.go` |
-| §6 代码规范（7 条） | 全仓库 | `gofmt -l .` 空、`go vet ./...` 无告警、`skills/acceptance-audit` |
-| §7 测试要求（5 条） | `*_test.go` 全仓库 | `go test ./... -coverprofile`、并发用例、`go test -race` |
-| §8 证据与提交 | `evidence/`、`docs/`、git 提交消息 | `docs/07-提交规范说明.md`、git log |
+| §4 计量口径（12 条） | `internal/domain/domain.go`（`Usage.Remaining/Occupied`、`ValidateQuotaChange`、`BuildDailyReport`）、`internal/store/store.go`（`ReserveInflight`/`CommitSuccess`/`ReleaseInflight`/`UpdateTenantQuotaWithFloor`）、`internal/service/service.go`（`Invoke`/`settle`/`AdjustQuota`） | `internal/domain/domain_test.go`、`internal/store/store_test.go`、`internal/service/invoke_test.go`、`internal/service/concurrency_test.go`；`skills/quota-guard` |
+| §5 身份与权限（6 条） | `internal/service/auth.go`（`Identity`/`issueSession`/`AuthorizeTenantAccess`）、`internal/httpapi/server.go`（`identityFrom`/`tenantScope`/`tenantAdminOnly`） | `internal/service/auth_test.go`、`internal/httpapi/server_test.go`、`internal/httpapi/isolation_test.go` |
+| §6 代码规范（9 条） | 全仓库 | `gofmt -l .` 空、`go vet ./...` 无告警、`skills/acceptance-audit` |
+| §7 测试要求（7 条） | `*_test.go` 全仓库 | `go test ./... -coverprofile`、并发用例、`go test -race` |
+| §8 证据与提交（5 条） | `evidence/`、`docs/`、git 提交消息 | `docs/07-提交规范说明.md`、`skills/acceptance-audit` 的 C-14（无白名单）、git log |
 | §9 Skill 调用约定 | `skills/quota-guard`、`skills/acceptance-audit` | `docs/08-Skill使用记录.md` |
