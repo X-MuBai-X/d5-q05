@@ -27,6 +27,11 @@ askpass 脚本注入（脚本放在仓库外的临时目录，只引用环境变
 用法：
     $env:GITEE_ACCESS_TOKEN = "<Gitee 私人令牌>"
     python scripts/release-gitee.py --repo . --owner xishiyao --name d5
+
+    # 账号本人在 Gitee 界面完成合并后，由脚本接力执行合并版本的门禁与部署：
+    python scripts/release-gitee.py --repo . --skip-merge
+    # 或：开放接口合并被拒后，等待账号本人在界面合并（最多等待 N 秒）：
+    python scripts/release-gitee.py --repo . --merge-wait-seconds 600
 """
 from __future__ import annotations
 
@@ -36,6 +41,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone, timedelta
@@ -433,6 +439,58 @@ def _read_main_sha(token: str, owner: str, name: str) -> tuple[bool, str]:
     return bool(sha), sha
 
 
+def _read_branch_sha(token: str, owner: str, name: str, branch: str) -> str:
+    code, resp = gitee_api(token, "GET", f"/repos/{owner}/{name}/branches/{branch}")
+    return (resp.get("commit") or {}).get("sha", "") if code == 200 else ""
+
+
+def step_detect_external_merge(token: str, owner: str, name: str, branch: str,
+                               base_sha_before: str) -> tuple[str | None, str]:
+    """检测主分支是否**已由账号本人在 Gitee 界面**完成合并。
+
+    平台限制（逐项实测，见 evidence/gitee-merge-gate-probe.json）：
+      POST   /repos/{owner}/{repo}/pulls/{n}/testers   → 201（仅新增测试人，accept 仍为 false）
+      PATCH  /repos/{owner}/{repo}/pulls/{n}/testers   → 200（accept 仍为 false）
+      POST   /repos/{owner}/{repo}/pulls/{n}/review    → 204（event=TEST_PASS / APPROVE 均不改变 accept）
+      PUT    /repos/{owner}/{repo}/pulls/{n}/merge     → 405「此 Pull Request 未通过设置的测试」
+      DELETE /repos/{owner}/{repo}/pulls/{n}/testers/{login} → 404（该平台未开放该端点）
+    即：PR 的测试人验收（testers[].accept）只能由账号本人在界面置位，开放接口无法代劳。
+    因此脚本提供「界面合并 → 脚本接力」闭环：主分支指针前移即判定合并已发生。
+    """
+    sha = _read_branch_sha(token, owner, name, branch)
+    if sha and base_sha_before and sha != base_sha_before:
+        return sha, (f"主分支指针已由 {base_sha_before[:12]} 前移到 {sha[:12]}，"
+                     f"判定合并已由账号本人在 Gitee 界面完成，脚本接力执行合并版本的门禁与部署。")
+    return None, "主分支指针未前移，未检测到界面合并。"
+
+
+def step_wait_external_merge(token: str, owner: str, name: str, branch: str,
+                              base_sha_before: str, seconds: int) -> tuple[str | None, str]:
+    """等待账号本人在 Gitee 界面完成合并（轮询主分支指针）。"""
+    deadline = time.time() + max(0, seconds)
+    while True:
+        sha, note = step_detect_external_merge(token, owner, name, branch, base_sha_before)
+        if sha:
+            return sha, note
+        if time.time() >= deadline:
+            return None, f"等待 {seconds} 秒后主分支指针仍未前移，合并未完成。"
+        log(f"  …等待账号本人在 Gitee 界面把「测试」置为通过并点击合并（剩余约 "
+            f"{int(deadline - time.time())} 秒）")
+        time.sleep(5)
+
+
+def step_advance_local_main(repo: Path, merge_sha: str, old_main_sha: str) -> bool:
+    """把本地 main 推进到合并提交（快进引用更新，不动工作区与开发分支）。"""
+    if not old_main_sha:
+        return False
+    code, out = git_run(["update-ref", "refs/heads/main", merge_sha, old_main_sha], repo)
+    if code != 0:
+        log(f"  提示：本地 main 未推进（不影响远端事实）：{out.strip()[:200]}")
+        return False
+    log(f"  本地 main 已推进到合并提交 {merge_sha[:12]}")
+    return True
+
+
 def step_merge(repo: Path, token: str, owner: str, name: str,
                pr_number: str, title: str, message: str) -> str | None:
     log("步骤 8/9：通过 Gitee 官方 MCP 合并 PR（保留原始提交，合并消息含工作项编号）")
@@ -532,6 +590,10 @@ def main() -> int:
                                               "主要工作项 #16221249，关联需求 #16220913 与缺陷 "
                                               "#16220917 / #16220924 / #16220925 / #16221411 / #16221436。")
     ap.add_argument("--skip-push", action="store_true")
+    ap.add_argument("--skip-merge", action="store_true",
+                    help="不调用开放接口合并，直接检测主分支是否已被账号本人在 Gitee 界面合并")
+    ap.add_argument("--merge-wait-seconds", type=int, default=0,
+                    help="开放接口合并被平台限制拒绝后，等待账号本人在 Gitee 界面完成合并的最长秒数")
     args = ap.parse_args()
 
     token = os.environ.get("GITEE_ACCESS_TOKEN", "")
@@ -552,6 +614,22 @@ def main() -> int:
         "owner": args.owner, "repo": args.name, "remote": args.remote,
         "head_branch": args.head, "base_branch": args.base, "steps": [],
     }
+    try:
+        return _chain(args, token, git_secret, repo, remote_url, summary)
+    finally:
+        summary["finished_at"] = datetime.now(CST).isoformat()
+        summary["all_ok"] = bool(summary["steps"]) and all(s["ok"] for s in summary["steps"])
+        path = EVIDENCE / "gitee-remote-chain.json"
+        path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n",
+                        encoding="utf-8", newline="\n")
+        log(f"链路归档：{path}")
+        log("全部步骤结束。" if summary["all_ok"]
+            else "存在失败步骤，详见上方日志与 evidence/ 归档报文。")
+
+
+def _chain(args, token: str, git_secret: str, repo: Path, remote_url: str,
+           summary: dict) -> int:
+    """执行链路主体；无论成功失败，调用方都会归档 evidence/gitee-remote-chain.json。"""
 
     def record(step: str, ok: bool, detail: str = "") -> None:
         summary["steps"].append({"step": step, "ok": ok, "detail": detail,
@@ -591,13 +669,31 @@ def main() -> int:
         return 1
     record("审批 PR", True)
 
-    sha, merge_notes = step_merge_resilient(repo, token, args.owner, args.name, pr_number,
-                                           args.merge_title, args.merge_message, args.base)
+    base_sha_before = _read_main_sha(token, args.owner, args.name)[1]
+    merge_notes: list[str] = []
+    sha: str | None = None
+    if args.skip_merge:
+        sha, note = step_detect_external_merge(token, args.owner, args.name,
+                                               args.base, base_sha_before)
+        merge_notes.append(note)
+        log(f"  --skip-merge：{'检测到界面合并 ' + sha[:12] if sha else '未检测到界面合并'}")
+    else:
+        sha, merge_notes = step_merge_resilient(repo, token, args.owner, args.name, pr_number,
+                                                args.merge_title, args.merge_message, args.base)
+        if not sha and args.merge_wait_seconds > 0:
+            log(f"  开放接口无法置位「测试通过」，等待账号本人在 Gitee 界面完成合并"
+                f"（最长 {args.merge_wait_seconds} 秒）")
+            sha, note = step_wait_external_merge(token, args.owner, args.name, args.base,
+                                                 base_sha_before, args.merge_wait_seconds)
+            if note:
+                merge_notes.append(note)
     record("合并 PR", bool(sha), sha or "")
     if merge_notes:
         record("合并平台限制登记", True, "；".join(merge_notes))
         summary["platform_notes"] = merge_notes
     if not sha:
+        log("合并未完成。请在 Gitee 界面把 PR 的「测试」置为通过并点击合并，"
+            "随后重跑本脚本（加 --skip-merge 会直接接力合并版本的门禁与部署）。")
         return 1
     summary["pr_url"] = pr_url
     summary["pr_number"] = pr_number
@@ -607,6 +703,8 @@ def main() -> int:
         record("拉取合并提交", False)
         return 1
     record("拉取合并提交", True)
+
+    step_advance_local_main(repo, sha, base_sha_before)
 
     if not step_verify_protection(repo, args.remote, env, args.owner, args.name,
                                   args.base, sha):
@@ -619,14 +717,7 @@ def main() -> int:
     ok = step_deploy(repo, sha) and ok
     record("合并版本部署", ok, str(EVIDENCE / "deployment-main.log"))
     step_delivery(repo)
-
-    summary["finished_at"] = datetime.now(CST).isoformat()
-    summary["all_ok"] = all(s["ok"] for s in summary["steps"])
-    path = EVIDENCE / "gitee-remote-chain.json"
-    path.write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
-    log(f"链路归档：{path}")
-    log("全部步骤结束。" if summary["all_ok"] else "存在失败步骤，详见上方日志与 evidence/ 归档报文。")
-    return 0 if summary["all_ok"] else 1
+    return 0 if ok else 1
 
 
 if __name__ == "__main__":

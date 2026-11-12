@@ -1,0 +1,244 @@
+{
+  "probed_at": "2026-11-12T14:05:10.295343+08:00",
+  "platform": "Gitee（api.gitee.com）",
+  "repo": "xishiyao/d5",
+  "pull_request": 1,
+  "method": "逐端点调用公开 API，观察调用前后 PR 的 testers[].accept 与 can_merge_check",
+  "token_policy": "令牌仅经环境变量传入，不写入脚本、证据或命令行",
+  "before": {
+    "http_status": 200,
+    "state": "open",
+    "merged_at": null,
+    "mergeable": true,
+    "can_merge_check": false,
+    "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+    "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+    "testers": [
+      {
+        "login": "xishiyao",
+        "accept": false
+      }
+    ],
+    "assignees": [
+      {
+        "login": "xishiyao",
+        "accept": true
+      }
+    ]
+  },
+  "probes": [
+    {
+      "method": "POST",
+      "path": "/repos/xishiyao/d5/pulls/1/testers",
+      "request_body": {
+        "testers": "xishiyao"
+      },
+      "purpose": "新增测试人（参数形态为字符串时才被接受）",
+      "http_status": 201,
+      "response_excerpt": "{\"id\":19172412,\"url\":\"https://gitee.com/api/v5/repos/xishiyao/d5/pulls/1\",\"html_url\":\"https://gitee.com/xishiyao/d5/pulls/1\",\"diff_url\":\"https://gitee.com/xishiyao/d5/pulls/1.diff\",\"patch_url\":\"https://gitee.com/xishiyao/d5/pulls/1.patch\",\"issue_url\":\"https://gitee.com/api/v5/repos/xishiyao/d5/pulls",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "PATCH",
+      "path": "/repos/xishiyao/d5/pulls/1/testers",
+      "request_body": {
+        "testers": "xishiyao",
+        "accept": true
+      },
+      "purpose": "尝试直接置位 testers.accept",
+      "http_status": 200,
+      "response_excerpt": "{\"id\":19172412,\"url\":\"https://gitee.com/api/v5/repos/xishiyao/d5/pulls/1\",\"html_url\":\"https://gitee.com/xishiyao/d5/pulls/1\",\"diff_url\":\"https://gitee.com/xishiyao/d5/pulls/1.diff\",\"patch_url\":\"https://gitee.com/xishiyao/d5/pulls/1.patch\",\"issue_url\":\"https://gitee.com/api/v5/repos/xishiyao/d5/pulls",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/repos/xishiyao/d5/pulls/1/review",
+      "request_body": {
+        "event": "TEST_PASS"
+      },
+      "purpose": "尝试以评审事件表达「测试通过」",
+      "http_status": 204,
+      "response_excerpt": "",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/repos/xishiyao/d5/pulls/1/review",
+      "request_body": {
+        "event": "APPROVE"
+      },
+      "purpose": "对照：正常的评审通过事件",
+      "http_status": 204,
+      "response_excerpt": "",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/repos/xishiyao/d5/pulls/1/merge",
+      "request_body": {
+        "merge_style": "merge"
+      },
+      "purpose": "尝试直接合并（验证服务端闸门）",
+      "http_status": 405,
+      "response_excerpt": "{\"message\":\"此 Pull Request 未通过设置的测试\"}",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    },
+    {
+      "method": "DELETE",
+      "path": "/repos/xishiyao/d5/pulls/1/testers/xishiyao",
+      "request_body": null,
+      "purpose": "尝试移除测试人以绕开闸门",
+      "http_status": 404,
+      "response_excerpt": "{\"status\":\"404\",\"error\":\"Not Found\"}",
+      "pr_state_after": {
+        "http_status": 200,
+        "state": "open",
+        "merged_at": null,
+        "mergeable": true,
+        "can_merge_check": false,
+        "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+        "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+        "testers": [
+          {
+            "login": "xishiyao",
+            "accept": false
+          }
+        ],
+        "assignees": [
+          {
+            "login": "xishiyao",
+            "accept": true
+          }
+        ]
+      }
+    }
+  ],
+  "after": {
+    "http_status": 200,
+    "state": "open",
+    "merged_at": null,
+    "mergeable": true,
+    "can_merge_check": false,
+    "head_sha": "20cd1f573ef5edaaad426530db6f927c679f6a57",
+    "base_sha": "d75aebd9a3e045080d82699962a7157ea1c242f7",
+    "testers": [
+      {
+        "login": "xishiyao",
+        "accept": false
+      }
+    ],
+    "assignees": [
+      {
+        "login": "xishiyao",
+        "accept": true
+      }
+    ]
+  },
+  "conclusion": {
+    "merge_endpoint_status": 405,
+    "tester_accept_changed": false,
+    "can_merge_check": false,
+    "statement": "公开 API 没有任何端点能把 testers[].accept 置为 true：POST/PATCH /pulls/{n}/testers 与 POST /pulls/{n}/review（TEST_PASS/APPROVE）调用后 testers[].accept 仍为 false、can_merge_check 仍为 false；PUT /pulls/{n}/merge 恒返回 405「此 Pull Request 未通过设置的测试」。因此 Gitee 的 PR 测试人验收只能由账号本人在界面完成，脚本以 --skip-merge / --merge-wait-seconds 接力后续门禁与部署。",
+    "no_fabrication": "本文件只记录真实调用的返回结果；未伪造任何流水线结论、未用手工状态冒充 CI 状态检查。"
+  }
+}

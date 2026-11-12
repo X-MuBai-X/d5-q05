@@ -8,7 +8,7 @@ cli=meegle
 === auth status ===
 {
   "authenticated": true,
-  "expires_in_minutes": 35,
+  "expires_in_minutes": 119,
   "host": "meegle.com"
 }
 
@@ -38,7 +38,7 @@ cli=meegle
     "retryable": false
   },
   "meta": {
-    "logid": "2026111210421210A10F31E25687378381"
+    "logid": "20261112140605F36424D38981B54E9FE9"
   }
 }
 
@@ -57,12 +57,8 @@ cli=meegle
     },
     "role_members": [
       {
-        "key": "Server",
-        "name": "Server"
-      },
-      {
-        "key": "UI",
-        "name": "UI&UX"
+        "key": "Android",
+        "name": "Android"
       },
       {
         "key": "QA",
@@ -83,28 +79,32 @@ cli=meegle
         "name": "DA"
       },
       {
-        "key": "RD",
-        "name": "RD"
+        "key": "UI",
+        "name": "UI&UX"
       },
       {
-        "key": "Android",
-        "name": "Android"
+        "key": "RD",
+        "name": "RD"
       },
       {
         "key": "FE",
         "name": "FE"
       },
       {
-        "key": "Tech_Owner",
-        "name": "技术 owner"
+        "key": "Server",
+        "name": "Server"
+      },
+      {
+        "key": "LineMaster",
+        "name": "业务线 master"
       },
       {
         "key": "iOS",
         "name": "iOS"
       },
       {
-        "key": "LineMaster",
-        "name": "业务线 master"
+        "key": "Tech_Owner",
+        "name": "技术 owner"
       }
     ],
     "template": {
@@ -304,10 +304,6 @@ cli=meegle
     },
     "role_members": [
       {
-        "key": "operator",
-        "name": "经办人"
-      },
-      {
         "key": "reporter",
         "members": [
           {
@@ -316,6 +312,10 @@ cli=meegle
           }
         ],
         "name": "报告人"
+      },
+      {
+        "key": "operator",
+        "name": "经办人"
       }
     ],
     "template": {
@@ -372,32 +372,12 @@ cli=meegle
     },
     "role_members": [
       {
-        "key": "QA",
-        "name": "QA"
-      },
-      {
-        "key": "DA",
-        "name": "DA"
-      },
-      {
-        "key": "iOS",
-        "name": "iOS"
-      },
-      {
-        "key": "RD",
-        "name": "RD"
-      },
-      {
-        "key": "Android",
-        "name": "Android"
-      },
-      {
         "key": "Server",
         "name": "Server"
       },
       {
-        "key": "UI",
-        "name": "UI&UX"
+        "key": "FE",
+        "name": "FE"
       },
       {
         "key": "PM",
@@ -410,16 +390,36 @@ cli=meegle
         "name": "PM"
       },
       {
-        "key": "Tech_Owner",
-        "name": "技术 owner"
-      },
-      {
-        "key": "FE",
-        "name": "FE"
+        "key": "RD",
+        "name": "RD"
       },
       {
         "key": "LineMaster",
         "name": "业务线 master"
+      },
+      {
+        "key": "DA",
+        "name": "DA"
+      },
+      {
+        "key": "UI",
+        "name": "UI&UX"
+      },
+      {
+        "key": "QA",
+        "name": "QA"
+      },
+      {
+        "key": "iOS",
+        "name": "iOS"
+      },
+      {
+        "key": "Tech_Owner",
+        "name": "技术 owner"
+      },
+      {
+        "key": "Android",
+        "name": "Android"
       }
     ],
     "template": {
@@ -483,10 +483,6 @@ cli=meegle
     },
     "role_members": [
       {
-        "key": "operator",
-        "name": "经办人"
-      },
-      {
         "key": "reporter",
         "members": [
           {
@@ -495,6 +491,10 @@ cli=meegle
           }
         ],
         "name": "报告人"
+      },
+      {
+        "key": "operator",
+        "name": "经办人"
       }
     ],
     "template": {
