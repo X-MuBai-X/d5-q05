@@ -1,0 +1,54 @@
+{
+  "mcp_server": {
+    "image": "ghcr.io/github/github-mcp-server:latest",
+    "transport": "stdio (docker run -i --rm ... stdio)",
+    "protocol": "MCP JSON-RPC 2.0",
+    "serverInfo": {
+      "name": "github-mcp-server",
+      "title": "GitHub MCP Server",
+      "version": "v2.1.0",
+      "icons": [
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAADK0lEQVRIibWVQWhcVRSGv3Pfy0zGdBIMRWk7iziMTpORptpqiNSNG1dNizaFFlxIoYuCC7NwJdiVlhYprtwpighCF9GtuhCRtuCoaWdqGF7HkE4aWm1CpklmJpl3j4vMS99M2k4G9N+8d8659/8u9553H/zPkscVM5lMf03do6iOKbJXIAGgUBJ0GpHvolKfzOfzCx0BEonRWDRemRD0PaC3zSKXED1fLfdcLJUuV9oC0ukXdluxkyq81Ma4VX9Y4x4p5rOzjwSkUvsSdMkVYE+H5oHmjM9IoTA1FyRM8JJIjMbokm83zUW/Vvi5raXwC8rnjWiPdXRyYGCgOyi7wUs0XpkAXmyEa/XV8qmZmZnqc0P7XrXKW2BuKDovgorqLoWMFb4p3rj2I4w7qcHCMSAOctDt7n0X+GiDT6NbrPsXDw50xftzKg7odvcmtXf4DsJTjXBpzbXPzF6/vmgAauoepblbnGTyQLvu2VQmk4kgxEKpvui6cwSCM1Ada5qheq5YzC5tF5DP59dQzjYlZcOzccgyGK65mC+2ax7IWPfLcGxhKARgV7i4vBy70ymgUMj+A9SDWGB3GOCEB/f0VJ/sFJBKjfQS6srAOwD8HR7su/7BTgE2Umn98u9uAgR+ayqpnOkUIK1zZMPTACjyQzOA11ND+z+E8aate4TMs4PD7wu80ezP940nJJMH+ky0XgKeAHkH1TcRXgNywFeoueJN//5T2CCZGT7kWBlV9CSwvwV6n/XuhOddLRuAYjG7hMjHgEH1tEb0BEgWeB44J8aebF2243Nc0fMPMUfgguddLUOoe/r7dlwWJzqGMCxq6q5Wz/jSVQZ+Nb795N69u4thk/6dT7uInNiyYcoU9ZW3FxYWfAjdpp7n1XzjHAbmUJ3wTXQ8gvOZb+oXV1d3zLf6WEcWW3MoJXX9w57n1YKUCdeL+eysOv4oyrQqn65Tv+1adz4WrxzaskXWNs0V5Jq6/is3c7lb4byhRTdzuVvUV0ZQPgDuA6jqlj+fqhvkllE9q+vLL7eab4Afo1RqpJdI9Rhr3ZeCQwuUTqfjvoket7WuS51cjP+5/gWC8y5uIkrtDQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "light"
+        },
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAB8ElEQVRIibWVu09UQRSHv9k1IgW7AY0RBWKsTGx9ND4qS5F/wEYLDb0xAY0UxkdrZ2NHYWfsaYyVT4iJwZpNjJooLBQEYz6LvZsdxmH3LtFfN3PO+X5zzzwu/GeFbkF1BJgCJoHjwFgRagDLwAvgeQjhR1+u6qA6q67ZW6vqjDpYFn5YfV0CnOqDOtELPqY2dgFvq6Ee6daWd1HyvPqyBPSV+jQav1H3tbkhMpgF7hXDLaAeQthUzwFXgE/AF0BgFDgBPAshLKhV4CcwVNTPhBAexKsfcfuGbqhdT1imA1+j+lV1GKBSxKeAWpRfTca94HuB+BTVgcuxwWRS8zCEsFbWIISwBcwl0x2m+jnZuKNl4RHjQMJYjoPNJFju0vxt8itiNKHTomqSO7wLeA3YE01VYoPvSf7Jfg2AU8n4W2zwPglO78Igrekw1enMDb1fXKCuUivq7Uz99Tiprq6rvwuzhSLpo3pLvZABn1Vv2nrkUjWLPdlWMFcEF9WD6tuo4EnG4HEG3Nad3KcOqEtRe/bb+ic8Uo9l8i/tAF9UB3bq54StJ3dTvaGOqofM3IuiRalW1PH8bnUKx4tVxLqYyTuf5Czl4JV0IoSwApwB7gLr7enMWtpzG7TeodNFbXmpNfWq6YloxYbUa2q9L+i/1h8/EAGdUrF9ZQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "dark"
+        }
+      ]
+    }
+  },
+  "tool": "list_pull_requests",
+  "called_at": "2026-11-12T18:59:48.829552+08:00",
+  "elapsed_ms": 671,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "list_pull_requests",
+      "arguments": {
+        "owner": "X-MuBai-X",
+        "repo": "d5-q05",
+        "state": "open",
+        "head": "X-MuBai-X:dev/05",
+        "perPage": 20
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[{\"number\":2,\"title\":\"[feat] [v2.7.0] [#16221249] 合入 dev/05 最新修正与 GitHub MCP 交付链路\",\"body\":\"## 需求与缺陷编号\\n\\n- 需求工作项：#16221249（远端交付链路）、#16220913（企业模型服务配额管理核心业务）\\n- 缺陷工作项：#16220917（并发降额超限）、#16220924（缺 tenant_id 返回 500）、#16220925（部署 PID 缺陷）、\\n  #16221411（导出未脱敏）、#16221436（提交消息格式校验）\\n\\n## 变更说明\\n\\n本 PR 从 `dev/05` 发起，把 PR !1 之后开发分支上新增的提交合入 `main`（题目 05 的业务实现\\n已随 PR !1 进入 `main`）：\\n\\n1. `435222a` test：补齐 `internal/httpapi` 与 `internal/upstream` 的异常分支用例\\n   （方法不符 405、非法 JSON 400、运营缺少租户范围 400；迟到等待窗口未配置、上游地址非法、\\n   调用方已取消、响应体读取失败、迟到窗口内才拿到结果），把核心包覆盖率抬到阈值以上；\\n2. `9b8f352` fix：修正 `go test -coverprofile` 的**产出路径**（相对路径会写到包目录、目录不存在时\\n   静默不写，导致统计脚本读到**陈旧剖面**），并让 **CI 与本机门禁共用同一个** `scripts/coverage-summary.py`，\\n   消除两处统计逻辑的口径漂移；\\n3. `8a79a58` fix：修正 GitHub MCP 合并工具的参数名（`pullNumber`）与主分支保护「禁止删除」的判定口径，\\n   并让链路在合并未真正发生时中止（不再把旧 main 当作合并提交去跑门禁和部署）；\\n4. `a81d472` feat：新增 `scripts/push-via-github-api.py` 与 `scripts/fetch-commit-via-github-api.py`\\n   —— 本机到 `github.com` 的 git 传输端口不可达时，用 GitHub REST Git Data API 推送，\\n   并按远端元数据**逐字节重建**提交对象（每一步 SHA 复核，不一致即中止）；\\n5. `131647d` / `dacc11a`：归档 GitHub 侧建仓 → PR → CI → 分支保护 → 合并 → 合并提交门禁 → 合并版本部署\\n   的完整证据（含合并提交 `3b06d206055a` 的门禁日志与部署流水），并回填 `docs/10`、`docs/11`\\n   的发布版本、合并 SHA 与班级群消息。\\n\\n## 测试结果\\n\\n- `gofmt -l .` 无输出；`go vet ./...` 无告警；`go test ./... -count=1` 全部通过\\n- 全量接口能力测试 113/113 通过（`scripts/api-full-test.py`，归档 `evidence/api-full-test.log`）\\n- 业务冒烟 39/39、五组完整场景 73/73、容器内 `go test ./... -race` 退出码 0 且 0 DATA RACE\\n- 交付链路自检 `scripts/verify-delivery.py`：**PASS=8 / PENDING=0 / FAIL=0**\\n  （`evidence/delivery-check.md`）\\n\\n## 覆盖率\\n\\n整体 **90.5%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 89.7% / upstream 95.3%，\\n各核心包均 ≥85%。原件见 `evidence/coverage.out`、`evidence/coverage-summary.txt`。\\n\\n## 验收报告\\n\\n- 独立测试 Agent 报告：`evidence/independent-test-report.md`\\n- 独立验收 Agent 报告：`evidence/independent-acceptance-report.md`\\n\\n## AI / Skill 使用记录\\n\\n- 全过程提示词与结构化事件清单：`docs/06-会话导出.md`、`evidence/会话事件清单.jsonl`\\n- 过程时序（机器反推）：`evidence/过程时序清单.md`\\n- AI 使用说明：`docs/09-AI使用说明.md`\\n- 自编 Skill 与使用记录：`skills/quota-guard/`、`skills/acceptance-audit/`、`docs/08-Skill使用记录.md`\\n\",\"state\":\"open\",\"draft\":false,\"merged\":false,\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/pull/2\",\"user\":{\"login\":\"X-MuBai-X\",\"id\":354689650,\"profile_url\":\"https://github.com/X-MuBai-X\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/354689650?v=4\"},\"head\":{\"ref\":\"dev/05\",\"sha\":\"973d5399ad2dfa19a3f1182175a3d87f42092f57\",\"repo\":{\"full_name\":\"X-MuBai-X/d5-q05\",\"description\":\"题目05 企业模型服务的配额开通、调用、停用与用量核查（Go 1.27 + SQLite，dev/05 分支开发）\"}},\"base\":{\"ref\":\"main\",\"sha\":\"3b06d206055ada197f85e822cf767daff35b744e\",\"repo\":{\"full_name\":\"X-MuBai-X/d5-q05\",\"description\":\"题目05 企业模型服务的配额开通、调用、停用与用量核查（Go 1.27 + SQLite，dev/05 分支开发）\"}},\"created_at\":\"2026-11-12T10:57:04Z\",\"updated_at\":\"2026-11-12T10:59:35Z\"}]"
+        }
+      ]
+    }
+  }
+}
