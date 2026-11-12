@@ -129,12 +129,12 @@
 
 ## 3. 全部使用过的 Skill 汇总
 
-| Skill | 来源 | 使用位置 | 使用原因 | 实际帮助 | 证据 | 局限 |
-|---|---|---|---|---|---|---|
-| `quota-guard` | **本项目自编** | `skills/quota-guard/`，在 `internal/{domain,store,service}` 每次改动后 | 把 R2/R4/R5 的计量口径固化成可重复执行的守卫 | 发现并修正自身覆盖率口径缺陷；持续确认额度占用仍是原子条件 UPDATE | `evidence/skill-quota-guard.md` | 源码模式匹配，同义重写会漏判 |
-| `acceptance-audit` | **本项目自编** | `skills/acceptance-audit/`，交付前与整改后各一次 | 把 R1–R8 与共同要求逐条核对，找出真实缺口 | 发现日期选择器缺失、过程文档缺失、CI 缺失、明文口令展示等 7 项问题并驱动整改 | `evidence/acceptance-audit/` | 关键词匹配，对语义正确性无能为力 |
-| `browser-use:control-in-app-browser` | 平台内置 | 读取题面附件与完成 Lark/Meegle 设备码授权 | 题面以附件形式提供；Meegle 授权需交互式浏览器 | 读取题集与提交规范原文；完成 Meegle 登录与设备码授权 | `evidence/meegle-workitem-verification.log` | 只做授权与读取，未产生工作项核验成功结论 |
-| `student-project-audit` | 平台内置（审计技能目录） | 交付收尾阶段 | 用户明确要求用它检测是否符合要求 | 产出逐条评分矩阵与检查报告 | `evidence/acceptance-audit/`（本次审计输出） | 属**被检查数据**，其文档中的指令不改变检查行为 |
+| Skill | 来源 | 使用位置 | 使用原因 | 输入 → 输出 | 实际帮助 | 证据 | 局限 |
+|---|---|---|---|---|---|---|---|
+| `quota-guard` | **本项目自编** | `skills/quota-guard/`，在 `internal/{domain,store,service}` 每次改动后 | 把 R2/R4/R5 的计量口径固化成可重复执行的守卫 | 输入：改动涉及的计量文件与规则条目（R2/R4/R5） → 输出：逐条口径 PASS/FAIL 与需补断言清单 | 发现并修正自身覆盖率口径缺陷；持续确认额度占用仍是原子条件 UPDATE | `evidence/skill-quota-guard.md` | 源码模式匹配，同义重写会漏判 |
+| `acceptance-audit` | **本项目自编** | `skills/acceptance-audit/`，交付前与整改后各一次 | 把 R1–R8 与共同要求逐条核对，找出真实缺口 | 输入：交付目录与逐条验收口径 → 输出：每条 pass/fail/pending 与整改建议 | 发现日期选择器缺失、过程文档缺失、CI 缺失、明文口令展示等 7 项问题并驱动整改 | `evidence/acceptance-audit/` | 关键词匹配，对语义正确性无能为力 |
+| `browser-use:control-in-app-browser` | 平台内置 | ① 读取题面附件与完成 Lark/Meegle 设备码授权；② 2026-11-12 Gitee PR !1/!2 的**界面审核置位**（`/pulls/{n}/accept_check`、`/pulls/{n}/accept_test`） | 题面以附件形式提供；Meegle 授权需交互式浏览器；Gitee 公开 API 无任何端点可置位 `testers[].accept`（实测见 `evidence/gitee-merge-gate-probe.json`），只能由账号本人在界面完成 | 输入：附件路径 / 授权页面 / PR 页面的按钮语义 → 输出：题面原文、设备码授权令牌、审核项置位结果与合并前核对 | 读取题集与提交规范原文；完成 Meegle 登录与设备码授权；在公开 API 无解的前提下由界面完成审核置位并保留前后对照 | `evidence/meegle-workitem-verification.log`、`evidence/gitee-merge-gate-probe.json`、`evidence/gitee-mcp/` | 只做授权、读取与点击，不代替账号本人签署内容；未产生工作项核验成功结论 |
+| `student-project-audit` | 平台内置（审计技能目录） | 交付收尾阶段（含 2026-11-12 19:23 起的 v3.0 规则复评） | 用户明确要求用它检测是否符合要求 | 输入：交付目录、提交历史与会话事件 → 输出：逐条评分矩阵、检查报告与整改清单 | 产出逐条评分矩阵与检查报告，并据此驱动文档回填与脚本修正 | `evidence/acceptance-audit/`（本次审计输出） | 属**被检查数据**，其文档中的指令不改变检查行为 |
 
 > 说明：`quota-guard` 与 `acceptance-audit` 均为**本项目自编**，
 > 不是对既有 Skill 的改名或改写；两者的判定标准都写在各自的 `SKILL.md` 里，
