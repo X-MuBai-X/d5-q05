@@ -1,9 +1,9 @@
 ==============================================================================
 题目 05 质量门禁执行日志（针对指定提交）
 ==============================================================================
-# 执行时间      : 2026-11-12T11:07:01.179948+08:00
-# 被检提交      : 7c630e2ca538c747bb970c54977a5cd55143c1d0
-# 被检提交标题  : 7c630e2 [fix] [v2.4.0] [#16221411] 掩码独立验收报告中的凭据形态串并重导会话与时序清单
+# 执行时间      : 2026-11-12T11:16:47.656455+08:00
+# 被检提交      : 9cdccd0b8f1770bd455aadeca4fb34d3ccbf7219
+# 被检提交标题  : 9cdccd0 [fix] [v2.4.0] [#16221411] 收紧导出脱敏的摘要豁免并统一掩码演示种子口令
 # 检出方式      : git worktree add --detach（独立目录，不改动主工作区）
 # 门禁项        : gofmt / go vet / go test（含覆盖率）/ coverage-summary
 
@@ -14,19 +14,19 @@ $ gofmt -l .
 
 ------------------------------------------------------------------------------
 $ go vet ./...
-# exit=0  elapsed=5.3s
+# exit=0  elapsed=2.2s
 (无输出)
 
 ------------------------------------------------------------------------------
 $ go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
-# exit=0  elapsed=12.0s
-ok  	modelquota/cmd/mockupstream	5.410s	coverage: 91.9% of statements
-ok  	modelquota/cmd/server	0.839s	coverage: 82.1% of statements
-ok  	modelquota/internal/domain	1.459s	coverage: 97.3% of statements
-ok  	modelquota/internal/httpapi	3.225s	coverage: 87.7% of statements
-ok  	modelquota/internal/service	6.958s	coverage: 87.7% of statements
-ok  	modelquota/internal/store	3.545s	coverage: 94.4% of statements
-ok  	modelquota/internal/upstream	4.758s	coverage: 87.1% of statements
+# exit=0  elapsed=10.7s
+ok  	modelquota/cmd/mockupstream	5.204s	coverage: 91.9% of statements
+ok  	modelquota/cmd/server	0.757s	coverage: 82.1% of statements
+ok  	modelquota/internal/domain	1.265s	coverage: 97.3% of statements
+ok  	modelquota/internal/httpapi	3.161s	coverage: 87.7% of statements
+ok  	modelquota/internal/service	6.866s	coverage: 87.7% of statements
+ok  	modelquota/internal/store	3.495s	coverage: 94.4% of statements
+ok  	modelquota/internal/upstream	5.701s	coverage: 87.1% of statements
 
 ------------------------------------------------------------------------------
 $ python scripts/coverage-summary.py --profile evidence/coverage.out --out evidence/coverage-summary.txt
@@ -35,7 +35,7 @@ coverage-summary: overall=89.4% core_ok=True out=evidence\coverage-summary.txt
 
 ---- evidence/coverage-summary.txt ----
 # 覆盖率汇总（题目 05）
-# 执行时间：2026-11-12 11:07:19 +0800（本机时间，UTC+8）
+# 执行时间：2026-11-12 11:17:01 +0800（本机时间，UTC+8）
 # Go 版本：go version go1.27.1 windows/amd64
 # 命令：go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
 # 覆盖率原件：evidence/coverage.out（由上述命令直接产出，未做人工修改）
@@ -57,7 +57,7 @@ coverage-summary: overall=89.4% core_ok=True out=evidence\coverage-summary.txt
 结论：整体与全部核心业务包均达到阈值。
 
 ==============================================================================
-# 结束时间: 2026-11-12T11:07:19.700307+08:00
-# 被检提交: 7c630e2ca538c747bb970c54977a5cd55143c1d0
+# 结束时间: 2026-11-12T11:17:01.777931+08:00
+# 被检提交: 9cdccd0b8f1770bd455aadeca4fb34d3ccbf7219
 # 结论: 全部门禁通过
 ==============================================================================
