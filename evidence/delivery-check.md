@@ -1,6 +1,6 @@
 # 交付链路自检报告（题目 05）
 
-> 由 `scripts/verify-delivery.py` 自动生成，执行时间 2026-11-12T10:17:36.965099+08:00。
+> 由 `scripts/verify-delivery.py` 自动生成，执行时间 2026-11-12T11:06:44.144237+08:00。
 > 口径来源：`docs/01-需求分析.md` §12 的 D-01~D-09（共同要求第 8 节）。
 > `PENDING` 表示该项依赖尚未执行的远端动作，如实标注待补证，不臆造通过。
 
@@ -13,7 +13,7 @@
 | 5 | D-05 主分支保护 | PENDING | evidence/branch-protection.json 不存在（保护规则尚未读取归档） |
 | 6 | D-06 合并提交保留原始提交 | PENDING | main 头部提交 d75aebd9a3e0，父提交数=0，消息=[docs] [v2.1.0] 初始化题目 05 项目仓库说明（尚未发生合并动作，待补证） |
 | 7 | D-07 合并提交上的门禁与部署 | PENDING | 尚无 main-gate-*.log / deployment-main*.log |
-| 8 | D-09 仓库无令牌明文 | PASS | 扫描 109 个文本文件，未命中令牌模式 |
+| 8 | D-09 仓库无令牌明文 | PASS | 扫描 114 个文本文件，未命中令牌模式 |
 
 合计：PASS 2 / PENDING 6 / FAIL 0
 

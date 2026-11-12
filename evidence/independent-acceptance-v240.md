@@ -10,6 +10,13 @@
 > **脱敏说明**：文中引用的预置**演示**口令一律以掩码出现（`ops-****`、`admin-a-****`、`admin-b-****`）；
 > 完整值只保留在 `cmd/server/main.go` 的 `seedData`，本报告不复制完整值。
 
+> **脱敏补充（2026-11-12 整改轮）**：本报告初稿在「泄密与脱敏」一节引用了
+> ① Meegle 设备码授权返回体中的**一次性设备码明文**，
+> ② 早期版本测试脚本中的**凭据形态字面量**（合成夹具，非真实凭据）。
+> 二者与前两份独立报告的脱敏口径不一致，已按共同要求第 3 节统一改为掩码形式；
+> 掩码规则直接复用 `scripts/export_session.py` 的 `redact()`，与仓库导出口径完全一致。
+> **判定结论、严重度、证据位置与整改建议均未改动**，仅替换凭据字面量。
+
 > **脱敏补充（2026-11-12 整改轮）**：本报告初稿在「泄密与脱敏」一节引用了 Meegle 设备码授权返回体中的**一次性设备码明文**，与两份前序独立报告的脱敏口径不一致。
 > 已按共同要求第 3 节「日志、截图和对话导出均须脱敏」把其中 4 处 UUID 形态的一次性凭据改为掩码形式；
 > **判定结论、严重度、证据位置与整改建议均未改动**，仅替换凭据字面量。
@@ -209,7 +216,7 @@ python -c "import yaml,sys; yaml.safe_load(open(sys.argv[1],encoding='utf-8'))" 
 
 ```
 [verify-delivery] PASS=1 PENDING=6 FAIL=1
-  [FAIL   ] D-09 仓库无令牌明文：scripts/test-delivery-checks.py: 疑似令牌赋值 access_token = abcdefghijklmnopqrstuvwxyz012345；…
+  [FAIL   ] D-09 仓库无令牌明文：scripts/test-delivery-checks.py: 疑似令牌赋值 access_token = （凭据，已掩码）；…
 EXIT=1
 ```
 
@@ -222,8 +229,8 @@ EXIT=1
 | `1cc5233`（测试文件已加入） | 102 | **FAIL** |
 
 **根因**：`7bf0bd3` 修复了导出脱敏，`1cc5233` 又新增了 `scripts/test-delivery-checks.py`，
-该测试文件**在源码里硬编码了 `access_token = abcdefghijklmnopqrstuvwxyz012345`、
-`Bearer abcdefghijklmnopqrstuvwxyz0123`、32 位十六进制串 `20ffb6b0…` 三类「凭据形态」字面量**，
+该测试文件**在源码里硬编码了 `access_token = （凭据，已掩码）`、
+`Bearer （凭据，已掩码）`、32 位十六进制串 `20ffb6b0…` 三类「凭据形态」字面量**，
 而 `verify-delivery.py` 的 `check_secret_scan` 扫描**全仓库**（含 `scripts/`），于是自己命中自己。
 证据是在 `1cc5233` 之前生成的（时间戳 `09:53:31`），提交时未重跑，因此**归档证据与仓库状态不一致**。
 
