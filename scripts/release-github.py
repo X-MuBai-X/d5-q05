@@ -223,7 +223,7 @@ def step_pr(repo: Path, token: str, owner: str, name: str,
     # 幂等：若已有同源同目标的开放 PR，直接复用（重跑链路时不重复建 PR）。
     code, out = mcp_call(repo, token, "list_pull_requests", {
         "owner": owner, "repo": name, "state": "open",
-        "head": f"{owner}:{head}", "per_page": 20,
+        "head": f"{owner}:{head}", "perPage": 20,
     })
     if code == 0:
         m = re.search(r"https://github\.com/[^/]+/[^/]+/pull/\d+", out)
@@ -377,17 +377,23 @@ def step_verify_protection(token: str, owner: str, name: str) -> bool:
 def step_merge(repo: Path, token: str, owner: str, name: str, pr_number: str,
                title: str, message: str) -> str | None:
     log("步骤 7/11：通过 GitHub MCP 合并 PR（保留原始提交，合并消息含工作项编号）")
+    # 合并前先记下 main 的头部：合并失败时 main 不变，必须据此判定「合并未发生」，
+    # 否则会把旧 main 当成合并提交去跑门禁和部署。
+    code0, head0 = gh_api(token, "GET", f"/repos/{owner}/{name}/commits/main")
+    before_sha = head0.get("sha", "") if code0 == 200 else ""
     code, out = mcp_call(repo, token, "merge_pull_request", {
-        "owner": owner, "repo": name, "pull_number": int(pr_number),
+        "owner": owner, "repo": name, "pullNumber": int(pr_number),
         "merge_method": "merge",
         "commit_title": title,
         "commit_message": message,
     })
     log(f"  MCP 调用完成（exit={code}），原始报文已归档到 evidence/github-mcp/")
+    if code != 0:
+        log(f"  合并调用未成功，详见归档报文：\n{out.strip()[-500:]}")
     code2, out2 = gh_api(token, "GET", f"/repos/{owner}/{name}/commits/main")
     sha = out2.get("sha", "") if code2 == 200 else ""
-    if not sha:
-        log(f"  未能读取 main 头部提交，请查看归档报文：\n{out.strip()[-800:]}")
+    if not sha or sha == before_sha:
+        log(f"  合并未发生（main 仍为 {sha[:12] if sha else '未知'}），不把旧提交当作合并提交。")
         return None
     log(f"  main 头部提交 {sha[:12]}  {out2.get('commit', {}).get('message', '').splitlines()[0]}")
     return sha

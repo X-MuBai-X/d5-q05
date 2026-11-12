@@ -1,0 +1,54 @@
+{
+  "mcp_server": {
+    "image": "ghcr.io/github/github-mcp-server:latest",
+    "transport": "stdio (docker run -i --rm ... stdio)",
+    "protocol": "MCP JSON-RPC 2.0",
+    "serverInfo": {
+      "name": "github-mcp-server",
+      "title": "GitHub MCP Server",
+      "version": "v2.1.0",
+      "icons": [
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAADK0lEQVRIibWVQWhcVRSGv3Pfy0zGdBIMRWk7iziMTpORptpqiNSNG1dNizaFFlxIoYuCC7NwJdiVlhYprtwpighCF9GtuhCRtuCoaWdqGF7HkE4aWm1CpklmJpl3j4vMS99M2k4G9N+8d8659/8u9553H/zPkscVM5lMf03do6iOKbJXIAGgUBJ0GpHvolKfzOfzCx0BEonRWDRemRD0PaC3zSKXED1fLfdcLJUuV9oC0ukXdluxkyq81Ma4VX9Y4x4p5rOzjwSkUvsSdMkVYE+H5oHmjM9IoTA1FyRM8JJIjMbokm83zUW/Vvi5raXwC8rnjWiPdXRyYGCgOyi7wUs0XpkAXmyEa/XV8qmZmZnqc0P7XrXKW2BuKDovgorqLoWMFb4p3rj2I4w7qcHCMSAOctDt7n0X+GiDT6NbrPsXDw50xftzKg7odvcmtXf4DsJTjXBpzbXPzF6/vmgAauoepblbnGTyQLvu2VQmk4kgxEKpvui6cwSCM1Ada5qheq5YzC5tF5DP59dQzjYlZcOzccgyGK65mC+2ax7IWPfLcGxhKARgV7i4vBy70ymgUMj+A9SDWGB3GOCEB/f0VJ/sFJBKjfQS6srAOwD8HR7su/7BTgE2Umn98u9uAgR+ayqpnOkUIK1zZMPTACjyQzOA11ND+z+E8aate4TMs4PD7wu80ezP940nJJMH+ky0XgKeAHkH1TcRXgNywFeoueJN//5T2CCZGT7kWBlV9CSwvwV6n/XuhOddLRuAYjG7hMjHgEH1tEb0BEgWeB44J8aebF2243Nc0fMPMUfgguddLUOoe/r7dlwWJzqGMCxq6q5Wz/jSVQZ+Nb795N69u4thk/6dT7uInNiyYcoU9ZW3FxYWfAjdpp7n1XzjHAbmUJ3wTXQ8gvOZb+oXV1d3zLf6WEcWW3MoJXX9w57n1YKUCdeL+eysOv4oyrQqn65Tv+1adz4WrxzaskXWNs0V5Jq6/is3c7lb4byhRTdzuVvUV0ZQPgDuA6jqlj+fqhvkllE9q+vLL7eab4Afo1RqpJdI9Rhr3ZeCQwuUTqfjvoket7WuS51cjP+5/gWC8y5uIkrtDQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "light"
+        },
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAB8ElEQVRIibWVu09UQRSHv9k1IgW7AY0RBWKsTGx9ND4qS5F/wEYLDb0xAY0UxkdrZ2NHYWfsaYyVT4iJwZpNjJooLBQEYz6LvZsdxmH3LtFfN3PO+X5zzzwu/GeFbkF1BJgCJoHjwFgRagDLwAvgeQjhR1+u6qA6q67ZW6vqjDpYFn5YfV0CnOqDOtELPqY2dgFvq6Ee6daWd1HyvPqyBPSV+jQav1H3tbkhMpgF7hXDLaAeQthUzwFXgE/AF0BgFDgBPAshLKhV4CcwVNTPhBAexKsfcfuGbqhdT1imA1+j+lV1GKBSxKeAWpRfTca94HuB+BTVgcuxwWRS8zCEsFbWIISwBcwl0x2m+jnZuKNl4RHjQMJYjoPNJFju0vxt8itiNKHTomqSO7wLeA3YE01VYoPvSf7Jfg2AU8n4W2zwPglO78Igrekw1enMDb1fXKCuUivq7Uz99Tiprq6rvwuzhSLpo3pLvZABn1Vv2nrkUjWLPdlWMFcEF9WD6tuo4EnG4HEG3Nad3KcOqEtRe/bb+ic8Uo9l8i/tAF9UB3bq54StJ3dTvaGOqofM3IuiRalW1PH8bnUKx4tVxLqYyTuf5Czl4JV0IoSwApwB7gLr7enMWtpzG7TeodNFbXmpNfWq6YloxYbUa2q9L+i/1h8/EAGdUrF9ZQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "dark"
+        }
+      ]
+    }
+  },
+  "tool": "list_pull_requests",
+  "called_at": "2026-11-12T16:23:26.902220+08:00",
+  "elapsed_ms": 506,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "list_pull_requests",
+      "arguments": {
+        "owner": "X-MuBai-X",
+        "repo": "d5-q05",
+        "state": "open",
+        "head": "X-MuBai-X:dev/05",
+        "per_page": 20
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[{\"number\":1,\"title\":\"[feat] [v2.7.0] [#16221249] 合入 dev/05 最新修正与 GitHub MCP 交付链路\",\"body\":\"## 需求与缺陷编号\\n\\n- 需求工作项：#16221249（远端交付链路）、#16220913（企业模型服务配额管理核心业务）\\n- 缺陷工作项：#16220917（并发降额超限）、#16220924（缺 tenant_id 返回 500）、#16220925（部署 PID 缺陷）、\\n  #16221411（导出未脱敏）、#16221436（提交消息格式校验）\\n\\n## 变更说明\\n\\n本 PR 从 `dev/05` 发起，把开发分支上尚未进入 `main` 的提交合入 `main`：\\n\\n1. `b43ab07` docs：回填 PR !2 合并提交与合并版本的门禁、部署证据；\\n2. `dbe5774` fix：修正交付自检对「合并来源」与「建仓成功」的判定口径；\\n3. `feat` 提交：新增 GitHub 官方 MCP 的设备码授权脚本（`scripts/github_oauth_device.py`），\\n   修正 MCP 客户端把 JSON-RPC 错误当成功的缺陷，并让远端链路脚本支持「新建仓库首个分支」的推送处理。\\n\\n题目 05 的业务实现（配额开通、调用、停用与用量核查）随前序 PR !1 / !2 已经进入 `main`，\\n本次 PR 补齐的是最后一轮修正与 GitHub 侧交付链路。\\n\\n## 测试结果\\n\\n- `gofmt -l .` 无输出；`go vet ./...` 无告警；`go test ./... -count=1` 全部通过\\n- 业务冒烟 39/39、五组完整场景 73/73、容器内 `go test ./... -race` 退出码 0 且 0 DATA RACE\\n- 交付链路自检 `scripts/test-delivery-checks.py` 全部通过\\n- 本 PR 的 CI（`.github/workflows/ci.yml`）在本次 PR 上真实运行：质量门禁与业务冒烟两个作业\\n  的检查结论见本 PR 的 Checks，合并后在**合并提交**上再跑一次本地门禁并重新部署\\n\\n## 覆盖率\\n\\n整体 **89.4%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 87.7% / upstream 87.1%，\\n各核心包均 ≥85%。原件见 `evidence/coverage.out`、`evidence/coverage-summary.txt`。\\n\\n## 验收报告\\n\\n- 独立测试 Agent 报告：`evidence/independent-test-report.md`\\n- 独立验收 Agent 报告：`evidence/independent-acceptance-report.md`\\n\\n## AI / Skill 使用记录\\n\\n- 全过程提示词与结构化事件清单：`docs/06-会话导出.md`、`evidence/会话事件清单.jsonl`\\n- 过程时序（机器反推）：`evidence/过程时序清单.md`\\n- AI 使用说明：`docs/09-AI使用说明.md`\\n- 自编 Skill 与使用记录：`skills/quota-guard/`、`skills/acceptance-audit/`、`docs/08-Skill使用记录.md`\\n\",\"state\":\"open\",\"draft\":false,\"merged\":false,\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/pull/1\",\"user\":{\"login\":\"X-MuBai-X\",\"id\":354689650,\"profile_url\":\"https://github.com/X-MuBai-X\",\"avatar_url\":\"https://avatars.githubusercontent.com/u/354689650?v=4\"},\"head\":{\"ref\":\"dev/05\",\"sha\":\"6ee2cc788192b4faee8b459c3ced762849d6738e\",\"repo\":{\"full_name\":\"X-MuBai-X/d5-q05\",\"description\":\"题目05 企业模型服务的配额开通、调用、停用与用量核查（Go 1.27 + SQLite，dev/05 分支开发）\"}},\"base\":{\"ref\":\"main\",\"sha\":\"0c9cca3051bbf9a15413dc4857406eaf678fec9d\",\"repo\":{\"full_name\":\"X-MuBai-X/d5-q05\",\"description\":\"题目05 企业模型服务的配额开通、调用、停用与用量核查（Go 1.27 + SQLite，dev/05 分支开发）\"}},\"created_at\":\"2026-11-12T08:03:05Z\",\"updated_at\":\"2026-11-12T08:23:16Z\"}]"
+        }
+      ]
+    }
+  }
+}

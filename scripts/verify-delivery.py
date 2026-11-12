@@ -264,7 +264,7 @@ def check_branch_protection(repo: Path) -> list[dict]:
     blob = p.read_text(encoding="utf-8", errors="replace")
     checks = {
         "禁止直接推送": r"(?i)(push|push_permission|禁止推送|allowed_pushes)",
-        "禁止删除": r"(?i)(delete|禁止删除)",
+        "禁止删除": r"(?i)(delet|delete|禁止删除)",
         "禁止强推": r"(?i)(force|强推)",
         "要求 PR 合并": r"(?i)(pull_request|合并|pr_merged|merge)",
     }

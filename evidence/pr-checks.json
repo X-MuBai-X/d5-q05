@@ -1,14 +1,38 @@
 {
-  "read_at": "2026-11-12T16:03:24.286023+08:00",
-  "head_sha": "e71aa46ca123066b9fe64d2d5c96f0d2a68ddbcb",
+  "read_at": "2026-11-12T16:24:34.660668+08:00",
+  "head_sha": "6ee2cc788192b4faee8b459c3ced762849d6738e",
   "check_runs": [
     {
+      "name": "业务冒烟（启动服务并核对配额闭环）",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-12T08:24:14Z",
+      "completed_at": "2026-11-12T08:24:33Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43182521780/job/131062107833"
+    },
+    {
+      "name": "业务冒烟（启动服务并核对配额闭环）",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-12T08:24:03Z",
+      "completed_at": "2026-11-12T08:24:21Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43182511728/job/131062019107"
+    },
+    {
       "name": "质量门禁（gofmt / vet / test / cover / race）",
-      "status": "in_progress",
-      "conclusion": null,
-      "started_at": "2026-11-12T08:03:13Z",
-      "completed_at": null,
-      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43179815473/job/131052789143"
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-12T08:23:27Z",
+      "completed_at": "2026-11-12T08:24:13Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43182521780/job/131061736304"
+    },
+    {
+      "name": "质量门禁（gofmt / vet / test / cover / race）",
+      "status": "completed",
+      "conclusion": "success",
+      "started_at": "2026-11-12T08:23:20Z",
+      "completed_at": "2026-11-12T08:24:01Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43182511728/job/131061692658"
     }
   ]
 }
