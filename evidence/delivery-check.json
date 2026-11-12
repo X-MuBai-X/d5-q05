@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-12T19:08:00.847130+08:00",
+  "checked_at": "2026-11-12T19:14:17.570219+08:00",
   "counts": {
     "PASS": 8,
     "PENDING": 0,
@@ -34,17 +34,17 @@
     {
       "id": "D-06 合并提交保留原始提交",
       "status": "PASS",
-      "detail": "main 头部提交 4e15b2c3b344，父提交数=2，消息=[feat] [v2.7.0] [#16221249] 合并题目 05 企业模型服务配额管理与远端交付链路"
+      "detail": "main 头部提交 1454f78a6d53，父提交数=2，消息=[feat] [v2.7.0] [#16221249] 合并题目 05 企业模型服务配额管理与远端交付链路"
     },
     {
       "id": "D-07 合并提交上的门禁与部署",
       "status": "PASS",
-      "detail": "日志中出现合并 SHA 的文件：['main-gate-4e15b2c3b344.log', 'deployment-main.log']"
+      "detail": "日志中出现合并 SHA 的文件：['main-gate-1454f78a6d53.log', 'deployment-main.log']"
     },
     {
       "id": "D-09 仓库无令牌明文",
       "status": "PASS",
-      "detail": "扫描 192 个文本文件，未命中令牌模式"
+      "detail": "扫描 196 个文本文件，未命中令牌模式"
     }
   ]
 }

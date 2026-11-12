@@ -1,38 +1,38 @@
 {
-  "read_at": "2026-11-12T19:00:55.865958+08:00",
-  "head_sha": "973d5399ad2dfa19a3f1182175a3d87f42092f57",
+  "read_at": "2026-11-12T19:11:27.744586+08:00",
+  "head_sha": "5fb6abb25b4738cb17742ef0f64d6b53e0f79218",
   "check_runs": [
     {
       "name": "业务冒烟（启动服务并核对配额闭环）",
       "status": "in_progress",
       "conclusion": null,
-      "started_at": "2026-11-12T11:00:31Z",
+      "started_at": "2026-11-12T11:11:09Z",
       "completed_at": null,
-      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43205204086/job/131138942798"
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43206829811/job/131144348967"
     },
     {
       "name": "业务冒烟（启动服务并核对配额闭环）",
       "status": "completed",
       "conclusion": "success",
-      "started_at": "2026-11-12T11:00:20Z",
-      "completed_at": "2026-11-12T11:00:44Z",
-      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43205195642/job/131138852921"
+      "started_at": "2026-11-12T11:10:55Z",
+      "completed_at": "2026-11-12T11:11:20Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43206756011/job/131144232604"
     },
     {
       "name": "质量门禁（gofmt / vet / test / cover / race）",
       "status": "completed",
       "conclusion": "success",
-      "started_at": "2026-11-12T10:59:41Z",
-      "completed_at": "2026-11-12T11:00:29Z",
-      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43205204086/job/131138532804"
+      "started_at": "2026-11-12T11:10:27Z",
+      "completed_at": "2026-11-12T11:11:07Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43206829811/job/131143994697"
     },
     {
       "name": "质量门禁（gofmt / vet / test / cover / race）",
       "status": "completed",
       "conclusion": "success",
-      "started_at": "2026-11-12T10:59:38Z",
-      "completed_at": "2026-11-12T11:00:18Z",
-      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43205195642/job/131138502149"
+      "started_at": "2026-11-12T11:10:15Z",
+      "completed_at": "2026-11-12T11:10:53Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43206756011/job/131143902847"
     }
   ]
 }

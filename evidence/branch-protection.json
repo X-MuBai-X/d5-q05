@@ -1,5 +1,5 @@
 {
-  "read_at": "2026-11-12T19:00:57.674045+08:00",
+  "read_at": "2026-11-12T19:11:29.528286+08:00",
   "source": "GitHub REST API GET /repos/{owner}/{repo}/branches/main/protection（GitHub MCP 当前未暴露保护类工具，故此处如实标注为 REST 而非 MCP）",
   "endpoint": "/repos/X-MuBai-X/d5-q05/branches/main/protection",
   "http_status": 200,

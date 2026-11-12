@@ -1,7 +1,7 @@
 {
-  "verified_at": "2026-11-12T19:01:00.725910+08:00",
+  "verified_at": "2026-11-12T19:11:31.128759+08:00",
   "method": "PATCH /repos/{owner}/{repo}/git/refs/heads/main（sha 保持不变，仅探测保护规则）",
-  "target_sha": "3b06d206055ada197f85e822cf767daff35b744e",
+  "target_sha": "4e15b2c3b3445cdb0e005032678f9f1bcbed4b0c",
   "http_status": 422,
   "rejected_by_protection": true,
   "response": {
