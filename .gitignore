@@ -20,6 +20,8 @@
 .vscode/
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
 
 # 本地覆盖配置（不提交任何密钥）
 .env
