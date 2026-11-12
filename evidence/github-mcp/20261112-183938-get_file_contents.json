@@ -1,0 +1,51 @@
+{
+  "mcp_server": {
+    "image": "ghcr.io/github/github-mcp-server:latest",
+    "transport": "stdio (docker run -i --rm ... stdio)",
+    "protocol": "MCP JSON-RPC 2.0",
+    "serverInfo": {
+      "name": "github-mcp-server",
+      "title": "GitHub MCP Server",
+      "version": "v2.1.0",
+      "icons": [
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAADK0lEQVRIibWVQWhcVRSGv3Pfy0zGdBIMRWk7iziMTpORptpqiNSNG1dNizaFFlxIoYuCC7NwJdiVlhYprtwpighCF9GtuhCRtuCoaWdqGF7HkE4aWm1CpklmJpl3j4vMS99M2k4G9N+8d8659/8u9553H/zPkscVM5lMf03do6iOKbJXIAGgUBJ0GpHvolKfzOfzCx0BEonRWDRemRD0PaC3zSKXED1fLfdcLJUuV9oC0ukXdluxkyq81Ma4VX9Y4x4p5rOzjwSkUvsSdMkVYE+H5oHmjM9IoTA1FyRM8JJIjMbokm83zUW/Vvi5raXwC8rnjWiPdXRyYGCgOyi7wUs0XpkAXmyEa/XV8qmZmZnqc0P7XrXKW2BuKDovgorqLoWMFb4p3rj2I4w7qcHCMSAOctDt7n0X+GiDT6NbrPsXDw50xftzKg7odvcmtXf4DsJTjXBpzbXPzF6/vmgAauoepblbnGTyQLvu2VQmk4kgxEKpvui6cwSCM1Ada5qheq5YzC5tF5DP59dQzjYlZcOzccgyGK65mC+2ax7IWPfLcGxhKARgV7i4vBy70ymgUMj+A9SDWGB3GOCEB/f0VJ/sFJBKjfQS6srAOwD8HR7su/7BTgE2Umn98u9uAgR+ayqpnOkUIK1zZMPTACjyQzOA11ND+z+E8aate4TMs4PD7wu80ezP940nJJMH+ky0XgKeAHkH1TcRXgNywFeoueJN//5T2CCZGT7kWBlV9CSwvwV6n/XuhOddLRuAYjG7hMjHgEH1tEb0BEgWeB44J8aebF2243Nc0fMPMUfgguddLUOoe/r7dlwWJzqGMCxq6q5Wz/jSVQZ+Nb795N69u4thk/6dT7uInNiyYcoU9ZW3FxYWfAjdpp7n1XzjHAbmUJ3wTXQ8gvOZb+oXV1d3zLf6WEcWW3MoJXX9w57n1YKUCdeL+eysOv4oyrQqn65Tv+1adz4WrxzaskXWNs0V5Jq6/is3c7lb4byhRTdzuVvUV0ZQPgDuA6jqlj+fqhvkllE9q+vLL7eab4Afo1RqpJdI9Rhr3ZeCQwuUTqfjvoket7WuS51cjP+5/gWC8y5uIkrtDQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "light"
+        },
+        {
+          "src": "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABgAAAAYCAYAAADgdz34AAAABmJLR0QA/wD/AP+gvaeTAAAB8ElEQVRIibWVu09UQRSHv9k1IgW7AY0RBWKsTGx9ND4qS5F/wEYLDb0xAY0UxkdrZ2NHYWfsaYyVT4iJwZpNjJooLBQEYz6LvZsdxmH3LtFfN3PO+X5zzzwu/GeFbkF1BJgCJoHjwFgRagDLwAvgeQjhR1+u6qA6q67ZW6vqjDpYFn5YfV0CnOqDOtELPqY2dgFvq6Ee6daWd1HyvPqyBPSV+jQav1H3tbkhMpgF7hXDLaAeQthUzwFXgE/AF0BgFDgBPAshLKhV4CcwVNTPhBAexKsfcfuGbqhdT1imA1+j+lV1GKBSxKeAWpRfTca94HuB+BTVgcuxwWRS8zCEsFbWIISwBcwl0x2m+jnZuKNl4RHjQMJYjoPNJFju0vxt8itiNKHTomqSO7wLeA3YE01VYoPvSf7Jfg2AU8n4W2zwPglO78Igrekw1enMDb1fXKCuUivq7Uz99Tiprq6rvwuzhSLpo3pLvZABn1Vv2nrkUjWLPdlWMFcEF9WD6tuo4EnG4HEG3Nad3KcOqEtRe/bb+ic8Uo9l8i/tAF9UB3bq54StJ3dTvaGOqofM3IuiRalW1PH8bnUKx4tVxLqYyTuf5Czl4JV0IoSwApwB7gLr7enMWtpzG7TeodNFbXmpNfWq6YloxYbUa2q9L+i/1h8/EAGdUrF9ZQAAAABJRU5ErkJggg==",
+          "mimeType": "image/png",
+          "theme": "dark"
+        }
+      ]
+    }
+  },
+  "tool": "get_file_contents",
+  "called_at": "2026-11-12T18:39:38.518174+08:00",
+  "elapsed_ms": 2297,
+  "request": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/call",
+    "params": {
+      "name": "get_file_contents",
+      "arguments": {
+        "owner": "X-MuBai-X",
+        "repo": "d5-q05"
+      }
+    }
+  },
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "[{\"type\":\"file\",\"size\":170,\"name\":\".gitattributes\",\"path\":\".gitattributes\",\"sha\":\"c5a431fa6c6bf08fc40186aec639c1b85e6b9327\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/.gitattributes?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/c5a431fa6c6bf08fc40186aec639c1b85e6b9327\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/.gitattributes\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/.gitattributes\"},{\"type\":\"dir\",\"size\":0,\"name\":\".github\",\"path\":\".github\",\"sha\":\"87ee6fb48f2cd0d5d2fe7fd50b90d1d6ef305534\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/.github?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/87ee6fb48f2cd0d5d2fe7fd50b90d1d6ef305534\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/.github\"},{\"type\":\"file\",\"size\":365,\"name\":\".gitignore\",\"path\":\".gitignore\",\"sha\":\"2a1598bf6b744fab2686b4e9a7aeff08872f9ca7\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/.gitignore?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/2a1598bf6b744fab2686b4e9a7aeff08872f9ca7\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/.gitignore\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/.gitignore\"},{\"type\":\"file\",\"size\":19990,\"name\":\"AGENTS.md\",\"path\":\"AGENTS.md\",\"sha\":\"90a5aae9e7b0aa66ec6ea833c5ae968303a9f458\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/AGENTS.md?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/90a5aae9e7b0aa66ec6ea833c5ae968303a9f458\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/AGENTS.md\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/AGENTS.md\"},{\"type\":\"file\",\"size\":3402,\"name\":\"README.md\",\"path\":\"README.md\",\"sha\":\"586d48f3ccce9c43953833383b8c258119de9af0\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/README.md?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/586d48f3ccce9c43953833383b8c258119de9af0\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/README.md\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/README.md\"},{\"type\":\"dir\",\"size\":0,\"name\":\"cmd\",\"path\":\"cmd\",\"sha\":\"4142ab65f0bc605be34fdbe3971f2bbbcf791935\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/cmd?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/4142ab65f0bc605be34fdbe3971f2bbbcf791935\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/cmd\"},{\"type\":\"dir\",\"size\":0,\"name\":\"docs\",\"path\":\"docs\",\"sha\":\"581fa87856fd5c46051aa51bdf53ba30db5d009b\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/docs?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/581fa87856fd5c46051aa51bdf53ba30db5d009b\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/docs\"},{\"type\":\"dir\",\"size\":0,\"name\":\"evidence\",\"path\":\"evidence\",\"sha\":\"7ed72628f79593d221c78752981f8da273199f19\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/evidence?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/7ed72628f79593d221c78752981f8da273199f19\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/evidence\"},{\"type\":\"file\",\"size\":508,\"name\":\"go.mod\",\"path\":\"go.mod\",\"sha\":\"dc5fbe2ddb619b45d51663e6046c27d76c5ccf5e\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/go.mod?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/dc5fbe2ddb619b45d51663e6046c27d76c5ccf5e\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/go.mod\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/go.mod\"},{\"type\":\"file\",\"size\":1710,\"name\":\"go.sum\",\"path\":\"go.sum\",\"sha\":\"5995ea182f34c3aafe4008a95cff24f49f2da069\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/go.sum?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/blobs/5995ea182f34c3aafe4008a95cff24f49f2da069\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/blob/6ee2cc788192b4faee8b459c3ced762849d6738e/go.sum\",\"download_url\":\"https://raw.githubusercontent.com/X-MuBai-X/d5-q05/6ee2cc788192b4faee8b459c3ced762849d6738e/go.sum\"},{\"type\":\"dir\",\"size\":0,\"name\":\"internal\",\"path\":\"internal\",\"sha\":\"10afe74ed67e53ea5d281d77c5f2fa0051d562f1\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/internal?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/10afe74ed67e53ea5d281d77c5f2fa0051d562f1\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/internal\"},{\"type\":\"dir\",\"size\":0,\"name\":\"scripts\",\"path\":\"scripts\",\"sha\":\"620c22eaf8401d5120a45ee3492f2c7672b553ca\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/scripts?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/620c22eaf8401d5120a45ee3492f2c7672b553ca\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/scripts\"},{\"type\":\"dir\",\"size\":0,\"name\":\"skills\",\"path\":\"skills\",\"sha\":\"2ba94e671f4b61eb9663d5bf118e116ba868a4bb\",\"url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/contents/skills?ref=6ee2cc788192b4faee8b459c3ced762849d6738e\",\"git_url\":\"https://api.github.com/repos/X-MuBai-X/d5-q05/git/trees/2ba94e671f4b61eb9663d5bf118e116ba868a4bb\",\"html_url\":\"https://github.com/X-MuBai-X/d5-q05/tree/6ee2cc788192b4faee8b459c3ced762849d6738e/skills\"}]"
+        }
+      ]
+    }
+  }
+}

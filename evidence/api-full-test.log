@@ -1,0 +1,119 @@
+题目 05 全量接口能力测试归档
+执行时间：2026-11-12T18:55:05.585095+08:00
+被测地址：http://127.0.0.1:8080
+执行命令：python scripts/api-full-test.py
+断言总数：113，通过 113，失败 0
+------------------------------------------------------------------------------
+[PASS] GET /healthz 返回 200 且 status=ok
+[PASS] GET /readyz 返回 200
+[PASS] POST /api/v1/auth/login 运营登录成功
+[PASS] 运营登录返回 role=ops
+[PASS] POST /api/v1/auth/login 客户管理员登录成功
+[PASS] 管理员登录返回 tenant_id=tenant-a
+[PASS] 管理员登录返回 role=tenant_admin
+[PASS] POST /api/v1/auth/login 另一租户管理员登录成功
+[PASS] 错误口令登录返回 401
+[PASS] 不存在账号登录返回 401
+[PASS] GET /api/v1/auth/whoami 返回本角色身份
+[PASS] 未带令牌访问 whoami 返回 401
+[PASS] 无效令牌访问 whoami 返回 401
+[PASS] GET 方式访问 login 返回 405
+[PASS] 非法 JSON 登录体返回 400
+[PASS] POST /api/v1/auth/logout 返回 200
+[PASS] 登出后令牌失效返回 401
+[PASS] 未认证访问管理员接口返回 401
+[PASS] 未认证访问应用接口返回 401
+[PASS] 未认证开通租户返回 401
+[PASS] GET /api/v1/ops/tenants 列出预置租户
+[PASS] 租户列表返回数组而非 null
+[PASS] 客户管理员访问运营接口返回 403
+[PASS] 未认证访问运营接口返回 401
+[PASS] POST /api/v1/ops/tenants/open 开通新租户
+[PASS] 开通租户缺名称返回 400
+[PASS] 开通租户额度超过上限返回 400
+[PASS] 开通租户负额度返回 400
+[PASS] JSON 未知字段被拒绝返回 400
+[PASS] POST /api/v1/ops/tenants/quota 调整额度成功
+[PASS] 调整额度缺原因返回 400
+[PASS] 调整额度越界返回 400
+[PASS] 调整不存在的租户额度返回 404
+[PASS] 运营日报未指定 tenant_id 返回 400
+[PASS] GET /api/v1/ops/report/daily 返回日报
+[PASS] 日报列出五类终态（成功/失败/超时/处理中/被拒绝）
+[PASS] 日报一致性标记为一致
+[PASS] 日报包含额度与剩余额度字段
+[PASS] 客户管理员访问运营专属日报接口返回 403
+[PASS] 客户管理员指定其他租户访问运营接口返回 403（角色拦截优先于租户范围）
+[PASS] GET /api/v1/ops/diagnostics 返回数组
+[PASS] 运营诊断未指定 tenant_id 返回 400
+[PASS] POST /api/v1/ops/clock 调整时钟偏移成功
+[PASS] POST /api/v1/ops/clock 复位时钟成功
+[PASS] 客户管理员调整时钟返回 403
+[PASS] GET /api/v1/admin/credentials 返回本租户凭证数组
+[PASS] POST /api/v1/admin/credentials/create 创建凭证一
+[PASS] 凭证一归属 tenant-a
+[PASS] 凭证响应不含密钥摘要字段
+[PASS] POST /api/v1/admin/credentials/create 创建凭证二
+[PASS] 超过租户凭证上限（2 个）返回 400
+[PASS] 创建凭证指定其他租户返回 400
+[PASS] 运营代客户创建凭证返回 403
+[PASS] GET /api/v1/admin/usage 返回本租户用量口径
+[PASS] 用量返回额度/成功/处理中/占用/剩余五项
+[PASS] 管理员查看其他租户用量返回 400
+[PASS] GET /api/v1/admin/requests 返回请求与被拒绝两个数组
+[PASS] 表单通道创建凭证返回 200 且页面含一次性密钥
+[PASS] 表单通道返回 HTML 页面
+[PASS] POST /api/v1/admin/credentials/disable 停用本租户凭证成功
+[PASS] 停用其他租户凭证返回 400
+[PASS] 停用不存在的凭证返回 404
+[PASS] 客户应用以凭证密钥登录成功
+[PASS] 凭证登录返回 subject_type=credential
+[PASS] 无效密钥登录返回 401
+[PASS] POST /api/v1/app/invoke 成功受理调用
+[PASS] 成功调用终态为 success
+[PASS] 成功调用不标记为幂等重放
+[PASS] 成功调用返回用量口径
+[PASS] 同编号同参数再次调用按幂等处理（replayed=true）
+[PASS] 幂等命中不重复计量（成功数不增加）
+[PASS] 同编号异参数返回 409
+[PASS] 调用缺请求编号返回 400
+[PASS] 非法请求编号返回 400
+[PASS] 管理员令牌调用应用接口返回 403
+[PASS] 上游失败场景终态为 failed
+[PASS] 失败不计入成功量
+[PASS] 上游超时场景终态为 timeout
+[PASS] 超时判定在 2 秒后返回（实测 2.0 秒）
+[PASS] 超时释放额度（处理中为 0）
+[PASS] 迟到结果场景终态仍为 timeout
+[PASS] 迟到结果只写入诊断记录（不改终态、不追加扣额）
+[PASS] 迟到诊断后请求终态仍是 timeout
+[PASS] GET /api/v1/app/requests 返回本凭证请求数组
+[PASS] 应用侧请求列表不含其他凭证的请求
+[PASS] GET /api/v1/app/request 查询本凭证请求成功
+[PASS] 查询请求缺 request_no 返回 400
+[PASS] 查询不存在的请求返回 404
+[PASS] 同租户其他凭证查询他人请求返回 403
+[PASS] 应用凭证访问租户级用量接口返回 403
+[PASS] 应用凭证访问运营日报返回 403
+[PASS] 降额到当前占用值成功
+[PASS] 降额低于当日占用返回 400（下限约束）
+[PASS] 额度用尽返回 429
+[PASS] 被拒绝的尝试写入独立记录（rejected_attempts）
+[PASS] 恢复额度成功
+[PASS] 增额后可用同一编号重试（拒绝不占用编号唯一性）
+[PASS] 停用凭证成功
+[PASS] 凭证停用后调用返回 409
+[PASS] POST /api/v1/ops/tenants/disable 停用租户成功
+[PASS] 停用租户缺原因返回 400
+[PASS] 租户停用后调用返回 409
+[PASS] 重新开通已停用租户成功
+[PASS] 租户重新开通后可受理调用
+[PASS] GET /login 返回登录页
+[PASS] 登录页不回显口令明文
+[PASS] 未登录访问 / 重定向到 /login
+[PASS] GET /ops 运营工作台返回 200
+[PASS] 客户管理员访问 /ops 重定向离开
+[PASS] GET /admin 客户管理员工作台返回 200
+[PASS] 管理员访问 /app 重定向离开
+[PASS] 访问不存在的页面返回 404
+[PASS] 未登录访问根路径返回 303
