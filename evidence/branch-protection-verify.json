@@ -1,11 +1,11 @@
 {
-  "verified_at": "2026-11-12T18:49:01.207423+08:00",
+  "verified_at": "2026-11-12T19:01:00.725910+08:00",
   "method": "PATCH /repos/{owner}/{repo}/git/refs/heads/main（sha 保持不变，仅探测保护规则）",
-  "target_sha": "0c9cca3051bbf9a15413dc4857406eaf678fec9d",
+  "target_sha": "3b06d206055ada197f85e822cf767daff35b744e",
   "http_status": 422,
   "rejected_by_protection": true,
   "response": {
-    "message": "Changes must be made through a pull request. Required status check \"质量门禁（gofmt / vet / test / cover / race）\" is failing.",
+    "message": "Changes must be made through a pull request.",
     "documentation_url": "https://docs.github.com/articles/about-protected-branches",
     "status": "422"
   },
