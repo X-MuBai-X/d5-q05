@@ -16,11 +16,13 @@
 **Gitee 官方 MCP Server** 上完成等价的 MCP 建仓/PR/合并链路，证据分别归档在
 evidence/gitee-mcp/ 与 evidence/github-mcp/，两者不混用、不互相冒充。
 
-令牌只经环境变量 `GITEE_ACCESS_TOKEN` 传入，不入库、不写 git 配置、不进证据归档；
-git 推送的认证同样只在单次进程内通过 `GIT_ASKPASS` 注入。
+令牌只经环境变量 `GITEE_ACCESS_TOKEN` 传入（供 REST API 与 MCP 使用），不入库、不写 git 配置、不进证据归档；
+git 推送的账号口令只经环境变量 `GITEE_GIT_PASSWORD` 传入，并在单次进程内通过一次性 askpass 脚本注入
+（脚本放在仓库外的临时目录，只引用环境变量，不含口令本身）。
 
 用法：
     $env:GITEE_ACCESS_TOKEN = "<Gitee 私人令牌>"
+    $env:GITEE_GIT_PASSWORD = "<Gitee 账号口令>"
     python scripts/release-gitee.py --repo . --owner xishiyao --name d5
 """
 from __future__ import annotations
@@ -94,8 +96,12 @@ def run(cmd: list[str], cwd: Path | None = None,
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
-def askpass_env(token: str) -> tuple[dict[str, str], Path]:
-    """生成一次性 askpass 脚本（放在仓库外的临时目录），认证只经环境变量注入。"""
+def askpass_env(git_secret: str) -> tuple[dict[str, str], Path]:
+    """生成一次性 askpass 脚本（放在仓库外的临时目录），认证只经环境变量注入。
+
+    Gitee 的 git HTTPS 推送认**账号口令**（私人令牌在密码位会被拒），
+    而 REST API 只认**私人令牌**——两者分开传入，都只走环境变量。
+    """
     import tempfile
 
     tmpdir = Path(tempfile.mkdtemp(prefix="d5-askpass-"))
@@ -103,12 +109,12 @@ def askpass_env(token: str) -> tuple[dict[str, str], Path]:
     script.write_text(
         "@echo off\r\n"
         "echo %1 | findstr /i \"username\" >nul && (echo %GITEE_LOGIN% & exit /b 0)\r\n"
-        "echo %GITEE_TOKEN%\r\n",
+        "echo %GITEE_GIT_SECRET%\r\n",
         encoding="ascii", newline="")
     env = dict(os.environ)
     env["GIT_ASKPASS"] = str(script)
     env["GIT_TERMINAL_PROMPT"] = "0"
-    env["GITEE_TOKEN"] = token
+    env["GITEE_GIT_SECRET"] = git_secret
     return env, tmpdir
 
 
@@ -153,7 +159,7 @@ def mcp_call(repo: Path, token: str, tool: str, args: dict) -> tuple[int, str]:
     return code, out
 
 
-def step_push(repo: Path, remote: str, remote_url: str, token: str,
+def step_push(repo: Path, remote: str, remote_url: str, git_secret: str,
               login: str) -> tuple[bool, dict[str, str]]:
     log("步骤 1/9：推送 main 与 dev/05")
     code, out = run(["git", "-C", str(repo), "remote"])
@@ -162,7 +168,7 @@ def step_push(repo: Path, remote: str, remote_url: str, token: str,
         if code != 0:
             log(f"  失败：添加远端失败：{out.strip()[:300]}")
             return False, {}
-    env, tmpdir = askpass_env(token)
+    env, tmpdir = askpass_env(git_secret)
     env["GITEE_LOGIN"] = login
     for branch in ("main", "dev/05"):
         code, out = run(["git", "-C", str(repo), "push", "-u", remote, f"{branch}:{branch}"], env=env)
@@ -373,6 +379,10 @@ def main() -> int:
     if not token:
         log("缺少令牌：请设置环境变量 GITEE_ACCESS_TOKEN（令牌不写入任何文件）。")
         return 2
+    git_secret = os.environ.get("GITEE_GIT_PASSWORD", "") or token
+    if not os.environ.get("GITEE_GIT_PASSWORD", ""):
+        log("提示：未设置 GITEE_GIT_PASSWORD，git 推送将尝试使用私人令牌作为口令"
+            "（Gitee 的 git HTTPS 推送只接受账号口令，此路径可能失败）。")
 
     repo = Path(args.repo).resolve()
     EVIDENCE.mkdir(parents=True, exist_ok=True)
@@ -388,12 +398,12 @@ def main() -> int:
         summary["steps"].append({"step": step, "ok": ok, "detail": detail,
                                  "at": datetime.now(CST).isoformat()})
 
-    ok, env = (True, None) if args.skip_push else step_push(repo, args.remote, remote_url, token, args.login)
+    ok, env = (True, None) if args.skip_push else step_push(repo, args.remote, remote_url, git_secret, args.login)
     record("推送", ok)
     if not ok:
         return 1
     if env is None:
-        env, _ = askpass_env(token)
+        env, _ = askpass_env(git_secret)
         env["GITEE_LOGIN"] = args.login
 
     step_default_branch(token, args.owner, args.name, args.base)
