@@ -220,6 +220,16 @@ def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
 def step_pr(repo: Path, token: str, owner: str, name: str,
             title: str, body: str, head: str) -> tuple[str | None, str]:
     log("步骤 2/11：通过 GitHub MCP 发起 PR（6 项要素）")
+    # 幂等：若已有同源同目标的开放 PR，直接复用（重跑链路时不重复建 PR）。
+    code, out = mcp_call(repo, token, "list_pull_requests", {
+        "owner": owner, "repo": name, "state": "open",
+        "head": f"{owner}:{head}", "per_page": 20,
+    })
+    if code == 0:
+        m = re.search(r"https://github\.com/[^/]+/[^/]+/pull/\d+", out)
+        if m:
+            log(f"  已存在同源开放 PR，复用：{m.group(0)}")
+            return m.group(0), out
     code, out = mcp_call(repo, token, "create_pull_request", {
         "owner": owner, "repo": name, "head": head, "base": "main",
         "title": title, "body": body, "draft": False,

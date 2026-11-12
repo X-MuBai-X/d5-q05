@@ -64,48 +64,17 @@ jobs:
         run: go vet ./...
 
       - name: 单元测试与覆盖率采集
-        run: go test ./... -count=1 -coverprofile=coverage.out -covermode=atomic
+        # -coverprofile 必须是**绝对路径**：go test 的测试二进制工作目录是包目录，
+        # 相对路径会写包目录下（目录不存在时静默不写），统计脚本就会拿到陈旧剖面。
+        run: go test ./... -count=1 -coverprofile="${{ github.workspace }}/coverage.out" -covermode=atomic
 
+      # 覆盖率门禁与本机门禁**共用同一个脚本**（scripts/coverage-summary.py），
+      # 避免 CI 与本地各写一份统计逻辑而口径漂移：
+      # 本轮就出现过 CI（Linux + go1.27.4）按自带脚本算出 httpapi 84.2% / upstream 83.8%
+      # 而本机（Windows + go1.27.1）算出 87.7% / 87.1% 的口径差异。
       - name: 覆盖率门禁（整体与核心包均 ≥85%）
         run: |
-          python3 - <<'PY'
-          import re, sys
-          stats = {}
-          for line in open("coverage.out", encoding="utf-8"):
-              line = line.strip()
-              if not line or line.startswith("mode:"):
-                  continue
-              parts = line.rsplit(" ", 2)
-              if len(parts) != 3:
-                  continue
-              loc, stmts, cnt = parts
-              try:
-                  stmts, cnt = int(stmts), int(cnt)
-              except ValueError:
-                  continue
-              pkg = loc.split(":")[0].rsplit("/", 1)[0].replace("modelquota/internal/", "")
-              e = stats.setdefault(pkg, {"t": 0, "c": 0})
-              e["t"] += stmts
-              if cnt > 0:
-                  e["c"] += stmts
-          core = ["domain", "store", "service", "httpapi", "upstream"]
-          tt = sum(v["t"] for v in stats.values())
-          tc = sum(v["c"] for v in stats.values())
-          overall = tc * 100.0 / tt if tt else 0
-          print(f"整体覆盖率 {overall:.1f}%")
-          failed = False
-          if overall < 85:
-              print(f"::error::整体覆盖率 {overall:.1f}% 低于 85%")
-              failed = True
-          for pkg in core:
-              e = stats.get(pkg)
-              pct = (e["c"] * 100.0 / e["t"]) if e and e["t"] else 0
-              print(f"核心包 {pkg}: {pct:.1f}%")
-              if pct < 85:
-                  print(f"::error::核心包 {pkg} 覆盖率 {pct:.1f}% 低于 85%")
-                  failed = True
-          sys.exit(1 if failed else 0)
-          PY
+          python3 scripts/coverage-summary.py --profile "${{ github.workspace }}/coverage.out" --out evidence/coverage-summary.txt
 
       - name: 竞争检测（go test -race）
         run: go test ./... -count=1 -race

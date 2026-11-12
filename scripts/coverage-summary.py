@@ -5,9 +5,14 @@
 而不是取各函数覆盖率的最小值（后者会把整体统计拉低，且不常用）。
 
 用法：
-    go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic
-    python scripts/coverage-summary.py --profile evidence/coverage.out \
+    go test ./... -count=1 -coverprofile=<绝对路径> -covermode=atomic
+    python scripts/coverage-summary.py --profile <绝对路径> \
         --out evidence/coverage-summary.txt
+
+注意：`-coverprofile` 必须给**绝对路径**。go test 的测试二进制工作目录是**包目录**，
+给相对路径时剖面会写到包目录下（目录不存在则静默不写），本脚本就可能读到**陈旧剖面**
+并把它当成本轮结论——本轮实测踩过这个坑，已在 scripts/verify-gate.py 与
+.github/workflows/ci.yml 中统一改为绝对路径。
 
 退出码：0 = 生成成功且所有核心业务包 ≥ 阈值；1 = 有核心包未达标或生成失败。
 """
@@ -102,7 +107,7 @@ def main() -> int:
     lines.append("# 覆盖率汇总（题目 05）")
     lines.append(f"# 执行时间：{now}（本机时间，UTC+8）")
     lines.append(f"# Go 版本：{go_version}")
-    lines.append("# 命令：go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic")
+    lines.append("# 命令：go test ./... -count=1 -coverprofile=<绝对路径> -covermode=atomic")
     lines.append(f"# 覆盖率原件：{args.profile}（由上述命令直接产出，未做人工修改）")
     lines.append("# 统计口径：按覆盖率剖面逐块统计语句数（covered/total），非函数最小值口径")
     lines.append("")
@@ -130,6 +135,9 @@ def main() -> int:
     lines.append("")
     lines.append(f"### 三、整体：{pct(total_all)}%  ({total_all['covered']}/{total_all['total']} 语句)，"
                  f"阈值 {args.threshold:.0f}%")
+    overall_ok = pct(total_all) >= args.threshold
+    if not overall_ok:
+        ok = False
     lines.append("")
     if ok:
         lines.append("结论：整体与全部核心业务包均达到阈值。")
