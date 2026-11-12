@@ -542,20 +542,50 @@ func (d *DB) EnsureDayUsage(ctx context.Context, tenantID, day string) error {
 // ReserveInflight 原子地占用一个额度名额（题面 R2）。
 // 仅当当日「成功数 + 处理中数」小于额度时才计数加一；
 // 返回 false 表示额度已满，调用方应拒绝受理该请求。
-func (d *DB) ReserveInflight(ctx context.Context, tenantID, day string, quota int) (bool, error) {
+//
+// 额度上限必须由**本条语句内部**读取 tenants.daily_quota 的实时值，
+// 不能由调用方把额度快照当参数传进来：
+// 若传快照，并发降额会与本条判定交错，出现「占用数超过额度」的不变量破坏
+// （2026-11-11 独立验收 Agent 实测复现，见 evidence/independent-acceptance-report.md D1）。
+// 这里用子查询直接读实时额度，使「判定 + 计数」与「额度变更」在数据库层串行化。
+func (d *DB) ReserveInflight(ctx context.Context, tenantID, day string) (bool, error) {
 	if err := d.EnsureDayUsage(ctx, tenantID, day); err != nil {
 		return false, err
 	}
 	res, err := d.sql.ExecContext(ctx,
 		`UPDATE tenant_day_usage SET inflight_count = inflight_count + 1
-		 WHERE tenant_id=? AND day=? AND (success_count + inflight_count) < ?`,
-		tenantID, day, quota)
+		 WHERE tenant_id=? AND day=?
+		   AND (success_count + inflight_count) < COALESCE((SELECT daily_quota FROM tenants WHERE id=?), 0)`,
+		tenantID, day, tenantID)
 	if err != nil {
 		return false, fmt.Errorf("占用额度名额失败: %w", err)
 	}
 	n, err := res.RowsAffected()
 	if err != nil {
 		return false, fmt.Errorf("读取额度占用结果失败: %w", err)
+	}
+	return n > 0, nil
+}
+
+// UpdateTenantQuotaWithFloor 在「当日占用不超过新额度」的前提下更新租户日额度（R5）。
+//
+// 降额下限的判定与写入必须在同一条语句内完成：
+// 若分成「先读占用、再写额度」两步，并发的额度占用会落在两步之间，
+// 出现额度低于实际占用的不变量破坏（同 D1）。
+// 返回 false 表示当前占用已高于新额度，调用方应拒绝本次降额。
+func (d *DB) UpdateTenantQuotaWithFloor(ctx context.Context, tenantID, day string, newQuota int) (bool, error) {
+	res, err := d.sql.ExecContext(ctx,
+		`UPDATE tenants SET daily_quota=?
+		 WHERE id=?
+		   AND COALESCE((SELECT success_count + inflight_count FROM tenant_day_usage
+		                 WHERE tenant_id=? AND day=?), 0) <= ?`,
+		newQuota, tenantID, tenantID, day, newQuota)
+	if err != nil {
+		return false, fmt.Errorf("更新租户额度失败: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return false, fmt.Errorf("读取额度更新结果失败: %w", err)
 	}
 	return n > 0, nil
 }

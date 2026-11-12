@@ -384,6 +384,18 @@ func BuildDailyReport(tenantID, day string, counts map[RequestStatus]int, usage 
 	if !report.Consistent {
 		report.MismatchNote = fmt.Sprintf("成功记录数 %d 与计入用量次数 %d 不一致", success, usage.Success)
 	}
+	// 占用不得超过日额度（R2）：一旦出现超额，日报必须报出来而不是显示「一致」。
+	// 2026-11-11 独立验收 Agent 实测：并发降额可让占用超过额度，
+	// 而当时的日报仍返回 consistent=true，运营无法发现（D1）。
+	if usage.Occupied() > usage.QuotaLimit {
+		report.Consistent = false
+		note := fmt.Sprintf("当日占用 %d 超过日额度 %d", usage.Occupied(), usage.QuotaLimit)
+		if report.MismatchNote != "" {
+			report.MismatchNote += "；" + note
+		} else {
+			report.MismatchNote = note
+		}
+	}
 	return report
 }
 

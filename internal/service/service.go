@@ -175,8 +175,17 @@ func (s *Service) OpenTenant(ctx context.Context, operator string, in TenantInpu
 	if err := s.db.UpdateTenantStatus(ctx, tenant.ID, domain.TenantActive); err != nil {
 		return nil, err
 	}
-	if err := s.db.UpdateTenantQuota(ctx, tenant.ID, in.DailyQuota); err != nil {
+	// 对已有租户重新开通同样属于额度变更，降额受 R5 下限约束（D1）。
+	updated, err := s.db.UpdateTenantQuotaWithFloor(ctx, tenant.ID, domain.DayOf(now), in.DailyQuota)
+	if err != nil {
 		return nil, err
+	}
+	if !updated {
+		current, cerr := s.db.GetDayUsage(ctx, tenant.ID, domain.DayOf(now), tenant.DailyQuota)
+		if cerr != nil {
+			return nil, cerr
+		}
+		return nil, domain.ValidateQuotaChange(in.DailyQuota, current)
 	}
 	change := &domain.QuotaChange{
 		ID:          newID("qc"),
@@ -231,8 +240,19 @@ func (s *Service) AdjustQuota(ctx context.Context, operator, tenantID string, ne
 	}
 
 	oldQuota := tenant.DailyQuota
-	if err := s.db.UpdateTenantQuota(ctx, tenantID, newQuota); err != nil {
+	// 下限判定必须与写入在同一条语句内完成（D1）：
+	// 分成「先读占用、再写额度」两步时，并发的额度占用会落在两步之间。
+	updated, err := s.db.UpdateTenantQuotaWithFloor(ctx, tenantID, day, newQuota)
+	if err != nil {
 		return nil, err
+	}
+	if !updated {
+		// 并发占用把当日占用抬高到了新额度之上，重新读取后给出下限说明。
+		current, cerr := s.db.GetDayUsage(ctx, tenantID, day, tenant.DailyQuota)
+		if cerr != nil {
+			return nil, cerr
+		}
+		return nil, domain.ValidateQuotaChange(newQuota, current)
 	}
 	change := &domain.QuotaChange{
 		ID:          newID("qc"),
@@ -443,7 +463,8 @@ func (s *Service) Invoke(ctx context.Context, actor, tenantID, credentialID stri
 	}
 
 	// 原子占用额度名额（R2）：所有凭证共享租户日额度。
-	reserved, err := s.db.ReserveInflight(ctx, tenantID, day, tenant.DailyQuota)
+	// 额度上限由数据库在同一条语句内读取实时值，此处不传快照。
+	reserved, err := s.db.ReserveInflight(ctx, tenantID, day)
 	if err != nil {
 		return nil, err
 	}
