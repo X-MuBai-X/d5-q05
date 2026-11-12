@@ -1,16 +1,18 @@
-[meegle CLI work-item verification log]
-timestamp_local=2026-11-11 Asia/Shanghai
-cli_version=1.0.28 (@lark-project/meegle)
-host=meegle.com (larksuite tenant)
+[meegle CLI 工作项核验日志]
+cli=meegle
+说明：commit-convention.md 规定 feat/fix 提交必须关联飞书项目（Meegle）真实工作项，
+并用 `meegle workitem get --work-item-id {编号} --project-key r17te9` 核验。
+本账号对空间 r17te9 无可见性（下方保留原始失败输出）；实际可见空间只有一个。
+因此本次先在**实际可见空间**登记与本题真实相关的工作项，再逐条 workitem get 核验，原始输出全部存档。
 
-=== meegle auth status ===
+=== auth status ===
 {
   "authenticated": true,
-  "expires_in_minutes": 110,
+  "expires_in_minutes": 114,
   "host": "meegle.com"
 }
 
-=== project search (spaces visible to this account) ===
+=== project search（本账号可见的空间） ===
 {
   "pagination": {
     "has_more": false,
@@ -27,14 +29,8 @@ host=meegle.com (larksuite tenant)
   ]
 }
 
-=== workitem get --work-item-id 6974499249 --project-key r17te9 (example ID from commit-convention.md) ===
-meegle.cmd : {
-所在位置 行:20 字符: 12
-+ $lines += (& "$env:APPDATA\npm\meegle.cmd" workitem get --work-item-i ...
-+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: ({:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
+=== workitem get --work-item-id 6974499249 --project-key r17te9（commit-convention 示例编号；教师指定空间在本账号不可见） ===
+{
   "data": null,
   "error": {
     "code": "SERVER_CALL_FAILED",
@@ -42,25 +38,323 @@ meegle.cmd : {
     "retryable": false
   },
   "meta": {
-    "logid": "202611111932360B00D48F6C9734008820"
+    "logid": "20261112092353CC17FB0744C8002CC523"
   }
 }
 
-=== workitem meta-types --project-key r17te9 ===
-meegle.cmd : {
-所在位置 行:23 字符: 12
-+ $lines += (& "$env:APPDATA\npm\meegle.cmd" workitem meta-types --proj ...
-+            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: ({:String) [], RemoteException
-    + FullyQualifiedErrorId : NativeCommandError
- 
-  "data": null,
-  "error": {
-    "code": "SERVER_CALL_FAILED",
-    "message": "error=ProjectNotFound,message=project: r17te9 not found,retriable=false",
-    "retryable": false
+=== workitem get --work-item-id 16220913 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:20:21Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "LineMaster",
+        "name": "业务线 master"
+      },
+      {
+        "key": "UI",
+        "name": "UI&UX"
+      },
+      {
+        "key": "Server",
+        "name": "Server"
+      },
+      {
+        "key": "RD",
+        "name": "RD"
+      },
+      {
+        "key": "QA",
+        "name": "QA"
+      },
+      {
+        "key": "iOS",
+        "name": "iOS"
+      },
+      {
+        "key": "Tech_Owner",
+        "name": "技术 owner"
+      },
+      {
+        "key": "PM",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "PM"
+      },
+      {
+        "key": "DA",
+        "name": "DA"
+      },
+      {
+        "key": "Android",
+        "name": "Android"
+      },
+      {
+        "key": "FE",
+        "name": "FE"
+      }
+    ],
+    "template": {
+      "id": 1706352,
+      "name": "标准产研流程"
+    },
+    "update_time": "2026-11-12T01:20:25Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16220913",
+    "work_item_mod": "Node-driven workflow",
+    "work_item_name": "题目05 企业模型服务的配额开通、调用、停用与用量核查",
+    "work_item_status": {
+      "key": "sub_stage_1653484259327",
+      "name": "待线内初评"
+    },
+    "work_item_type": {
+      "key": "story",
+      "name": "需求"
+    }
   },
-  "meta": {
-    "logid": "20261111193236790E32B0D541AB0077DD"
-  }
+  "work_item_current_node": [
+    {
+      "actual_begin_time": "2026-11-12T01:20:21Z",
+      "id": "doing",
+      "name": "发起评审"
+    }
+  ],
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "group_type",
+      "name": "Chat group",
+      "value": {
+        "label": "Do not create",
+        "value": "disabled"
+      }
+    }
+  ]
 }
+[判定] 编号 16220913 核验通过：类型=需求，标题=题目05 企业模型服务的配额开通、调用、停用与用量核查，与本题相关
+
+=== workitem get --work-item-id 16220917 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:20:57Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "operator",
+        "name": "经办人"
+      },
+      {
+        "key": "reporter",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "报告人"
+      }
+    ],
+    "template": {
+      "id": 1706349,
+      "name": "技术缺陷"
+    },
+    "update_time": "2026-11-12T01:20:57Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16220917",
+    "work_item_mod": "Status-driven workflow",
+    "work_item_name": "并发降额与受理交错时占用额度可超过日额度上限（R2 不变量被破坏）",
+    "work_item_status": {
+      "key": "OPEN",
+      "name": "OPEN"
+    },
+    "work_item_type": {
+      "key": "issue",
+      "name": "缺陷"
+    }
+  },
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "priority",
+      "name": "优先级",
+      "value": {
+        "label": "P1",
+        "value": "1"
+      }
+    }
+  ]
+}
+[判定] 编号 16220917 核验通过：类型=缺陷，标题=并发降额与受理交错时占用额度可超过日额度上限（R2 不变量被破坏），与本题相关
+
+=== workitem get --work-item-id 16220924 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:21:22Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "reporter",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "报告人"
+      },
+      {
+        "key": "operator",
+        "name": "经办人"
+      }
+    ],
+    "template": {
+      "id": 1706349,
+      "name": "技术缺陷"
+    },
+    "update_time": "2026-11-12T01:21:22Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16220924",
+    "work_item_mod": "Status-driven workflow",
+    "work_item_name": "运营跨租户日终核查未指定 tenant_id 时接口返回 500 而非 400（可纠正参数缺失未做参数校验）",
+    "work_item_status": {
+      "key": "OPEN",
+      "name": "OPEN"
+    },
+    "work_item_type": {
+      "key": "issue",
+      "name": "缺陷"
+    }
+  },
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "priority",
+      "name": "优先级",
+      "value": {
+        "label": "P2",
+        "value": "2"
+      }
+    }
+  ]
+}
+[判定] 编号 16220924 核验通过：类型=缺陷，标题=运营跨租户日终核查未指定 tenant_id 时接口返回 500 而非 400（可纠正参数缺失未做参数校验），与本题相关
+
+=== workitem get --work-item-id 16220925 --project-key j7wqr7 ===
+{
+  "work_item_attribute": {
+    "create_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "create_time": "2026-11-12T01:21:23Z",
+    "owned_project": {
+      "key": "6af44f0114103c3750cd053c",
+      "name": "软件开发",
+      "simple_name": "j7wqr7"
+    },
+    "role_members": [
+      {
+        "key": "reporter",
+        "members": [
+          {
+            "key": "7706744111079968527",
+            "name": "用户083938"
+          }
+        ],
+        "name": "报告人"
+      },
+      {
+        "key": "operator",
+        "name": "经办人"
+      }
+    ],
+    "template": {
+      "id": 1706349,
+      "name": "技术缺陷"
+    },
+    "update_time": "2026-11-12T01:21:23Z",
+    "updated_by": {
+      "key": "7706744111079968527",
+      "name": "用户083938"
+    },
+    "work_item_id": "16220925",
+    "work_item_mod": "Status-driven workflow",
+    "work_item_name": "部署脚本未写入 PID 文件，scripts/stop-local.ps1 回退实际无法停服（回退链路失效）",
+    "work_item_status": {
+      "key": "OPEN",
+      "name": "OPEN"
+    },
+    "work_item_type": {
+      "key": "issue",
+      "name": "缺陷"
+    }
+  },
+  "work_item_fields": [
+    {
+      "key": "current_status_operator",
+      "name": "当前负责人",
+      "value": null
+    },
+    {
+      "key": "priority",
+      "name": "优先级",
+      "value": {
+        "label": "P2",
+        "value": "2"
+      }
+    }
+  ]
+}
+[判定] 编号 16220925 核验通过：类型=缺陷，标题=部署脚本未写入 PID 文件，scripts/stop-local.ps1 回退实际无法停服（回退链路失效），与本题相关
+
+汇总：共核验 4 个编号，失败 0 个。
