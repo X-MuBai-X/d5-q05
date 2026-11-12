@@ -25,9 +25,9 @@
 - 结果：PASS
 
 ```
-ok  	modelquota/internal/domain	1.967s
-ok  	modelquota/internal/store	3.736s
-ok  	modelquota/internal/service	6.599s
+ok  	modelquota/internal/domain	2.129s
+ok  	modelquota/internal/store	3.972s
+ok  	modelquota/internal/service	6.724s
 ```
 
 ## 失败项
