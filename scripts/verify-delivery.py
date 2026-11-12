@@ -184,8 +184,8 @@ def check_mcp_repo_creation(repo: Path) -> list[dict]:
     if not hits:
         return [{"id": "D-01 MCP 建仓证据", "status": "PENDING",
                  "detail": "evidence/{github,gitee}-mcp/ 下暂无建仓报文（远端建仓动作未执行）"}]
-    results = []
-    for f, payload, tool_names in hits:
+
+    def evaluate(f: Path, payload: dict, tool_names: tuple[str, ...]) -> tuple[bool, str]:
         need = ["tool", "called_at", "request", "response"]
         missing = [k for k in need if not payload.get(k)]
         resp = payload.get("response") or {}
@@ -204,6 +204,20 @@ def check_mcp_repo_creation(repo: Path) -> list[dict]:
             detail += "；服务端返回失败：" + resp_blob[:200]
         if missing:
             detail += "；报文缺字段：" + "、".join(missing)
+        return ok, detail
+
+    # 每个平台的建仓以**最后一次调用**为当前实况；更早的失败尝试逐条列出（保留历史，不掩盖）。
+    by_tool: dict[str, list] = {}
+    for f, payload, tool_names in hits:
+        by_tool.setdefault(payload.get("tool") or f.name, []).append((f, payload, tool_names))
+    results = []
+    for items in by_tool.values():
+        items.sort(key=lambda it: it[1].get("called_at") or "")
+        ok, detail = evaluate(*items[-1])
+        history = items[:-1]
+        if history:
+            detail += (f"；另有 {len(history)} 次更早的建仓尝试未成功（报文已归档，历史如实保留）："
+                       + "、".join(h.name for h, _, _ in history))
         results.append({
             "id": "D-01 MCP 建仓证据",
             "status": "PASS" if ok else "FAIL",
