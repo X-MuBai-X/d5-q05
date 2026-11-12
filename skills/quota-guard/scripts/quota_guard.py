@@ -93,14 +93,18 @@ def static_checks(repo: Path) -> list[Check]:
     service = read(repo, "internal/service/service.go")
     checks: list[Check] = []
 
-    # 1. 额度占用必须是单条带条件的 UPDATE。
-    cond_line = line_of(store, r"success_count \+ inflight_count\) < \?")
+    # 1. 额度占用必须是单条带条件的 UPDATE，且额度上限由本条语句内部实时读取。
+    #    2026-11-11 独立验收 Agent 复现的 D1：额度若作为外部参数传入，
+    #    并发降额会与判定交错，导致「占用数超过额度」。因此这里额外要求
+    #    条件里出现 tenants.daily_quota 的子查询，且函数签名不得再带额度参数。
+    cond_line = line_of(store, r"success_count \+ inflight_count\) < COALESCE\(\(SELECT daily_quota FROM tenants WHERE id=\?\)")
     upd_line = line_of(store, r"UPDATE tenant_day_usage SET inflight_count = inflight_count \+ 1")
-    ok = cond_line > 0 and upd_line > 0
+    sig_line = line_of(store, r"func \(d \*DB\) ReserveInflight\(ctx context\.Context, tenantID, day string\) \(bool, error\)")
+    ok = cond_line > 0 and upd_line > 0 and sig_line > 0
     checks.append(Check(
-        1, "额度占用为单条条件 UPDATE（不先查后写）", "R2", ok,
+        1, "额度占用为单条条件 UPDATE，且额度上限在本条语句内实时读取", "R2/D1", ok,
         f"internal/store/store.go:{upd_line}" if upd_line else "internal/store/store.go",
-        "未找到带 (success_count + inflight_count) < ? 条件的原子占用语句" if not ok else "",
+        "未找到「条件内子查询读取 tenants.daily_quota」的原子占用语句，或 ReserveInflight 仍接收外部额度参数" if not ok else "",
     ))
 
     # 2. 占用前确保当日用量行存在。
@@ -165,12 +169,33 @@ def static_checks(repo: Path) -> list[Check]:
 
     # 8. 状态校验早于额度占用。
     status_line = line_of(service, r"tenant\.Status == domain\.TenantDisabled")
-    reserve_line = line_of(service, r"s\.db\.ReserveInflight\(ctx, tenantID, day, tenant\.DailyQuota\)")
+    reserve_line = line_of(service, r"s\.db\.ReserveInflight\(ctx, tenantID, day\)")
     ok = status_line > 0 and reserve_line > 0 and status_line < reserve_line
     checks.append(Check(
         8, "租户/凭证状态校验早于额度占用（停用后不占额度）", "R6", ok,
         f"internal/service/service.go:{status_line}/{reserve_line}" if status_line and reserve_line else "internal/service/service.go",
         "状态校验与额度占用的先后顺序不符合约定" if not ok else "",
+    ))
+
+    # 9. 降额的下限判定与写入必须是同一条语句（D1 的另一半）。
+    floor_line = line_of(store, r"func \(d \*DB\) UpdateTenantQuotaWithFloor")
+    floor_cond = line_of(store, r"UPDATE tenants SET daily_quota=\?")
+    floor_guard = line_of(store, r"COALESCE\(\(SELECT success_count \+ inflight_count FROM tenant_day_usage")
+    svc_floor = line_of(service, r"s\.db\.UpdateTenantQuotaWithFloor\(ctx, tenantID, day, newQuota\)")
+    ok = floor_line > 0 and floor_cond > 0 and floor_guard > 0 and svc_floor > 0
+    checks.append(Check(
+        9, "降额下限判定与写入在同一条语句内完成（防 TOCTOU）", "R5/D1", ok,
+        f"internal/store/store.go:{floor_line}" if floor_line else "internal/store/store.go",
+        "未找到带占用守卫的 UpdateTenantQuotaWithFloor，降额下限可能被并发占用突破" if not ok else "",
+    ))
+
+    # 10. 日终报表必须把「占用超过额度」判为不一致（D1 的加重项）。
+    over_line = line_of(domain, r"usage\.Occupied\(\) > usage\.QuotaLimit")
+    ok = over_line > 0
+    checks.append(Check(
+        10, "日终报表能识别「占用超过额度」并标记不一致", "R8/D1", ok,
+        f"internal/domain/domain.go:{over_line}" if over_line else "internal/domain/domain.go",
+        "BuildDailyReport 未检查占用是否超过额度，超额将无法在日报中被发现" if not ok else "",
     ))
 
     return checks

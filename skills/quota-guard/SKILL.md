@@ -45,15 +45,18 @@ description: 企业模型服务（题目 05）的配额计量口径守卫。用�
 ## 4. 执行步骤
 
 1. **定位仓库**：从当前目录向上查找包含 `go.mod` 且模块名为 `modelquota` 的目录；找不到则失败退出。
-2. **静态不变量检查**（共 8 项，见 §6）：
-   - `ReserveInflight` 必须使用**单条带条件 UPDATE**，条件含 `success_count + inflight_count < quota`；
+2. **静态不变量检查**（共 10 项，见 §6）：
+   - `ReserveInflight` 必须使用**单条带条件 UPDATE**，条件含 `success_count + inflight_count < COALESCE((SELECT daily_quota FROM tenants WHERE id=?), 0)`；
+   - `ReserveInflight` **不得**再接收外部额度参数（额度必须由本条语句实时读取，否则并发降额会突破上限，见 D1）；
    - `ReserveInflight` 必须先确保用量行存在（`EnsureDayUsage`）；
    - `CommitSuccess` 必须同时 `-1 inflight_count` 与 `+1 success_count`，且带 `inflight_count > 0` 守卫；
    - `ReleaseInflight` 必须 `-1 inflight_count` 且带 `inflight_count > 0` 守卫；
    - `Usage.Occupied()` 必须等于 `Success + InFlight`（降额下限口径）；
    - `ValidateQuotaChange` 必须以 `Occupied()` 为下限；
    - `settle` 必须同时存在「成功」「超时」「失败」三条分支，且失败/超时走释放、成功走实扣；
-   - `Invoke` 必须在占用额度**之前**完成租户/凭证状态校验（停用后不得占用额度）。
+   - `Invoke` 必须在占用额度**之前**完成租户/凭证状态校验（停用后不得占用额度）；
+   - `UpdateTenantQuotaWithFloor` 必须把降额下限判定与写入放在同一条语句里；
+   - `BuildDailyReport` 必须能识别「占用超过额度」并标记为不一致。
 3. **行为回归**：执行
    `go test ./internal/domain/... ./internal/store/... ./internal/service/... -run 'Quota|Usage|Invoke|Settle|Reserve|Inflight|Idempot|Reject' -count=1`
    全部用例必须通过。
@@ -91,7 +94,7 @@ description: 企业模型服务（题目 05）的配额计量口径守卫。用�
 
 | # | 检查项 | 规则编号 | 判定方式 |
 |---|---|---|---|
-| 1 | 额度占用是单条条件 UPDATE，不存在先查后写 | R2 | 源码模式匹配 |
+| 1 | 额度占用是单条条件 UPDATE，且额度上限在本条语句内实时读取（不得接收外部额度参数） | R2/D1 | 源码模式匹配 |
 | 2 | 占用前确保当日用量行存在 | R2 | 源码模式匹配 |
 | 3 | 成功转换：处理中 −1、成功 +1，带 `inflight_count > 0` 守卫 | R2/R4 | 源码模式匹配 |
 | 4 | 失败/超时释放：处理中 −1，带 `inflight_count > 0` 守卫 | R4 | 源码模式匹配 |
@@ -99,6 +102,8 @@ description: 企业模型服务（题目 05）的配额计量口径守卫。用�
 | 6 | 降额校验以 `Occupied()` 为下限 | R5 | 源码模式匹配 + 单元测试 |
 | 7 | `settle` 具备成功/超时/失败三条独立分支 | R4/Q1 | 源码模式匹配 + 单元测试 |
 | 8 | 状态校验早于额度占用 | R6 | 源码顺序匹配 |
+| 9 | 降额下限判定与写入在同一条语句内完成（防 TOCTOU） | R5/D1 | 源码模式匹配 |
+| 10 | 日终报表能识别「占用超过额度」并标记不一致 | R8/D1 | 源码模式匹配 + 单元测试 |
 
 ## 7. 失败处理
 
@@ -113,7 +118,7 @@ description: 企业模型服务（题目 05）的配额计量口径守卫。用�
 
 同时满足才算完成：
 
-1. 8 项静态检查全部有明确结论（PASS / FAIL），无「跳过」；
+1. 10 项静态检查全部有明确结论（PASS / FAIL），无「跳过」；
 2. 行为回归全部用例通过；
 3. 三个核心包覆盖率均 ≥ 阈值；
 4. 总判定为 `PASS`，且报告已写入 `--out`（若提供）或标准输出；

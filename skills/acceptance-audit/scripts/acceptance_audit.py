@@ -50,7 +50,8 @@ CODE_CHECKS: dict[str, list[tuple[str, str, str]]] = {
     ],
     "R2-2": [
         ("internal/store/store.go", r"UPDATE tenant_day_usage SET inflight_count = inflight_count \+ 1", "原子占用"),
-        ("internal/store/store.go", r"success_count \+ inflight_count\) < \?", "带条件的额度判定"),
+        ("internal/store/store.go", r"success_count \+ inflight_count\) < COALESCE\(\(SELECT daily_quota FROM tenants WHERE id=\?\)", "额度上限在本条语句内实时读取"),
+        ("internal/store/store.go", r"func \(d \*DB\) UpdateTenantQuotaWithFloor", "降额下限判定与写入同一条语句"),
     ],
     "R2-4": [
         ("internal/domain/domain.go", r"func DayOf\(t time\.Time\) string", "UTC 自然日归属"),
@@ -420,7 +421,12 @@ def toolchain_checks(repo: Path, skip: bool) -> dict[str, Item]:
 
 
 def secret_scan(repo: Path) -> tuple[str, str]:
-    """在证据与文档中扫描明文口令。返回 (状态, 证据)。"""
+    """在证据与文档中扫描明文口令。返回 (状态, 证据)。
+
+    本检查**不含任何白名单或例外**：证据与文档里只要出现明文口令就判失败。
+    2026-11-11 独立验收 Agent 指出原实现用文件级白名单放行 docs/04 的明文口令，
+    而文档却宣称「不是加白名单绕过」，两者不符；现已删除白名单并对被放行的文件做真实脱敏。
+    """
     patterns = [
         # `sk_` 前缀必须是一个完整词的开头，否则会误伤 `task_output`、`ask_xxx`
         # 这类会话/问卷编号（`a` + `sk_` 恰好构成 `sk_`）。
@@ -428,7 +434,6 @@ def secret_scan(repo: Path) -> tuple[str, str]:
         re.compile(r"(?i)password\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{6,}['\"]?"),
         re.compile(r"(?i)(secret|token|apikey|api_key)\s*[:=]\s*['\"][A-Za-z0-9_\-]{12,}['\"]"),
     ]
-    allow = {"docs/01-需求分析.md", "docs/04-部署与使用说明.md", "docs/08-Skill使用记录.md"}
     hits = []
     for path in list((repo / "evidence").rglob("*")) + list((repo / "docs").rglob("*.md")):
         if not path.is_file() or path.suffix.lower() not in {".md", ".txt", ".log", ".json", ".csv"}:
@@ -440,18 +445,15 @@ def secret_scan(repo: Path) -> tuple[str, str]:
             continue
         for idx, line in enumerate(text.splitlines(), start=1):
             if "admin-a-secret" in line or "admin-b-secret" in line or "ops-secret" in line:
-                if rel in allow:
-                    continue
                 hits.append(f"{rel}:{idx}")
+                continue
             for p in patterns:
                 if p.search(line):
-                    if rel in allow:
-                        continue
                     hits.append(f"{rel}:{idx}")
                     break
     if hits:
         return FAIL, "疑似明文口令/密钥：" + "、".join(sorted(set(hits))[:8])
-    return PASS, "证据与文档中未发现明文口令/密钥"
+    return PASS, "证据与文档中未发现明文口令/密钥（无白名单，全量扫描）"
 
 
 def main() -> int:
