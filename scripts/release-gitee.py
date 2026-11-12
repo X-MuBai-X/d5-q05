@@ -132,8 +132,10 @@ def askpass_env(git_secret: str) -> tuple[dict[str, str], Path]:
 
 
 def gitee_api(token: str, method: str, path: str,
-              body: dict | None = None) -> tuple[int, dict]:
+              body: dict | None = None, query: dict | None = None) -> tuple[int, dict]:
     url = f"{API}{path}"
+    if query:
+        url += "?" + "&".join(f"{k}={v}" for k, v in query.items())
     data = json.dumps(body).encode("utf-8") if body is not None else None
     headers = {
         "Authorization": f"token {token}",
@@ -203,41 +205,60 @@ def step_default_branch(token: str, owner: str, name: str, branch: str) -> bool:
     return True
 
 
-def step_protect(token: str, owner: str, name: str, branch: str) -> bool:
+def step_protect(token: str, owner: str, name: str, branch: str) -> tuple[bool, dict]:
+    """设置主分支保护规则。
+
+    Gitee API 的实际形态（实测）：
+      · 新建保护分支规则：PUT /repos/{owner}/{repo}/branches/setting/new
+        参数（query）：wildcard / pusher / merger / mode / strict
+      · 更新保护分支规则：PUT /repos/{owner}/{repo}/branches/{wildcard}/setting
+      · mode 合法值只有 standard（标准模式）与 review（评审模式）；
+        pusher 可取 none（任何人不得直推）或 admin（仅管理员可直推）。
+      · 该平台**没有**保护规则的读取端点（只有 PUT/DELETE），
+        因此规则内容以接口返回体为准，完整归档到 evidence/branch-protection-gitee.json。
+    """
     log("步骤 3/9：配置主分支保护（禁止直推/删除/强推，要求 PR 合并）")
-    body = {
-        "enable_merge": True,
-        "enable_push": False,
-        "enable_force_push": False,
-        "enable_admin_merge": True,
-        "enable_admin_push": False,
-        "enable_delete": False,
-        "allow_merge_commits": True,
-        "can_push_when_protected": False,
+    query = {
+        "wildcard": branch, "pusher": "none", "merger": owner,
+        "mode": "standard", "strict": "true",
     }
-    code, resp = gitee_api(token, "POST",
-                            f"/repos/{owner}/{name}/branches/{branch}/protection", body)
+    code, resp = gitee_api(token, "PUT", f"/repos/{owner}/{name}/branches/setting/new",
+                           None, query)
+    if code not in (200, 201):
+        # 规则已存在时更新
+        code, resp = gitee_api(token, "PUT", f"/repos/{owner}/{name}/branches/{branch}/setting",
+                               None, {k: v for k, v in query.items() if k != "wildcard"})
     if code not in (200, 201):
         log(f"  失败：分支保护设置返回 {code} —— {json.dumps(resp, ensure_ascii=False)[:400]}")
-        return False
-    log("  保护规则已设置")
-    return True
+        return False, {}
+    log("  保护规则已设置（pushers=none：任何人不得直推，只能走 PR 合并）")
+    return True, resp
 
 
-def step_read_protection(token: str, owner: str, name: str, branch: str) -> bool:
-    log("步骤 4/9：读取并归档分支保护规则")
-    code, resp = gitee_api(token, "GET",
-                            f"/repos/{owner}/{name}/branches/{branch}/protection")
-    if code != 200:
-        log(f"  失败：读取保护规则返回 {code} —— {json.dumps(resp, ensure_ascii=False)[:300]}")
-        return False
+def step_read_protection(token: str, owner: str, name: str, branch: str,
+                         rule: dict) -> bool:
+    """归档保护规则。
+
+    Gitee 不提供保护规则的读取端点（实测 GET /branches/{branch}/protection 返回 404
+    「Branch does not exist」，API 文档中该路径只有 PUT / DELETE），
+    因此**以设置接口的返回体作为规则的读取结果**归档，并如实标注来源。
+    """
+    log("步骤 4/9：归档分支保护规则")
     out = {
         "read_at": datetime.now(CST).isoformat(),
-        "source": "Gitee REST API GET /repos/{owner}/{repo}/branches/{branch}/protection"
-                  "（Gitee 官方 MCP 当前未暴露分支保护类工具，故此处如实标注为 REST 而非 MCP）",
-        "endpoint": f"/repos/{owner}/{name}/branches/{branch}/protection",
-        "http_status": code,
-        "protection": resp,
+        "source": "Gitee REST API PUT /repos/{owner}/{repo}/branches/setting/new 的返回体"
+                  "（该平台未暴露保护规则读取端点，只有 PUT/DELETE，故以设置返回体为准）",
+        "endpoint": f"/repos/{owner}/{name}/branches/setting/new",
+        "protection_rule": rule,
+        "semantics": {
+            "pushers": "none —— 任何人都不得直接推送到主分支，只能通过 PR 合并",
+            "mergers": "仓库属主（可合并 PR）",
+            "mode": "standard（标准模式）",
+            "strict": "true",
+            "force_push": "受保护分支天然禁止强推与删除",
+            "status_checks": "Gitee 免费版无 CI，无法配置状态检查上下文（contexts 留空）；"
+                             "GitHub 侧的 CI 流水线配置已就绪，见 .github/workflows/ci.yml",
+        },
     }
     path = EVIDENCE / "branch-protection-gitee.json"
     path.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")
@@ -246,25 +267,35 @@ def step_read_protection(token: str, owner: str, name: str, branch: str) -> bool
 
 
 def step_verify_protection(repo: Path, remote: str, env: dict[str, str],
-                           owner: str, name: str, branch: str) -> bool:
-    """验证主分支受保护：尝试直推 main（把 main 更新为 dev/05 的提交）必须被拒绝。
+                           owner: str, name: str, branch: str, base_sha: str) -> bool:
+    """验证主分支受保护：**真实推送**一个空提交到主分支，必须被服务端拒绝。
 
-    被拒绝时远端内容不变，因此该探测不会污染仓库。
+    注意：`git push --dry-run` 不会把对象送到服务端，pre-receive 钩子不会执行，
+    因此**不能**用它判定保护是否生效；这里用真实推送做实测。
+    探测提交是以 base_sha 为父的**空提交**（树不变）：若保护生效，推送被拒、远端不变；
+    若保护未生效，主分支只会多出一个内容完全相同的空提交，不丢任何内容。
     """
-    log("步骤 5/9：验证主分支受保护（直推应被拒绝）")
-    code, head = git_run(["rev-parse", "dev/05"], repo)
+    log("步骤 7/9：验证主分支受保护（真实直推必须被拒绝）")
+    code, tree = git_run(["rev-parse", f"{base_sha}^{{tree}}"], repo)
     if code != 0:
-        log("  失败：无法解析 dev/05")
+        log("  失败：无法解析合并提交的树")
         return False
-    sha = head.strip()
-    code, out = git_run(["push", remote, f"{sha}:refs/heads/{branch}"], repo, env=env)
+    code, probe = git_run(["commit-tree", tree.strip(), "-p", base_sha, "-m",
+                            "protection-probe: 验证主分支保护是否拒绝直推"], repo)
+    if code != 0:
+        log("  失败：无法创建探测提交")
+        return False
+    probe_sha = probe.strip()
+    code, out = git_run(["push", remote, f"{probe_sha}:refs/heads/{branch}"], repo, env=env)
     rejected = code != 0
-    detail = out.strip()[-600:]
+    detail = out.strip()[-800:]
     path = EVIDENCE / "branch-protection-gitee-verify.json"
     path.write_text(json.dumps({
         "verified_at": datetime.now(CST).isoformat(),
-        "method": f"git push {remote} {sha[:12]}:refs/heads/{branch}（直推探测）",
-        "pushed_sha": sha,
+        "method": f"git push {remote} {probe_sha[:12]}:refs/heads/{branch}（真实推送探测；"
+                  f"探测提交是以合并提交为父的空提交，树不变）",
+        "probe_sha": probe_sha,
+        "base_sha": base_sha,
         "git_exit_code": code,
         "rejected_by_protection": rejected,
         "git_output": detail,
@@ -420,18 +451,14 @@ def main() -> int:
         env["GITEE_LOGIN"] = args.login
 
     step_default_branch(token, args.owner, args.name, args.base)
-    if not step_protect(token, args.owner, args.name, args.base):
-        record("分支保护", False)
+    ok, rule = step_protect(token, args.owner, args.name, args.base)
+    record("分支保护", ok)
+    if not ok:
         return 1
-    record("分支保护", True)
-    if not step_read_protection(token, args.owner, args.name, args.base):
-        record("读取保护规则", False)
+    if not step_read_protection(token, args.owner, args.name, args.base, rule):
+        record("归档保护规则", False)
         return 1
-    record("读取保护规则", True)
-    if not step_verify_protection(repo, args.remote, env, args.owner, args.name, args.base):
-        record("保护实测", False)
-        return 1
-    record("保护实测", True)
+    record("归档保护规则", True)
 
     pr_url, _ = step_pr(repo, token, args.owner, args.name, args.head, args.base,
                         args.pr_title, PR_BODY)
@@ -457,6 +484,12 @@ def main() -> int:
         record("拉取合并提交", False)
         return 1
     record("拉取合并提交", True)
+
+    if not step_verify_protection(repo, args.remote, env, args.owner, args.name,
+                                  args.base, sha):
+        record("保护实测", False)
+        return 1
+    record("保护实测", True)
 
     ok = step_gate(repo, sha)
     record("合并提交门禁", ok, str(EVIDENCE / f"main-gate-{sha[:12]}.log"))
