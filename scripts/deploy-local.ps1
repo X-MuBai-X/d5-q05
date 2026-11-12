@@ -96,6 +96,9 @@ try {
         -RedirectStandardError (Join-Path $logDir 'mockupstream.err.log') `
         -PassThru -WindowStyle Hidden
     Write-Log "模拟上游已启动，PID=$($upstreamProc.Id)"
+    # 回退脚本依赖这个 PID 文件：部署成功后必须写，否则 stop-local.ps1 停不掉本次实例。
+    Set-Content -Path (Join-Path $logDir 'mockupstream.pid') -Value $upstreamProc.Id -Encoding ascii
+    Write-Log "已记录模拟上游 PID 文件：deploy\mockupstream.pid"
 
     Write-Log "--- 步骤 4/6：启动业务服务 ---"
     $serverProc = Start-Process -FilePath (Join-Path $binDir 'server.exe') `
@@ -104,6 +107,8 @@ try {
         -RedirectStandardError (Join-Path $logDir 'server.err.log') `
         -PassThru -WindowStyle Hidden
     Write-Log "业务服务已启动，PID=$($serverProc.Id)"
+    Set-Content -Path (Join-Path $logDir 'server.pid') -Value $serverProc.Id -Encoding ascii
+    Write-Log "已记录服务 PID 文件：deploy\server.pid（回退：powershell -ExecutionPolicy Bypass -File scripts\stop-local.ps1）"
 
     Write-Log "--- 步骤 5/6：健康检查 ---"
     $ready = $false

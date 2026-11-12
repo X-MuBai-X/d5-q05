@@ -24,4 +24,14 @@ foreach ($name in @('server', 'mockupstream')) {
         Write-Output "[stop-local] $name（PID=$procId）未在运行"
     }
 }
+
+# 回退后核对端口确实释放，便于判断回退是否真的生效。
+Start-Sleep -Seconds 1
+foreach ($p in @(8080, 8081, 9091, 9092)) {
+    $conn = Get-NetTCPConnection -LocalPort $p -State Listen -ErrorAction SilentlyContinue
+    if ($conn) {
+        $owner = ($conn | Select-Object -ExpandProperty OwningProcess -Unique) -join ','
+        Write-Output "[stop-local] 端口 $p 仍被占用（PID=$owner），该进程不是本次部署启动的"
+    }
+}
 Write-Output "[stop-local] 完成。数据保留在 deploy\data\ 下，如需回到初始预置状态请删除对应 .db 文件。"
