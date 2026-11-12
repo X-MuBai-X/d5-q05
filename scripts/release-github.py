@@ -271,8 +271,11 @@ def step_wait_checks(token: str, owner: str, name: str, head_sha: str,
             by_name = {r.get("name"): r for r in runs}
             pending = [c for c in contexts
                        if c not in by_name or by_name[c].get("status") != "completed"]
+            # 只有「已完成且结论不成功」才算失败；仍在运行的检查属于 pending，
+            # 不能提前判失败（此前把 in_progress 当失败，导致 CI 刚起步就被误停）。
             failed = [c for c in contexts
-                      if c in by_name and by_name[c].get("conclusion") not in ("success", "neutral", "skipped")]
+                      if c in by_name and by_name[c].get("status") == "completed"
+                      and by_name[c].get("conclusion") not in ("success", "neutral", "skipped")]
             if failed:
                 log("  检查项未通过：" + "、".join(failed))
                 break
