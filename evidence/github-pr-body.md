@@ -26,7 +26,7 @@
 
 ## 覆盖率
 
-整体 **89.4%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 87.7% / upstream 87.1%，
+整体 **90.5%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 89.7% / upstream 95.3%，
 各核心包均 ≥85%。原件见 `evidence/coverage.out`、`evidence/coverage-summary.txt`。
 
 ## 验收报告

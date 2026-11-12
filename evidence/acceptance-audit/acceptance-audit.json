@@ -28,7 +28,7 @@
       "rule": "共同",
       "name": "整体与核心包覆盖率达标",
       "status": "pass",
-      "evidence": "整体 89.4%（阈值 85%）；核心包 domain 97.3%、store 94.4%、service 87.7%、httpapi 87.7%、upstream 87.1%",
+      "evidence": "整体 90.5%（阈值 85%）；核心包 domain 97.3%、store 94.4%、service 87.7%、httpapi 89.7%、upstream 95.3%",
       "note": ""
     },
     {
