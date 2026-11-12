@@ -182,10 +182,18 @@ def step_remote(repo: Path, remote: str, remote_url: str) -> bool:
 def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
     log("步骤 1/11：推送 main 与 dev/05")
     env = git_env(token, proxy)
-    code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
-    if code != 0:
-        log(f"  失败：fetch 远端 main 失败\n{out.strip()[:400]}")
-        return False
+    code, out = run(["git", "-C", str(repo), "ls-remote", "--heads", remote, "main"], env=env)
+    remote_has_main = code == 0 and out.strip() != ""
+    if not remote_has_main:
+        # 新建仓库还没有任何分支：先推送开发分支，main 作为发布基线首次建立，
+        # 之后 main 只由 PR 合并推进（保护规则在 PR 合并前生效并留有实测证据）。
+        log("  远端暂无 main 分支（新建仓库）：先推送开发分支，main 作为发布基线首次建立，"
+            "此后 main 只经 PR 合并推进")
+    else:
+        code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
+        if code != 0:
+            log(f"  失败：fetch 远端 main 失败\n{out.strip()[:400]}")
+            return False
     code, out = run(["git", "-C", str(repo), "push", "-u", remote, "dev/05"], env=env)
     if code != 0:
         log(f"  失败：推送 dev/05 失败\n{out.strip()[:600]}")
@@ -197,7 +205,7 @@ def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
         # 产生的空 Initial commit）。此时不做强制推送：只要远端 main 已被开发分支
         # 吸收（即它是 dev/05 的祖先），就认为基线已对齐。
         ancestor, _ = run(["git", "-C", str(repo), "merge-base", "--is-ancestor",
-                           "origin/main", "dev/05"])
+                           f"{remote}/main", "dev/05"])
         if ancestor == 0:
             log("  远端 main 已是 dev/05 的祖先（远端初始化提交已被开发分支吸收），"
                 "不重复推送 main，也不做任何强制推送")
@@ -476,6 +484,8 @@ def main() -> int:
     ap.add_argument("--head", default="dev/05", help="PR 的源分支")
     ap.add_argument("--pr-number", default="", help="PR 编号（不填则从 create_pull_request 返回中解析）")
     ap.add_argument("--pr-title", default="[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路")
+    ap.add_argument("--pr-body-file", default="",
+                    help="PR 描述文件（UTF-8 Markdown）；不填则使用内置模板")
     ap.add_argument("--merge-title", default="[feat] [v2.5.0] [#16221249] 合并题目 05 企业模型服务配额管理实现")
     ap.add_argument("--merge-message", default="从 dev/05 发起 PR 并合并，保留开发分支原始提交；"
                                               "主要工作项 #16221249，关联需求 #16220913 与缺陷 "
@@ -516,8 +526,17 @@ def main() -> int:
             return 1
     record("推送", True)
 
+    pr_body = PR_BODY
+    if args.pr_body_file:
+        body_path = Path(args.pr_body_file)
+        if body_path.is_file():
+            pr_body = body_path.read_text(encoding="utf-8")
+            log(f"PR 描述取自 {body_path}")
+        else:
+            log(f"  失败：PR 描述文件不存在：{body_path}")
+            return 1
     pr_url, pr_out = step_pr(repo, token, args.owner, args.name,
-                             args.pr_title, PR_BODY, args.head)
+                             args.pr_title, pr_body, args.head)
     record("创建 PR", bool(pr_url), pr_url or "")
     if not pr_url:
         return 1
