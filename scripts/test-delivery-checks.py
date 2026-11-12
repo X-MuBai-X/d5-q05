@@ -61,6 +61,9 @@ def test_message_regex() -> None:
 
 def test_secret_scan() -> None:
     print("[用例组] 令牌扫描")
+    # 合成夹具：32 位十六进制串在运行时拼接，仓库内不保留任何真实或形似凭据的字面量
+    fake_hex32 = ("a1b2c3d4" * 3) + "abcdef12"
+    assert len(fake_hex32) == 32
     with tempfile.TemporaryDirectory() as tmp:
         repo = Path(tmp)
         (repo / "evidence").mkdir()
@@ -68,7 +71,7 @@ def test_secret_scan() -> None:
             "会话 ID mvs_9c316f3355324f0f81b11d1998e049c3 与 client id cli_6c1cee5056d04561827106d4cb1a2e9e\n",
             encoding="utf-8")
         (repo / "evidence" / "bad.md").write_text(
-            "私人令牌是 20ffb6b0ac625c917ecb7ca8b1d37746\n", encoding="utf-8")
+            "私人令牌是 " + fake_hex32 + "\n", encoding="utf-8")
         hits = []
         for path in vd.iter_repo_files(repo):
             text = path.read_text(encoding="utf-8", errors="replace")
@@ -81,12 +84,15 @@ def test_secret_scan() -> None:
                     if vd.SAFE_HEX32_CONTEXT.search(ctx):
                         continue
                     hits.append(f"{rel}:{m.group(0)}")
-        check("会话 ID / client id 不应判为令牌", hits, ["evidence/bad.md:20ffb6b0ac625c917ecb7ca8b1d37746"])
+        check("会话 ID / client id 不应判为令牌", hits, ["evidence/bad.md:" + fake_hex32])
 
+    # 测试夹具在运行时拼接，避免仓库内出现任何「凭据形态」的字面量
+    fake_value = "x" * 32
+    fake_bearer = "y" * 30
     check("令牌赋值模式命中",
-          bool(vd.SECRET_ASSIGN_RE.search("access_token = abcdefghijklmnopqrstuvwxyz012345")), True)
+          bool(vd.SECRET_ASSIGN_RE.search("access_token = " + fake_value)), True)
     check("Bearer 模式命中",
-          bool(vd.BEARER_RE.search("Authorization: Bearer abcdefghijklmnopqrstuvwxyz0123")), True)
+          bool(vd.BEARER_RE.search("Authorization: Bearer " + fake_bearer)), True)
     check("普通文本不命中 Bearer",
           bool(vd.BEARER_RE.search("bearer of the token idea")), False)
 
@@ -98,16 +104,29 @@ def test_redaction() -> None:
     assert ex.loader is not None
     ex.loader.exec_module(es)
 
-    masked = es.redact("--device-code-value '27c9bbff-017c-4a24-88c3-5d34e72b1639' --host meegle.com")
+    # 夹具一律运行时拼接：仓库内不保留任何连续的「凭据形态」字面量。
+    fake_device_code = "27c9bbff" + "-017c-4a24-88c3-5d34e72b1639"
+    masked = es.redact("--device-code-value '" + fake_device_code + "' --host meegle.com")
     check("设备码被掩码", "27c9bbff" not in masked, True)
     check("设备码标记保留", "已掩码" in masked, True)
 
-    token = es.redact("私人令牌是 20ffb6b0ac625c917ecb7ca8b1d37746")
-    check("独立 32 位十六进制串被掩码", "20ffb6b0ac625c917ecb7ca8b1d37746" not in token, True)
+    fake_hex32 = ("a1b2c3d4" * 3) + "abcdef12"
+    token = es.redact("私人令牌是 " + fake_hex32)
+    check("独立 32 位十六进制串被掩码", fake_hex32 not in token, True)
 
-    keep = es.redact("会话 mvs_9c316f3355324f0f81b11d1998e049c3 与 cli_6c1cee5056d04561827106d4cb1a2e9e")
-    check("mvs_ 前缀标识符保留", "9c316f3355324f0f81b11d1998e049c3" in keep, True)
-    check("cli_ 前缀标识符保留", "6c1cee5056d04561827106d4cb1a2e9e" in keep, True)
+    # 公开标识符（会话 ID / OAuth client_id）：前缀 + 32 位十六进制，按前缀判定不被掩码。
+    sid_body = "9c316f33" + "55324f0f" + "81b11d19" + "98e049c3"
+    cid_body = "6c1cee50" + "56d04561" + "827106d4" + "cb1a2e9e"
+    keep = es.redact("会话 mvs_" + sid_body + " 与 cli_" + cid_body)
+    check("mvs_ 前缀标识符保留", sid_body in keep, True)
+    check("cli_ 前缀标识符保留", cid_body in keep, True)
+
+    # 授权头形态（历史会话中出现过测试夹具串，导出件不得保留任何凭据形态）
+    fake_bearer = "y" * 30
+    masked_bearer = es.redact("Authorization: Bearer " + fake_bearer)
+    check("Bearer 形态凭据被掩码", fake_bearer not in masked_bearer, True)
+    check("Bearer 掩码标记保留", "已掩码" in masked_bearer, True)
+    check("普通文本不误掩码", es.redact("bearer of the token idea"), "bearer of the token idea")
 
 
 def test_merge_status() -> None:

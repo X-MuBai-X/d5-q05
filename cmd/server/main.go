@@ -136,6 +136,11 @@ func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) (
 //
 // 题面预置条件：「预置两个企业管理员和一个运营账号；每个企业初始日额度 10 次」。
 // 依确认结论 Q1/A1，两个企业管理员分属两个不同租户。
+//
+// 口令性质说明：下面的 `admin-a` / `admin-b` / `ops` 口令是**题面要求的公开演示值**，
+// 仅用于本地演示与自动化冒烟脚本，不对应任何真实系统或真实用户，仓库内不含任何
+// 真实密钥、访问令牌或用户敏感信息。登录页只展示账号名、不回显口令
+// （见 internal/httpapi/pages_test.go 的对应断言）。
 func seedData(ctx context.Context, db *store.DB) error {
 	now := time.Now().UTC()
 

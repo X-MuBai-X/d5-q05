@@ -61,6 +61,18 @@ REDACT_RULES: list[tuple[re.Pattern, str]] = [
     # `mvs_`（会话 ID）与 `cli_`（Meegle CLI 公开 client id）为标识符前缀，保留可见。
     (re.compile(r"(?<![0-9a-fA-F])(?<!mvs_)(?<!cli_)[0-9a-f]{32}(?![0-9a-fA-F])"),
      "（32 位十六进制串，已掩码）"),
+    # GitHub 令牌（classic / fine-grained）形如 ghp_ / github_pat_ / gho_ / ghs_ / ghu_ / ghr_
+    (re.compile(r"(?:github_pat_|ghp_|gho_|ghs_|ghu_|ghr_)[A-Za-z0-9_]{16,}"),
+     "（访问令牌，已掩码）"),
+    # HTTP 授权头形态：`Authorization: Bearer <token>` / `Bearer <token>`
+    # （含 base64 常见的 `.` `=` 字符）。此规则保证导出件内不留任何「凭据形态」的串，
+    # 包括历史会话里出现过的测试夹具串。
+    (re.compile(r"(?i)\b(bearer\s+)([A-Za-z0-9_\-\.=]{16,})"),
+     r"\1（凭据，已掩码）"),
+    # 通用凭据赋值一律掩码（不区分真实凭据与测试夹具，导出件不保留任何凭据形态的串）
+    (re.compile(r"(?i)((?:access[_-]?token|private[_-]?token|api[_-]?key|authorization|bearer)"
+                r"\s*[:=]\s*[\"']?)([A-Za-z0-9_\-]{16,})"),
+     r"\1（凭据，已掩码）"),
 ]
 
 
