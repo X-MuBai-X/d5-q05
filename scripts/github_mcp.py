@@ -199,6 +199,14 @@ def main() -> int:
         path = archive(args.call, request, response, client.server_info, elapsed)
 
         result = response.get("result") or {}
+        rpc_error = response.get("error")
+        if rpc_error:
+            # JSON-RPC 层错误（如工具名不在已启用的 toolsets 内）同样是失败，
+            # 不能因为没有 result.isError 就当作成功。
+            print(f"[mcp] 工具 {args.call} 返回 JSON-RPC 错误："
+                  f"{rpc_error.get('code')} {rpc_error.get('message')}")
+            print(f"[mcp] 原始报文 -> {path}")
+            return 1
         if result.get("isError"):
             print(f"[mcp] 工具 {args.call} 返回错误：")
             print(json.dumps(response, ensure_ascii=False)[:1500])

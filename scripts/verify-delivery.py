@@ -184,8 +184,8 @@ def check_mcp_repo_creation(repo: Path) -> list[dict]:
     if not hits:
         return [{"id": "D-01 MCP 建仓证据", "status": "PENDING",
                  "detail": "evidence/{github,gitee}-mcp/ 下暂无建仓报文（远端建仓动作未执行）"}]
-    results = []
-    for f, payload, tool_names in hits:
+
+    def evaluate(f: Path, payload: dict, tool_names: tuple[str, ...]) -> tuple[bool, str]:
         need = ["tool", "called_at", "request", "response"]
         missing = [k for k in need if not payload.get(k)]
         resp = payload.get("response") or {}
@@ -204,6 +204,20 @@ def check_mcp_repo_creation(repo: Path) -> list[dict]:
             detail += "；服务端返回失败：" + resp_blob[:200]
         if missing:
             detail += "；报文缺字段：" + "、".join(missing)
+        return ok, detail
+
+    # 每个平台的建仓以**最后一次调用**为当前实况；更早的失败尝试逐条列出（保留历史，不掩盖）。
+    by_tool: dict[str, list] = {}
+    for f, payload, tool_names in hits:
+        by_tool.setdefault(payload.get("tool") or f.name, []).append((f, payload, tool_names))
+    results = []
+    for items in by_tool.values():
+        items.sort(key=lambda it: it[1].get("called_at") or "")
+        ok, detail = evaluate(*items[-1])
+        history = items[:-1]
+        if history:
+            detail += (f"；另有 {len(history)} 次更早的建仓尝试未成功（报文已归档，历史如实保留）："
+                       + "、".join(h.name for h, _, _ in history))
         results.append({
             "id": "D-01 MCP 建仓证据",
             "status": "PASS" if ok else "FAIL",
@@ -250,7 +264,7 @@ def check_branch_protection(repo: Path) -> list[dict]:
     blob = p.read_text(encoding="utf-8", errors="replace")
     checks = {
         "禁止直接推送": r"(?i)(push|push_permission|禁止推送|allowed_pushes)",
-        "禁止删除": r"(?i)(delete|禁止删除)",
+        "禁止删除": r"(?i)(delet|delete|禁止删除)",
         "禁止强推": r"(?i)(force|强推)",
         "要求 PR 合并": r"(?i)(pull_request|合并|pr_merged|merge)",
     }
@@ -398,12 +412,22 @@ def check_remote_branches(repo: Path) -> list[dict]:
                        else "保护实测证据存在但未标记为已拒绝直推")
             break
 
-    if len(parents) >= 2 and parents[1] == dev_sha:
-        status = "PASS"
-        detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 头部 {main_sha[:7]} 是"
-                  f"**合并提交**（父提交数={len(parents)}，第二父提交 = 远端 dev/05 头部 {dev_sha[:7]}），"
-                  f"业务内容经 PR 合入 main 而非直推；main 提交数={n}"
-                  + (f"；{protect}" if protect else ""))
+    if len(parents) >= 2:
+        # 第二父提交必须是远端 dev/05 头部的**祖先**（而不必相等）：
+        # 合并之后 dev/05 上可能又产生新提交（例如发布后的文档回填），
+        # 那时 main 的合并点仍是 dev/05 的某个祖先，属正常状态。
+        code3, anc = git(repo, "merge-base", "--is-ancestor", parents[1], dev_sha)
+        merged_from_dev = code3 == 0
+        if merged_from_dev:
+            status = "PASS"
+            detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 头部 {main_sha[:7]} 是"
+                      f"**合并提交**（父提交数={len(parents)}，第二父提交 {parents[1][:7]} 是远端 dev/05 头部"
+                      f" {dev_sha[:7]} 的祖先），业务内容经 PR 合入 main 而非直推；main 提交数={n}"
+                      + (f"；{protect}" if protect else ""))
+        else:
+            status = "FAIL"
+            detail = (f"远端 {used_remote} 的 main 头部 {main_sha[:7]} 虽是合并提交，"
+                      f"但第二父提交 {parents[1][:7]} 不在远端 dev/05 的历史中")
     elif len(parents) <= 1 and n == "1":
         status = "PASS"
         detail = (f"远端 {used_remote} 分支 {sorted(branches)}；远端 main 仅含初始化提交"

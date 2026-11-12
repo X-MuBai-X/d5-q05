@@ -73,6 +73,12 @@ def main() -> int:
         return 2
 
     log: list[str] = []
+    # 覆盖率剖面路径必须是**绝对路径**：go test 的测试二进制工作目录是**包目录**，
+    # 相对路径的 -coverprofile 会写到包目录下（目录不存在时静默不写），
+    # 于是统计脚本读到的是上一轮的**陈旧剖面**。本轮实测踩过这个坑。
+    cov_profile = target / "evidence" / "coverage.out"
+    if cov_profile.exists():
+        cov_profile.unlink()
     log.append("=" * 78)
     log.append("题目 05 质量门禁执行日志（针对指定提交）")
     log.append("=" * 78)
@@ -87,8 +93,8 @@ def main() -> int:
     steps: list[tuple[str, list[str], int]] = [
         ("gofmt -l .（期望输出为空）", ["gofmt", "-l", "."], 300),
         ("go vet ./...", ["go", "vet", "./..."], 900),
-        ("go test ./... -count=1 -coverprofile=evidence/coverage.out -covermode=atomic",
-         ["go", "test", "./...", "-count=1", "-coverprofile=evidence/coverage.out",
+        ("go test ./... -count=1 -coverprofile=<绝对路径> -covermode=atomic",
+         ["go", "test", "./...", "-count=1", f"-coverprofile={cov_profile}",
           "-covermode=atomic"], 1800),
     ]
 
@@ -105,24 +111,48 @@ def main() -> int:
         if code != 0:
             failed.append(title)
 
-    # 覆盖率汇总
-    t0 = time.time()
-    code, out = run([sys.executable, "scripts/coverage-summary.py",
-                     "--profile", "evidence/coverage.out",
-                     "--out", "evidence/coverage-summary.txt"], target)
-    log.append("-" * 78)
-    log.append("$ python scripts/coverage-summary.py --profile evidence/coverage.out "
-               "--out evidence/coverage-summary.txt")
-    log.append(f"# exit={code}  elapsed={time.time() - t0:.1f}s")
-    log.append(out.rstrip() or "(无输出)")
-    cov_file = target / "evidence" / "coverage-summary.txt"
-    if cov_file.is_file():
+    # 覆盖率剖面必须由本轮真实产出，否则下面的统计就是拿陈旧数据当本轮结论。
+    if not cov_profile.is_file():
+        log.append("-" * 78)
+        log.append("##[gate] 覆盖率剖面未产出：go test -coverprofile 没有写出文件")
         log.append("")
-        log.append("---- evidence/coverage-summary.txt ----")
-        log.append(cov_file.read_text(encoding="utf-8").rstrip())
-    log.append("")
-    if code != 0:
-        failed.append("coverage-summary")
+        failed.append("覆盖率剖面产出")
+        cov_summary = target / "evidence" / "coverage-summary.txt"
+        summary_code, summary_out = run(
+            [sys.executable, "scripts/coverage-summary.py",
+             "--profile", str(cov_profile),
+             "--out", str(cov_summary)], target)
+        log.append(f"# coverage-summary exit={summary_out.strip()[:200]}")
+        log.append("")
+    else:
+        # 覆盖率汇总
+        t0 = time.time()
+        code, out = run([sys.executable, "scripts/coverage-summary.py",
+                         "--profile", str(cov_profile),
+                         "--out", str(target / "evidence" / "coverage-summary.txt")], target)
+        log.append("-" * 78)
+        log.append(f"$ python scripts/coverage-summary.py --profile {cov_profile} "
+                   f"--out {target / 'evidence' / 'coverage-summary.txt'}")
+        log.append(f"# exit={code}  elapsed={time.time() - t0:.1f}s")
+        log.append(out.rstrip() or "(无输出)")
+        cov_file = target / "evidence" / "coverage-summary.txt"
+        if cov_file.is_file():
+            log.append("")
+            log.append("---- evidence/coverage-summary.txt ----")
+            log.append(cov_file.read_text(encoding="utf-8").rstrip())
+        log.append("")
+        if code != 0:
+            failed.append("coverage-summary")
+
+    # 把本轮真实产出的剖面与汇总同步回仓库 evidence/，使归档与被检提交一致
+    # （此前仓库里的 coverage.out 可能是更早一轮的陈旧文件）。
+    for name in ("coverage.out", "coverage-summary.txt"):
+        src = target / "evidence" / name
+        if src.is_file():
+            dst = repo / "evidence" / name
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src, dst)
+            log.append(f"# 已同步本轮产物到 {dst}")
 
     # 竞态检测（容器）
     if args.with_race:

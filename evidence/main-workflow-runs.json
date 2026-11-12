@@ -1,0 +1,32 @@
+{
+  "read_at": "2026-11-12T16:25:17.232921+08:00",
+  "source": "GitHub REST API GET /repos/{owner}/{repo}/actions/runs?branch=main",
+  "http_status": 200,
+  "total_count": 2,
+  "workflow_runs": [
+    {
+      "id": 43179812592,
+      "name": "CI",
+      "event": "push",
+      "head_branch": "main",
+      "head_sha": "0c9cca3051bbf9a15413dc4857406eaf678fec9d",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-12T08:03:09Z",
+      "updated_at": "2026-11-12T08:04:22Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43179812592"
+    },
+    {
+      "id": 43179812594,
+      "name": "main-gate-and-deploy",
+      "event": "push",
+      "head_branch": "main",
+      "head_sha": "0c9cca3051bbf9a15413dc4857406eaf678fec9d",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-12T08:03:09Z",
+      "updated_at": "2026-11-12T08:04:14Z",
+      "html_url": "https://github.com/X-MuBai-X/d5-q05/actions/runs/43179812594"
+    }
+  ]
+}

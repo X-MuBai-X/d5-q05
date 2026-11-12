@@ -74,7 +74,7 @@ PR_BODY = """## 需求与缺陷编号
 
 ## 覆盖率
 
-整体 **89.4%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 87.7% / upstream 87.1%，
+整体 **90.5%**；核心业务包 domain 97.3% / store 94.4% / service 87.7% / httpapi 89.7% / upstream 95.3%，
 各核心包均 ≥85%。原件见 `evidence/coverage.out`、`evidence/coverage-summary.txt`。
 
 ## 验收报告
@@ -182,10 +182,18 @@ def step_remote(repo: Path, remote: str, remote_url: str) -> bool:
 def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
     log("步骤 1/11：推送 main 与 dev/05")
     env = git_env(token, proxy)
-    code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
-    if code != 0:
-        log(f"  失败：fetch 远端 main 失败\n{out.strip()[:400]}")
-        return False
+    code, out = run(["git", "-C", str(repo), "ls-remote", "--heads", remote, "main"], env=env)
+    remote_has_main = code == 0 and out.strip() != ""
+    if not remote_has_main:
+        # 新建仓库还没有任何分支：先推送开发分支，main 作为发布基线首次建立，
+        # 之后 main 只由 PR 合并推进（保护规则在 PR 合并前生效并留有实测证据）。
+        log("  远端暂无 main 分支（新建仓库）：先推送开发分支，main 作为发布基线首次建立，"
+            "此后 main 只经 PR 合并推进")
+    else:
+        code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
+        if code != 0:
+            log(f"  失败：fetch 远端 main 失败\n{out.strip()[:400]}")
+            return False
     code, out = run(["git", "-C", str(repo), "push", "-u", remote, "dev/05"], env=env)
     if code != 0:
         log(f"  失败：推送 dev/05 失败\n{out.strip()[:600]}")
@@ -197,7 +205,7 @@ def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
         # 产生的空 Initial commit）。此时不做强制推送：只要远端 main 已被开发分支
         # 吸收（即它是 dev/05 的祖先），就认为基线已对齐。
         ancestor, _ = run(["git", "-C", str(repo), "merge-base", "--is-ancestor",
-                           "origin/main", "dev/05"])
+                           f"{remote}/main", "dev/05"])
         if ancestor == 0:
             log("  远端 main 已是 dev/05 的祖先（远端初始化提交已被开发分支吸收），"
                 "不重复推送 main，也不做任何强制推送")
@@ -212,6 +220,16 @@ def step_push(repo: Path, remote: str, token: str, proxy: str) -> bool:
 def step_pr(repo: Path, token: str, owner: str, name: str,
             title: str, body: str, head: str) -> tuple[str | None, str]:
     log("步骤 2/11：通过 GitHub MCP 发起 PR（6 项要素）")
+    # 幂等：若已有同源同目标的开放 PR，直接复用（重跑链路时不重复建 PR）。
+    code, out = mcp_call(repo, token, "list_pull_requests", {
+        "owner": owner, "repo": name, "state": "open",
+        "head": f"{owner}:{head}", "perPage": 20,
+    })
+    if code == 0:
+        m = re.search(r"https://github\.com/[^/]+/[^/]+/pull/\d+", out)
+        if m:
+            log(f"  已存在同源开放 PR，复用：{m.group(0)}")
+            return m.group(0), out
     code, out = mcp_call(repo, token, "create_pull_request", {
         "owner": owner, "repo": name, "head": head, "base": "main",
         "title": title, "body": body, "draft": False,
@@ -253,8 +271,11 @@ def step_wait_checks(token: str, owner: str, name: str, head_sha: str,
             by_name = {r.get("name"): r for r in runs}
             pending = [c for c in contexts
                        if c not in by_name or by_name[c].get("status") != "completed"]
+            # 只有「已完成且结论不成功」才算失败；仍在运行的检查属于 pending，
+            # 不能提前判失败（此前把 in_progress 当失败，导致 CI 刚起步就被误停）。
             failed = [c for c in contexts
-                      if c in by_name and by_name[c].get("conclusion") not in ("success", "neutral", "skipped")]
+                      if c in by_name and by_name[c].get("status") == "completed"
+                      and by_name[c].get("conclusion") not in ("success", "neutral", "skipped")]
             if failed:
                 log("  检查项未通过：" + "、".join(failed))
                 break
@@ -356,34 +377,54 @@ def step_verify_protection(token: str, owner: str, name: str) -> bool:
 def step_merge(repo: Path, token: str, owner: str, name: str, pr_number: str,
                title: str, message: str) -> str | None:
     log("步骤 7/11：通过 GitHub MCP 合并 PR（保留原始提交，合并消息含工作项编号）")
+    # 合并前先记下 main 的头部：合并失败时 main 不变，必须据此判定「合并未发生」，
+    # 否则会把旧 main 当成合并提交去跑门禁和部署。
+    code0, head0 = gh_api(token, "GET", f"/repos/{owner}/{name}/commits/main")
+    before_sha = head0.get("sha", "") if code0 == 200 else ""
     code, out = mcp_call(repo, token, "merge_pull_request", {
-        "owner": owner, "repo": name, "pull_number": int(pr_number),
+        "owner": owner, "repo": name, "pullNumber": int(pr_number),
         "merge_method": "merge",
         "commit_title": title,
         "commit_message": message,
     })
     log(f"  MCP 调用完成（exit={code}），原始报文已归档到 evidence/github-mcp/")
+    if code != 0:
+        log(f"  合并调用未成功，详见归档报文：\n{out.strip()[-500:]}")
     code2, out2 = gh_api(token, "GET", f"/repos/{owner}/{name}/commits/main")
     sha = out2.get("sha", "") if code2 == 200 else ""
-    if not sha:
-        log(f"  未能读取 main 头部提交，请查看归档报文：\n{out.strip()[-800:]}")
+    if not sha or sha == before_sha:
+        log(f"  合并未发生（main 仍为 {sha[:12] if sha else '未知'}），不把旧提交当作合并提交。")
         return None
     log(f"  main 头部提交 {sha[:12]}  {out2.get('commit', {}).get('message', '').splitlines()[0]}")
     return sha
 
 
-def step_fetch(repo: Path, remote: str, token: str, proxy: str, sha: str) -> bool:
+def step_fetch(repo: Path, remote: str, token: str, proxy: str, sha: str,
+               owner: str, name: str) -> bool:
     log(f"步骤 8/11：拉取合并提交 {sha[:12]} 到本地")
     env = git_env(token, proxy)
     code, out = run(["git", "-C", str(repo), "fetch", remote, "main"], env=env)
     if code != 0:
-        log(f"  失败：fetch 失败\n{out.strip()[:400]}")
-        return False
+        # 备用通道：git 传输主机不可达时，用 GitHub REST API 取回提交元数据并在本地重建对象。
+        log(f"  git fetch 失败（{out.strip()[:200]}），改用 GitHub API 重建提交对象 ...")
+        api_script = repo / "scripts" / "fetch-commit-via-github-api.py"
+        if api_script.is_file():
+            code2, out2 = run([sys.executable, str(api_script), "--repo", str(repo),
+                               "--owner", owner, "--name", name,
+                               "--sha", sha], env=env)
+            if code2 == 0:
+                log(f"  已通过 API 重建本地提交对象：{out2.strip()[-200:]}")
+            else:
+                log(f"  失败：API 重建提交对象失败\n{out2.strip()[-400:]}")
+                return False
+        else:
+            log("  失败：fetch 失败且缺少 scripts/fetch-commit-via-github-api.py")
+            return False
     code, out = run(["git", "-C", str(repo), "cat-file", "-t", sha])
-    if code != 0:
+    if code != 0 or out.strip() != "commit":
         log("  失败：本地拿不到合并提交对象")
         return False
-    log("  已拉取")
+    log("  已拉取（本地持有与远端一致的合并提交对象）")
     return True
 
 
@@ -476,6 +517,8 @@ def main() -> int:
     ap.add_argument("--head", default="dev/05", help="PR 的源分支")
     ap.add_argument("--pr-number", default="", help="PR 编号（不填则从 create_pull_request 返回中解析）")
     ap.add_argument("--pr-title", default="[feat] [v2.5.0] [#16221249] 企业模型服务配额管理与远端交付链路")
+    ap.add_argument("--pr-body-file", default="",
+                    help="PR 描述文件（UTF-8 Markdown）；不填则使用内置模板")
     ap.add_argument("--merge-title", default="[feat] [v2.5.0] [#16221249] 合并题目 05 企业模型服务配额管理实现")
     ap.add_argument("--merge-message", default="从 dev/05 发起 PR 并合并，保留开发分支原始提交；"
                                               "主要工作项 #16221249，关联需求 #16220913 与缺陷 "
@@ -516,8 +559,17 @@ def main() -> int:
             return 1
     record("推送", True)
 
+    pr_body = PR_BODY
+    if args.pr_body_file:
+        body_path = Path(args.pr_body_file)
+        if body_path.is_file():
+            pr_body = body_path.read_text(encoding="utf-8")
+            log(f"PR 描述取自 {body_path}")
+        else:
+            log(f"  失败：PR 描述文件不存在：{body_path}")
+            return 1
     pr_url, pr_out = step_pr(repo, token, args.owner, args.name,
-                             args.pr_title, PR_BODY, args.head)
+                             args.pr_title, pr_body, args.head)
     record("创建 PR", bool(pr_url), pr_url or "")
     if not pr_url:
         return 1
@@ -561,7 +613,7 @@ def main() -> int:
     summary["pr_number"] = pr_number
     summary["merge_sha"] = sha
 
-    if not step_fetch(repo, args.remote, token, args.proxy, sha):
+    if not step_fetch(repo, args.remote, token, args.proxy, sha, args.owner, args.name):
         record("拉取合并提交", False)
         return 1
     record("拉取合并提交", True)
