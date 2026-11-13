@@ -1,0 +1,118 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="808" viewBox="0 0 1280 808" role="img" aria-label="租户管理台原型线框图">
+<rect width="1280" height="808" fill="#f5f7fb"/>
+<rect x="0" y="0" width="1280" height="52" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1"/>
+<line x1="0" y1="52" x2="1280" y2="52" stroke="#d7dce5" stroke-width="1"/>
+<text x="24" y="33" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="16" fill="#1c2333" font-weight="600" text-anchor="start">企业模型服务配额管理</text>
+<text x="214" y="32" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="14" fill="#2f5bd7" font-weight="normal" text-anchor="start">运营台</text>
+<text x="276.0" y="32" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="14" fill="#2f5bd7" font-weight="normal" text-anchor="start">租户管理台</text>
+<text x="366.0" y="32" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="14" fill="#2f5bd7" font-weight="normal" text-anchor="start">应用调用台</text>
+<text x="1256" y="32" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#5a6478" font-weight="normal" text-anchor="end">admin-a（tenant_admin / 租户 tenant-a） · 2026-11-13 11:40 UTC</text>
+<rect x="24" y="72" width="1232" height="38" rx="4" fill="#eaf5ee" stroke="#1d7a4c" stroke-width="1"/>
+<text x="36" y="92" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#1d7a4c" font-weight="normal" text-anchor="start">凭证 cred-1 的密钥：sk-**** （仅此一次，刷新页面后不再显示）</text>
+<rect x="24" y="124" width="1232" height="110" fill="#ffffff" stroke="#d7dce5" stroke-width="1" rx="6"/>
+<text x="42" y="138" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="15" fill="#1c2333" font-weight="600" text-anchor="start">核查日期</text>
+<text x="42" y="160" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#5a6478" font-weight="normal" text-anchor="start">缺省为 UTC 今日（2026-11-13）。</text>
+<text x="1238" y="144" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="11" fill="#5a6478" font-weight="normal" text-anchor="end">templates/admin.html:3</text>
+<text x="42" y="210" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#1c2333" font-weight="normal" text-anchor="start">UTC 自然日</text>
+<rect x="115.6" y="192" width="130" height="26" rx="4" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<text x="122.6" y="210" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">2026-11-13</text>
+<rect x="257.6" y="192" width="106.0" height="26" rx="4" fill="#ffffff" stroke="#2f5bd7" stroke-width="1"/>
+<text x="310.6" y="210" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#2f5bd7" font-weight="normal" text-anchor="middle">查看该日记录</text>
+<rect x="24" y="252" width="1232" height="130" fill="#ffffff" stroke="#d7dce5" stroke-width="1" rx="6"/>
+<text x="42" y="266" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="15" fill="#1c2333" font-weight="600" text-anchor="start">租户概况</text>
+<text x="42" y="288" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#5a6478" font-weight="normal" text-anchor="start">管理员可查看本租户全部调用、成功量、处理中量和剩余额度（R7）。凭证所属租户由系统确认（R1）。</text>
+<text x="1238" y="272" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="11" fill="#5a6478" font-weight="normal" text-anchor="end">templates/admin.html:12</text>
+<text x="42" y="352" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="20" fill="#1c2333" font-weight="600" text-anchor="start">20</text>
+<text x="42" y="368" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">日额度</text>
+<text x="104.0" y="352" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="20" fill="#1c2333" font-weight="600" text-anchor="start">5</text>
+<text x="104.0" y="368" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">成功量</text>
+<text x="166.0" y="352" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="20" fill="#1c2333" font-weight="600" text-anchor="start">0</text>
+<text x="166.0" y="368" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">处理中</text>
+<text x="228.0" y="352" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="20" fill="#1c2333" font-weight="600" text-anchor="start">15</text>
+<text x="228.0" y="368" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">剩余额度</text>
+<text x="302.0" y="352" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="20" fill="#1c2333" font-weight="600" text-anchor="start">tenant-a</text>
+<text x="302.0" y="368" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">租户编号</text>
+<rect x="24" y="400" width="1232" height="182" fill="#ffffff" stroke="#d7dce5" stroke-width="1" rx="6"/>
+<text x="42" y="414" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="15" fill="#1c2333" font-weight="600" text-anchor="start">应用凭证</text>
+<text x="42" y="436" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#5a6478" font-weight="normal" text-anchor="start">每个租户最多 2 个凭证（R1 与题面预置条件）。密钥只在创建时返回一次，请立即交给应用。</text>
+<text x="1238" y="420" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="11" fill="#5a6478" font-weight="normal" text-anchor="end">templates/admin.html:22</text>
+<rect x="42" y="460" width="930" height="24" rx="0" fill="#f0f3f9" stroke="#d7dce5" stroke-width="1"/>
+<text x="49" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">凭证</text>
+<text x="159" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">名称</text>
+<text x="269" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">状态</text>
+<text x="359" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">创建人</text>
+<text x="459" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">停用时间</text>
+<text x="629" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">停用原因</text>
+<text x="829" y="476" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">操作</text>
+<rect x="42" y="484" width="930" height="24" rx="0" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<rect x="47" y="490" width="56.2" height="18" rx="3" fill="#eef1f7" stroke="#eef1f7" stroke-width="1"/>
+<text x="52" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#2f5bd7" font-weight="normal" text-anchor="start">cred-a1</text>
+<text x="159" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">app-1</text>
+<rect x="269" y="488" width="38.0" height="18" rx="9" fill="#ffffff" stroke="#1d7a4c" stroke-width="1"/>
+<text x="276" y="501" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1d7a4c" font-weight="normal" text-anchor="start">启用</text>
+<text x="359" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">admin-a</text>
+<text x="459" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">—</text>
+<text x="629" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">—</text>
+<text x="829" y="500" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">停用凭证</text>
+<rect x="42" y="508" width="930" height="24" rx="0" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<rect x="47" y="514" width="56.2" height="18" rx="3" fill="#eef1f7" stroke="#eef1f7" stroke-width="1"/>
+<text x="52" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#2f5bd7" font-weight="normal" text-anchor="start">cred-a2</text>
+<text x="159" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">app-2</text>
+<rect x="269" y="512" width="50.0" height="18" rx="9" fill="#ffffff" stroke="#1d7a4c" stroke-width="1"/>
+<text x="276" y="525" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1d7a4c" font-weight="normal" text-anchor="start">已停用</text>
+<text x="359" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">admin-a</text>
+<text x="459" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">2026-11-13 09:02:11</text>
+<text x="629" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">凭证泄露演练</text>
+<text x="829" y="524" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">—</text>
+<text x="42" y="558" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#1c2333" font-weight="normal" text-anchor="start">凭证名称</text>
+<rect x="100.0" y="540" width="180" height="26" rx="4" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<text x="107.0" y="558" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#5a6478" font-weight="normal" text-anchor="start">应用名，如 app-1</text>
+<rect x="292.0" y="540" width="80.0" height="26" rx="4" fill="#2f5bd7" stroke="#2f5bd7" stroke-width="1"/>
+<text x="332.0" y="558" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#fff" font-weight="normal" text-anchor="middle">创建凭证</text>
+<rect x="24" y="600" width="1232" height="166" fill="#ffffff" stroke="#d7dce5" stroke-width="1" rx="6"/>
+<text x="42" y="614" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="15" fill="#1c2333" font-weight="600" text-anchor="start">本租户调用记录（2026-11-13）</text>
+<text x="42" y="636" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="13" fill="#5a6478" font-weight="normal" text-anchor="start">被拒绝的尝试不占用请求编号，因此额度提升后应用仍可用同一编号重试（Q7）。</text>
+<text x="1238" y="620" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="11" fill="#5a6478" font-weight="normal" text-anchor="end">templates/admin.html:59</text>
+<rect x="42" y="660" width="1090" height="24" rx="0" fill="#f0f3f9" stroke="#d7dce5" stroke-width="1"/>
+<text x="49" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">请求编号</text>
+<text x="179" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">凭证</text>
+<text x="289" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">状态</text>
+<text x="379" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">模型</text>
+<text x="469" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">提示词</text>
+<text x="629" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">结果 / 失败原因</text>
+<text x="929" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">幂等命中</text>
+<text x="1029" y="676" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="600" text-anchor="start">受理时间</text>
+<rect x="42" y="684" width="1090" height="24" rx="0" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<rect x="47" y="690" width="56.2" height="18" rx="3" fill="#eef1f7" stroke="#eef1f7" stroke-width="1"/>
+<text x="52" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#2f5bd7" font-weight="normal" text-anchor="start">req-001</text>
+<text x="179" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">cred-a1</text>
+<rect x="289" y="688" width="38.0" height="18" rx="9" fill="#ffffff" stroke="#1d7a4c" stroke-width="1"/>
+<text x="296" y="701" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1d7a4c" font-weight="normal" text-anchor="start">成功</text>
+<text x="379" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">text-1</text>
+<text x="469" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">你好</text>
+<text x="629" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">模型输出</text>
+<text x="929" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">0</text>
+<text x="1029" y="700" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">11:02:03</text>
+<rect x="42" y="708" width="1090" height="24" rx="0" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<rect x="47" y="714" width="56.2" height="18" rx="3" fill="#eef1f7" stroke="#eef1f7" stroke-width="1"/>
+<text x="52" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#2f5bd7" font-weight="normal" text-anchor="start">req-002</text>
+<text x="179" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">cred-a1</text>
+<rect x="289" y="712" width="38.0" height="18" rx="9" fill="#ffffff" stroke="#1d7a4c" stroke-width="1"/>
+<text x="296" y="725" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1d7a4c" font-weight="normal" text-anchor="start">超时</text>
+<text x="379" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">text-1</text>
+<text x="469" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">讲个笑话</text>
+<text x="629" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">上游超过 2 秒未返回</text>
+<text x="929" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">0</text>
+<text x="1029" y="724" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">11:05:40</text>
+<rect x="42" y="732" width="1090" height="24" rx="0" fill="#ffffff" stroke="#d7dce5" stroke-width="1"/>
+<rect x="47" y="738" width="56.2" height="18" rx="3" fill="#eef1f7" stroke="#eef1f7" stroke-width="1"/>
+<text x="52" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#2f5bd7" font-weight="normal" text-anchor="start">req-003</text>
+<text x="179" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">cred-a2</text>
+<rect x="289" y="736" width="38.0" height="18" rx="9" fill="#ffffff" stroke="#1d7a4c" stroke-width="1"/>
+<text x="296" y="749" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1d7a4c" font-weight="normal" text-anchor="start">失败</text>
+<text x="379" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">text-1</text>
+<text x="469" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">再试一次</text>
+<text x="629" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">上游明确失败</text>
+<text x="929" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">1</text>
+<text x="1029" y="748" font-family="'Microsoft YaHei','Segoe UI',sans-serif" font-size="12" fill="#1c2333" font-weight="normal" text-anchor="start">11:09:12</text>
+</svg>
