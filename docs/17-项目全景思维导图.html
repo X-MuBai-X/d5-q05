@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>题目 05 项目全景思维导图 · 企业模型服务配额管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f7f5f0;
+    --card:#ffffff;
+    --line:#e9e3d6;
+    --line-soft:#f0ebe0;
+    --ink:#14171e;
+    --ink-2:#3a4256;
+    --muted:#7c7a72;
+    --primary:#2f6f5e;
+    --primary-soft:#2f6f5e14;
+    --warm:#c97b3f;
+    --warm-soft:#c97b3f16;
+    --alert:#b06367;
+    --alert-soft:#b0636714;
+    --shadow:0 2px 8px rgba(0,0,0,.04);
+    --shadow-lg:0 4px 16px -2px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:'Outfit','Noto Serif SC','Microsoft YaHei',sans-serif;
+    font-size:14.5px;
+    line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background:
+      radial-gradient(560px 300px at 8% -4%, rgba(47,111,94,.07), transparent 70%),
+      radial-gradient(520px 280px at 96% 2%, rgba(201,123,63,.06), transparent 70%);
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:38px 24px 72px}
+
+  /* ---------- header ---------- */
+  .eyebrow{display:flex;align-items:center;gap:8px;color:var(--primary);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:600}
+  .eyebrow svg{width:15px;height:15px;stroke-width:2}
+  h1{
+    font-family:'Noto Serif SC',serif;font-weight:600;
+    font-size:31px;line-height:1.32;letter-spacing:-.01em;margin:12px 0 8px;
+  }
+  h1 span{color:var(--primary)}
+  .lede{color:var(--ink-2);max-width:74ch;margin:0 0 22px}
+  .lede b{color:var(--ink);font-weight:600}
+
+  /* ---------- stat strip ---------- */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:0 0 34px}
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .stat .k{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px}
+  .stat .k svg{width:14px;height:14px;stroke-width:2}
+  .stat .v{font-size:24px;font-weight:600;letter-spacing:-.01em;margin-top:4px;line-height:1.15}
+  .stat .n{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .stat.p .v{color:var(--primary)}
+  .stat.w .v{color:var(--warm)}
+  .stat.a .v{color:var(--alert)}
+
+  /* ---------- map ---------- */
+  .map-shell{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow-lg);padding:22px 22px 26px;margin-bottom:38px}
+  .map-head{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+  .map-head h2{font-family:'Noto Serif SC',serif;font-size:19px;font-weight:600;margin:0;display:flex;align-items:center;gap:8px}
+  .map-head h2 svg{width:17px;height:17px;stroke-width:2;color:var(--primary)}
+  .tools{display:flex;gap:8px}
+  .btn{
+    font:inherit;font-size:12.5px;color:var(--ink-2);background:var(--bg);
+    border:1px solid var(--line);border-radius:9px;padding:5px 11px;cursor:pointer;
+    transition:all .18s ease;
+  }
+  .btn:hover{background:#fff;color:var(--primary);border-color:var(--primary);transform:translateY(-1px)}
+  .btn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+
+  .root{
+    display:flex;align-items:center;justify-content:center;gap:10px;
+    background:var(--primary);color:#fff;border-radius:12px;
+    padding:11px 20px;margin:0 auto 24px;max-width:640px;text-align:center;
+    box-shadow:0 6px 18px -8px rgba(47,111,94,.7);
+  }
+  .root svg{width:18px;height:18px;stroke-width:2;flex:none}
+  .root b{font-size:15px;font-weight:600;letter-spacing:.01em}
+  .root small{display:block;font-size:11.5px;opacity:.82;font-weight:400}
+
+  .branches{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;align-items:start}
+  .branch{border:1px solid var(--line);border-radius:14px;padding:0 0 12px;background:#fcfbf8;overflow:hidden}
+  .branch > .bhead{
+    display:flex;align-items:center;gap:8px;padding:10px 13px;
+    font-weight:600;font-size:13.5px;color:#fff;letter-spacing:.01em;
+  }
+  .branch > .bhead svg{width:15px;height:15px;stroke-width:2;flex:none}
+  .branch > .bhead > span:first-of-type{flex:1 1 auto;min-width:0}
+  .bhead .cnt{
+    flex:none;margin-left:8px;padding:1px 8px;border-radius:999px;
+    background:rgba(255,255,255,.18);font-size:10.5px;line-height:1.6;
+    white-space:nowrap;font-weight:500;
+  }
+  .b1 > .bhead{background:var(--primary)}
+  .b2 > .bhead{background:var(--warm)}
+  .b3 > .bhead{background:#3a4256}
+  .b4 > .bhead{background:var(--alert)}
+
+  ul.tree{list-style:none;margin:0;padding:10px 12px 0 12px}
+  ul.tree ul{list-style:none;margin:0;padding-left:16px}
+  li.node{position:relative;padding:5px 0 5px 15px;font-size:13px;line-height:1.5}
+  li.node::before{
+    content:"";position:absolute;left:0;top:0;bottom:0;width:1px;background:var(--line);
+  }
+  li.node:last-child::before{height:13px;bottom:auto}
+  li.node::after{
+    content:"";position:absolute;left:0;top:13px;width:11px;height:1px;background:var(--line);
+  }
+  ul.tree > li.node::before{display:none}
+  ul.tree > li.node{padding-left:0}
+  ul.tree > li.node::after{display:none}
+  .node .t{font-weight:600;color:var(--ink)}
+  .node .d{color:var(--ink-2);font-size:12.5px}
+  .node .d b{color:var(--ink);font-weight:600}
+  .node code{
+    font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;font-size:11.5px;
+    background:var(--primary-soft);color:var(--primary);padding:1px 5px;border-radius:5px;
+  }
+  .node .tag{
+    display:inline-block;font-size:10.5px;padding:1px 6px;border-radius:999px;
+    margin-left:5px;font-weight:500;vertical-align:1px;
+  }
+  .tag.ok{background:var(--primary-soft);color:var(--primary)}
+  .tag.warn{background:var(--warm-soft);color:var(--warm)}
+  .tag.pend{background:var(--alert-soft);color:var(--alert)}
+  .toggle{
+    cursor:pointer;user-select:none;display:flex;align-items:flex-start;gap:5px;
+  }
+  .toggle .caret{
+    flex:none;width:13px;height:13px;margin-top:3px;color:var(--muted);
+    transition:transform .18s ease;
+  }
+  .toggle.collapsed .caret{transform:rotate(-90deg)}
+  li.collapsed > ul{display:none}
+  li.hidekids > ul{display:none}
+  li.hidekids > .toggle .caret{transform:rotate(-90deg)}
+  .leaf{padding-left:15px}
+
+  /* ---------- bottom ---------- */
+  h2.sec{font-family:'Noto Serif SC',serif;font-size:21px;font-weight:600;margin:0 0 6px;display:flex;align-items:center;gap:8px}
+  h2.sec svg{width:18px;height:18px;stroke-width:2;color:var(--primary)}
+  .sec-sub{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .todo{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:38px}
+  .todo .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;box-shadow:var(--shadow);transition:all .2s ease}
+  .todo .card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+  .todo .who{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--muted);margin-bottom:7px}
+  .todo .who svg{width:13px;height:13px;stroke-width:2}
+  .todo h3{font-size:15px;margin:0 0 6px;font-weight:600}
+  .todo p{font-size:12.5px;color:var(--ink-2);margin:0 0 10px}
+  .todo .delta{display:inline-block;font-size:11.5px;padding:2px 8px;border-radius:999px;background:var(--primary-soft);color:var(--primary);font-weight:500}
+  .todo .delta.p{background:var(--warm-soft);color:var(--warm)}
+
+  .note{
+    background:var(--card);border:1px solid var(--line);border-left:3px solid var(--warm);
+    border-radius:0 12px 12px 0;padding:14px 18px;font-size:13px;color:var(--ink-2);
+  }
+  .note b{color:var(--ink)}
+  .foot{margin-top:22px;color:var(--muted);font-size:12px;line-height:1.7}
+  .foot code{font-family:'JetBrains Mono',ui-monospace,Consolas,monospace;font-size:11.5px;background:var(--line-soft);padding:1px 5px;border-radius:5px;color:var(--ink-2)}
+
+  @media (max-width:1000px){
+    .branches{grid-template-columns:repeat(2,1fr)}
+    .stats{grid-template-columns:repeat(2,1fr)}
+    .todo{grid-template-columns:1fr}
+  }
+  @media (max-width:620px){
+    .branches{grid-template-columns:1fr}
+    .wrap{padding:26px 16px 56px}
+    h1{font-size:25px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4M12 12H5v4M12 12h7v4"/></svg>
+    题目 05 · 项目全景
+  </div>
+  <h1>企业模型服务的<span>配额开通、调用、停用与用量核查</span></h1>
+  <p class="lede">
+    全流程已跑通并通过官方 v3.0 复评：<b>原始分 7.98</b>、<b>当前已核验 7.90</b>，正式成绩
+    <b>final = null（待核定）</b>。下方导图以仓库真实文件为准，覆盖业务规则、五组场景与异常分支、
+    远端交付链路与证据、以及得分现状与待补项。
+  </p>
+
+  <div class="stats">
+    <div class="stat p">
+      <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>交付自检</div>
+      <div class="v">PASS 8</div>
+      <div class="n">PENDING 0 · FAIL 0（D-01~D-09）</div>
+    </div>
+    <div class="stat p">
+      <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>单元测试覆盖率</div>
+      <div class="v">90.5%</div>
+      <div class="n">核心包全部 ≥ 85%（合并提交实测）</div>
+    </div>
+    <div class="stat w">
+      <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20M2 12h20"/></svg>当前已核验分</div>
+      <div class="v">7.90</div>
+      <div class="n">原始分 7.98 · 受 partial 上限约束</div>
+    </div>
+    <div class="stat a">
+      <div class="k"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v5M12 16h.01"/></svg>正式成绩</div>
+      <div class="v">待核定</div>
+      <div class="n">final = null · 存在待补证与归责未清</div>
+    </div>
+  </div>
+
+  <div class="map-shell">
+    <div class="map-head">
+      <h2><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8v4M12 12H5v4M12 12h7v4"/></svg>项目结构导图</h2>
+      <div class="tools">
+        <button class="btn" id="expandAll">全部展开</button>
+        <button class="btn" id="collapseAll">收起到主干</button>
+      </div>
+    </div>
+
+    <div class="root">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5 4 4 5-6z"/></svg>
+      <b>题目 05 · 企业模型服务配额管理<small>Go 1.27 · SQLite · 标准库 HTTP · 无 Web 框架 / 无 ORM / 无 CGO</small></b>
+    </div>
+
+    <div class="branches" id="branches"></div>
+  </div>
+
+  <h2 class="sec">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+    待补三项（均须本人 / 教师侧完成，检查方不代做）
+  </h2>
+  <p class="sec-sub">以下为解锁正式成绩的必要条件；括号内为按官方计分器实测的测算值，测算与核定严格分离，不等于正式成绩。</p>
+
+  <div class="todo">
+    <div class="card">
+      <div class="who"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m16 13 5 3-3 5-5-3-4 4v-6l3-3"/><rect width="12" height="14" x="2" y="5" rx="2"/></svg>学生本人</div>
+      <h3>录制并归档讲解视频</h3>
+      <p>按 <code>docs/13</code> 录制检查单与 <code>docs/15</code> 讲解总表执行，须本人理解与配音（题面禁止 AI 旁白）；录完回填 <code>docs/11</code> 的视频链接。</p>
+      <span class="delta">A4-08 / 09 转 pass → 原始分 8.24</span>
+    </div>
+    <div class="card">
+      <div class="who"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>学生本人</div>
+      <h3>当天提交班级群并回传截图</h3>
+      <p><code>docs/11</code> 的消息全文已备妥，当天发出后回传截图留痕；检查 Skill 不代发群消息。</p>
+      <span class="delta">A4-10 转 pass → 原始分 8.37</span>
+    </div>
+    <div class="card">
+      <div class="who"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/></svg>教师侧</div>
+      <h3>豁免顺序发现 · 基准 · 核准 · 复核</h3>
+      <p>豁免三项阶段顺序 partial（解锁 7.90 上限）；发布题前 Token 基准；核准 v3.0 清单与校准样本；安排第二检查者复核争议结论。</p>
+      <span class="delta p">全解锁 → 当前分 8.50</span>
+    </div>
+  </div>
+
+  <div class="note">
+    <b>口径声明：</b>图中「当前已核验 7.90 / 待核定」为正式状态；8.24、8.37、8.50 均为
+    <b>测算值</b>，只在对应补证或豁免真正发生后才由核定流程确认。
+    缺证项一律记「待补证」，不以 NA 处理、不以测算值冒充正式成绩。
+  </div>
+
+  <div class="foot">
+    数据来源：<code>docs/01</code> 需求分析（R1–R8）· <code>docs/15</code> 讲解整合清单（B/C 组）·
+    <code>docs/10</code> 交付与发布说明 · <code>docs/16</code> 原型线框图索引 ·
+    <code>evidence/</code> 实测日志 · student-project-audit v3.0 官方计分器输出。<br>
+    被检提交 <code>dev/05@43fc999e21c1</code> · 发布版本 <code>main@fba84970e720</code> ·
+    远端仓库 <code>github.com/X-MuBai-X/d5-q05</code>
+  </div>
+</div>
+
+<script>
+const DATA = [
+  {
+    id:'b1', cls:'b1', icon:'<path d="M4 4h16v6H4zM4 14h7v6H4zM15 14h5v6h-5z"/>',
+    title:'业务规则 R1–R8', count:'8 条',
+    kids:[
+      {t:'R1 开通与建凭证', d:'运营开通租户并设额度；管理员建凭证；<b>凭证租户由服务端推导</b>，请求参数里的 tenant_id 不被采信', kids:[
+        {t:'越权创建 → 403 / 400', d:'运营无租户归属，禁止代建凭证'},
+        {t:'每租户最多 2 个凭证', d:'题面预置条件 + R1 约束'}
+      ]},
+      {t:'R2 共享日额度', d:'配额是<b>租户级单一数值</b>，租户下所有凭证共享；UTC 自然日；按<b>首次受理时刻</b>归属', kids:[
+        {t:'当日占用 = 成功数 + 处理中数', d:'处理中是预占，成功是预占转实扣'},
+        {t:'跨日完成不迁移归属', d:'额度归属日期受理后固定'}
+      ]},
+      {t:'R3 编号唯一与幂等', d:'租户内全局唯一、跨日不复用；同编号同参数幂等；同编号改参数冲突', kids:[
+        {t:'幂等命中不重复计量', d:'不新增记录、不占额度、不调上游'},
+        {t:'同编号改参数 → 409', d:'参数一致性冲突'}
+      ]},
+      {t:'R4 上游失败与超时', d:'失败与超时是<b>两个独立终态</b>但计量口径相同：释放占用、不计成功量', kids:[
+        {t:'迟到结果只进诊断表', d:'不改终态、不追加扣额、不计成功量'},
+        {t:'2 秒只用于判定，不取消调用', d:'否则迟到结果永远无法被观测'}
+      ]},
+      {t:'R5 配额调整', d:'范围 0..100000；降额下限 = 当日成功数 + 处理中数；记录操作人 / 原因 / 生效时间', kids:[
+        {t:'降额不得低于已占用', d:'并给出已成功数与处理中数'},
+        {t:'不改变既有编号与日期归属', d:'R5 交叉验证 R2 口径'}
+      ]},
+      {t:'R6 停用时点', d:'停用凭证 / 租户只影响新请求，在途请求按原规则完成结算', kids:[
+        {t:'停用后新调用 → 409', d:'不产生新的上游调用'},
+        {t:'停用不破坏幂等语义', d:'旧编号返回历史结果'}
+      ]},
+      {t:'R7 查询口径', d:'管理员看本租户全部；应用仅看本凭证创建的请求；运营可跨租户核查', kids:[
+        {t:'越权访问 → 403', d:'显式拒绝，不是静默忽略'},
+        {t:'身份只来自服务端会话', d:'请求参数改不了归属'}
+      ]},
+      {t:'R8 日终核查', d:'按租户与日期列出五类计数并核对一致性', kids:[
+        {t:'成功 / 失败 / 超时 / 处理中 / 被拒绝', d:'某类当天为 0 也必须出现'},
+        {t:'能识别「占用超过额度」', d:'计数对得上不代表配额不变量成立'}
+      ]}
+    ]
+  },
+  {
+    id:'b2', cls:'b2', icon:'<path d="M4 6h16M4 12h10M4 18h7"/><circle cx="18" cy="16" r="3"/><path d="m20.5 18.5 2 2"/>',
+    title:'场景与异常分支', count:'5 场景 / 4 异常',
+    kids:[
+      {t:'场景 1 开通使用', d:'建两个凭证 → 两应用各调一次 → 管理员看到<b>共享</b>剩余额度；建第三个凭证返回 400', kids:[]},
+      {t:'场景 2 活动增额', d:'额度用尽 → 429；<b>被拒绝的请求不占用编号</b>，同编号再提交仍是 429 而非冲突；增额后同编号可成功', kids:[]},
+      {t:'场景 3 事故处置', d:'在途时停用凭证 → 新调用 409；在途终态 timeout 并按原规则计量；超时与被拒分列', kids:[]},
+      {t:'场景 4 上游异常与并发', d:'失败 / 超时 / 迟到三态；迟到后诊断区出现 late_result 而终态不变；最后 1 个名额 8 路并发 → <b>成功 1 拒绝 7，不超额</b>', kids:[]},
+      {t:'场景 5 日终核查与权限', d:'五类计数 + 一致性核对；两租户隔离；应用越权 403；运营未指定 tenant_id → 400；跨日归属新 UTC 日', kids:[]},
+      {t:'异常分支（现场必须逐个念）', d:'状态码与文案是本题核心考察点', kids:[
+        {t:'① 越权访问 → 403', d:'应用访问管理员用量接口（不是 500）'},
+        {t:'② 参数缺失 / 非法 → 400', d:'可自行纠正的参数缺失一律 400'},
+        {t:'③ 额度用尽 → 429', d:'被拒绝的尝试不占请求编号'},
+        {t:'④ 状态冲突 → 409', d:'停用后调用 / 同编号改参'},
+        {t:'未认证 → 401', d:'教学时钟前移 48h 后旧令牌失效'}
+      ]}
+    ]
+  },
+  {
+    id:'b3', cls:'b3', icon:'<path d="M12 2 4 6v6c0 5 3.4 9.4 8 10 4.6-.6 8-5 8-10V6z"/><path d="m9 12 2 2 4-4"/>',
+    title:'交付链路与证据', count:'主平台 GitHub',
+    kids:[
+      {t:'远端链路（全部经 GitHub 官方 MCP）', d:'建仓 → 开发分支 → PR → CI → 分支保护 → 合并 → 合并后门禁与部署', kids:[
+        {t:'MCP create_repository 建仓', d:'github.com/X-MuBai-X/d5-q05，报文已归档'},
+        {t:'PR !1~!4 六要素齐全', d:'由 MCP create_pull_request 发起'},
+        {t:'CI 两作业全绿', d:'质量门禁 + 业务冒烟'},
+        {t:'主分支保护实测', d:'直推被拒 HTTP 422'},
+        {t:'合并提交 fba84970e720', d:'保留原始提交，父提交数 2'},
+        {t:'合并后重跑门禁与部署', d:'部署提交 = 合并提交'}
+      ]},
+      {t:'测试与质量证据', d:'数字都有出处，不空报', kids:[
+        {t:'覆盖率 90.5%', d:'CI 与本机共用同一统计脚本'},
+        {t:'场景断言 73 条', d:'scenario-verify.log'},
+        {t:'接口断言 113 条', d:'api-full-test.log'},
+        {t:'0 处 DATA RACE', d:'容器内 golang:1.27 + gcc'}
+      ]},
+      {t:'约束体系', d:'AGENTS.md v2.7.0 §1–§13 + 16 条读取记录 + 版本快照', kids:[
+        {t:'每条规则来自真实缺陷', d:'不写空话、不为凑分改判'},
+        {t:'派生产物与本体同源', d:'§8 第 7 条，线框图不冒充原型'}
+      ]},
+      {t:'原型与实现', d:'原型本体是<b>服务端渲染的真实页面</b>；8 张 SVG 是从模板派生的同源静态副本', kids:[
+        {t:'生成可复现', d:'连续两次生成字节一致'},
+        {t:'图上标注来源行号', d:'不一致时以模板与运行实例为准'}
+      ]},
+      {t:'交付自检', d:'D-01~D-09 全部 PASS，仓库无令牌明文', kids:[]}
+    ]
+  },
+  {
+    id:'b4', cls:'b4', icon:'<path d="M12 20V10M18 20V4M6 20v-4"/><path d="M3 20h18"/>',
+    title:'审计与得分现状', count:'v3.0 · 58 项',
+    kids:[
+      {t:'清单核查结果', d:'按 v3.0 固定清单 58 项逐条核对', kids:[
+        {t:'pass 52', d:'规则实现与证据齐备'},
+        {t:'partial 3', d:'阶段顺序类：原型与计划晚于首版实现、AGENTS 晚于首版代码、MCP 建仓晚于首次业务提交'},
+        {t:'unknown 3', d:'视频 / 群消息 / Token 维度缺证，不标 NA'},
+        {t:'fail 0', d:'无不合格项'}
+      ]},
+      {t:'得分与门禁', d:'原始分与核定分严格分离', kids:[
+        {t:'原始分 7.98', d:'成果 6.61 / 过程 1.37 / Token 0.00'},
+        {t:'当前已核验 7.90', d:'受已证实 partial 触发的上限约束'},
+        {t:'final = null 待核定', d:'存在待补证与归责未清项'},
+        {t:'Token 1.5 分 unknown', d:'题前基准未发布 + 平台无逐请求用量导出'}
+      ]},
+      {t:'准备状态门禁', d:'触发 PREPARATION-* 门禁，故整体待核定', kids:[
+        {t:'清单与质量锚点未向学生发布', d:'2026-11-12 19:23 才转交检查者'},
+        {t:'无教师核准与同题校准样本', d:'属教师侧前置条件'},
+        {t:'无第二检查者复核', d:'争议结论须复核后定稿'}
+      ]}
+    ]
+  }
+];
+
+const ICON_CARET = '<svg class="caret" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>';
+
+function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));}
+
+function renderNode(node){
+  const hasKids = node.kids && node.kids.length;
+  const label = node.t
+    ? '<span class="t">' + node.t + '</span>'
+    : '<span class="t">' + (node.name||'') + '</span>';
+  const detail = node.d ? '<div class="d">' + node.d + '</div>' : '';
+  if(!hasKids){
+    return '<li class="node leaf">' + label + detail + '</li>';
+  }
+  const inner = node.kids.map(renderNode).join('');
+  return '<li class="node">' +
+    '<div class="toggle" role="button" tabindex="0" aria-expanded="true">' + ICON_CARET +
+      '<div>' + label + detail + '</div>' +
+    '</div>' +
+    '<ul>' + inner + '</ul>' +
+  '</li>';
+}
+
+function renderBranch(b){
+  const kids = b.kids.map(renderNode).join('');
+  return '<div class="branch ' + b.cls + '">' +
+    '<div class="bhead">' + b.icon + '<span>' + b.title + '</span><span class="cnt">' + b.count + '</span></div>' +
+    '<ul class="tree">' + kids + '</ul>' +
+  '</div>';
+}
+
+document.getElementById('branches').innerHTML = DATA.map(renderBranch).join('');
+
+document.querySelectorAll('.toggle').forEach(el=>{
+  const act = ()=>{
+    const li = el.closest('li.node');
+    const isFirstLevel = !!li.parentElement
+      && li.parentElement.classList.contains('tree')
+      && li.parentElement.parentElement.classList.contains('branch');
+    if(isFirstLevel){
+      const hidden = !li.classList.contains('hidekids');
+      setHideKids(li, hidden);
+      el.setAttribute('aria-expanded', String(!hidden));
+    }else{
+      const collapsed = !li.classList.contains('collapsed');
+      setCollapsed(li, collapsed);
+    }
+  };
+  el.addEventListener('click', act);
+  el.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); act(); } });
+});
+
+function setCollapsed(li, collapsed){
+  li.classList.toggle('collapsed', collapsed);
+  const t = li.querySelector(':scope > .toggle');
+  if(t){ t.classList.toggle('collapsed', collapsed); t.setAttribute('aria-expanded', String(!collapsed)); }
+}
+/** 一级节点（R1..R8 等）：收起时只隐藏它的子列表，标题本身保留可见 */
+function setHideKids(li, hidden){
+  li.classList.toggle('hidekids', hidden);
+  const t = li.querySelector(':scope > .toggle');
+  if(t) t.setAttribute('aria-expanded', String(!hidden));
+}
+document.getElementById('expandAll').addEventListener('click', ()=>{
+  document.querySelectorAll('li.node').forEach(li=>{
+    setCollapsed(li,false);
+    setHideKids(li,false);
+  });
+});
+document.getElementById('collapseAll').addEventListener('click', ()=>{
+  // 一级节点（父级是分支的 ul.tree）：收起其子列表但保留标题
+  // 更深层节点：整条收起
+  document.querySelectorAll('li.node').forEach(li=>{
+    const own = li.querySelector(':scope > ul');
+    if(!own) return;
+    const isFirstLevel = !!li.parentElement
+      && li.parentElement.classList.contains('tree')
+      && li.parentElement.parentElement.classList.contains('branch');
+    if(isFirstLevel){ setHideKids(li,true); setCollapsed(li,false); }
+    else { setCollapsed(li,true); setHideKids(li,false); }
+  });
+});
+</script>
+</body>
+</html>
