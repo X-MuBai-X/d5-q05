@@ -1,0 +1,77 @@
+2026-11-13 12:1x–12:2x  原型线框图产出轮 · 远端推送与复核记录
+================================================================
+
+【本轮提交（dev/05）】
+  06e7d3493697  [opt] [v2.7.0] 增加从页面模板派生原型线框图的生成脚本
+  c653fd91b064  [docs] [v2.7.0] 新增原型线框图八张与索引并登记派生产物同源纪律
+  34253c696ba6  [fix] [v2.7.0] [#16221249] 固定 SVG 线框图在仓库中以 LF 存储避免行尾漂移
+  43fc999e21c1  [fix] [v2.7.0] [#16221249] 修正取回提交对象的重建逻辑以兼容经 API 创建的提交
+
+【推送通道】
+  git 传输端口 github.com:443 不可达，改走 GitHub REST Git Data API
+  （scripts/push-via-github-api.py），令牌仅经环境变量 GITHUB_PERSONAL_ACCESS_TOKEN 传入。
+
+  第一次推送（3 个提交）：
+    本地 dev/05 = 34253c696ba6（父提交 c653fd91b064，树 f7d05cfe9de2）
+    远端 dev/05 = 10c09c220ed4
+    已搬运提交 06e7d3493697（SHA 与本地一致）
+    已搬运提交 c653fd91b064（SHA 与本地一致）
+    已搬运提交 34253c696ba6（SHA 与本地一致）
+    远端 dev/05 已更新到 34253c696ba6
+    复核通过：远端与本地提交 SHA 完全一致
+
+  第二次推送（1 个提交）：
+    本地 dev/05 = 43fc999e21c1（父提交 34253c696ba6，树 fa3fbc461ae3）
+    远端 dev/05 = 34253c696ba6
+    已搬运提交 43fc999e21c1（SHA 与本地一致）
+    远端 dev/05 已更新到 43fc999e21c1
+    复核通过：远端与本地提交 SHA 完全一致
+
+【远端引用实测（git ls-remote github-q05）】
+  fba84970e72003087e976dfd5053e3c8d9895b5f  HEAD
+  43fc999e21c1b0b6fb3c28a87fd5526b65a86ede  refs/heads/dev/05
+  fba84970e72003087e976dfd5053e3c8d9895b5f  refs/heads/main
+
+【取回复核（scripts/fetch-commit-via-github-api.py）】
+
+  修复前（用远端 message 字段原样重建）：
+    偏移 +0800 算得 0754e80b6f10，与远端不符
+    偏移 +0000 算得 1ec7e8637096，与远端不符
+    重建失败：所有候选时区偏移都算不出与远端一致的 SHA（远端 34253c696ba6）
+    原因：远端提交对象的消息带尾换行，而 REST API 的 message 字段把尾换行剥掉了。
+          该提交是经 Git Data API（POST /git/commits）创建的，
+          与「网页合并提交消息末尾无换行」的情形相反。
+          实测对照（本地 git cat-file -p 34253c696ba6）：
+            local raw 末尾为 "...避免行尾漂移\n"（带换行）
+            API message 末尾为 "...避免行尾漂移"（无换行）
+
+  修复后（对「时区偏移 × 消息是否带尾换行」交叉试算）：
+    API 创建的提交 dev/05@34253c696ba6：
+      偏移 +0800 / 消息尾换行 无 算得 0754e80b6f10，与远端不符，继续试下一个
+      已在本地重建提交对象 34253c696ba6（与远端逐字节一致，时区偏移 +0800，消息尾换行 有）
+        树 f7d05cfe9de2｜父提交 c653fd91b064
+
+    网页合并提交 main@fba84970e720（回归验证，消息尾换行 无）：
+      已在本地重建提交对象 fba84970e720（与远端逐字节一致，时区偏移 +0800，消息尾换行 无）
+        树 c08c10c514c0｜父提交 1454f78a6d53、938f18803fa4
+
+【交付自检（scripts/verify-delivery.py）】
+  [verify-delivery] PASS=8 PENDING=0 FAIL=0
+  D-01 MCP 建仓证据 PASS / D-02 远端分支承载 PASS / D-03 提交消息格式与编号必填 PASS
+  D-04 PR 描述要素 PASS / D-05 主分支保护 PASS / D-06 合并提交保留原始提交 PASS
+  D-07 合并提交上的门禁与部署 PASS / D-09 仓库无令牌明文 PASS
+  （扫描 220 个文本文件，未命中令牌模式）
+
+【原型线框图产出校验】
+  连续两次运行 python scripts/gen-prototype-svg.py 后工作区无差异（生成可复现）
+  8 张 SVG 均通过 xml.dom.minidom.parse 校验：
+    01-login-normal.svg   1280x448    7885 B
+    01-login-error.svg    1280x500    8198 B
+    02-ops-normal.svg     1280x932   20302 B
+    02-ops-error.svg      1280x932   20344 B
+    03-admin-normal.svg   1280x808   17888 B
+    03-admin-error.svg    1280x808   17862 B
+    04-app-normal.svg     1280x588   12900 B
+    04-app-error.svg      1280x588   12902 B
+  仓库内 SVG blob 行尾实测：CRLF 计数 0（LF 存储）
+  索引引用的模板行号逐条核对属实（login/layout/ops/admin/app 的行号均指向对应区块）

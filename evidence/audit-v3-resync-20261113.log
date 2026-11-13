@@ -1,0 +1,60 @@
+2026-11-13 12:2x  v3.0 审计输入同步与官方计分器复跑记录
+================================================================
+
+【同步原因】
+  本轮仓库侧 AGENTS.md 由 v2.6.0 升到 v2.7.0（新增 §8 第 7 条「派生产物必须与本体同源，
+  且不得冒充本体」；§3 登记 scripts/gen-prototype-svg.py 与 docs/16、docs/原型线框图/），
+  并新增版本快照 docs/agents/AGENTS-v2.7.0.md，读取记录增至 16 条。
+  审计输入里仍写着 v2.6.0 与 15 条记录、被检提交停留在 dev/05@933dd46，
+  与仓库现状脱节，须同步。
+
+【同步范围（严格限定为事实性描述，不动任何判定）】
+  v3_checks.py        产物行 agent_rules 的 location / usage
+  v3_checks_data.py   B2-01 / B2-02 判定依据中的版本号与读取记录条数
+  v3_narrative.py     Agent 行 AS-AGENTS 的 name / source_version / location /
+                      loaded_at / usage_location / limitations
+  build_v3_audit.py   被检提交 REV
+  未改动任何检查项的 status / quality / 分数依据。
+
+  同步脚本：evidence/sync_agents_v270.py（幂等，可复跑）
+
+【被检提交】
+  旧：dev/05@933dd46aa3808d1a93cc1ae329d8a27722a56e6b
+  新：dev/05@43fc999e21c1b0b6fb3c28a87fd5526b65a86ede
+
+【官方计分器复跑（student-project-audit v3.0 官方 scripts/score_audit.py）】
+  [score] 7.90/10 待核定；待核定时不是最终成绩
+  [report] 报告/检查报告.md
+
+【同步前后逐字段比对（score-v3.prev.json vs score-v3.json）】
+  变化的标量字段共 6 处，全部为事实性描述：
+
+    /artifacts[5]/location
+      旧 d5/AGENTS.md（当前 v2.6.0，§1–§13）、d5/docs/agents/AGENTS-v2.6.0.md…
+      新 d5/AGENTS.md（当前 v2.7.0，§1–§13）、d5/docs/agents/AGENTS-v2.7.0.md…
+    /artifacts[5]/usage
+      旧 …据此升版到 v2.6.0 固化门禁口径纪律
+      新 …据此升版到 v2.6.0 固化门禁口径纪律，在原型线框图产出前升版到 v2.7.0
+         固化「派生产物与本体同源」纪律
+    /blockers[4]/reason
+      旧 …覆盖率口径与复评对照共 13 节纪律，并有版本快照与 15 条读取记录
+      新 …覆盖率口径与复评对照与派生产物同源共 13 节纪律，并有版本快照与 16 条读取记录
+    /categories[5]/checks[0]/reason   （B2-01，同上事实更新）
+    /categories[5]/checks[1]/reason   （B2-02：v2.6.0 → v2.7.0；15 条 → 16 条读取记录）
+    /revision
+      旧 dev/05@933dd46aa3808d1a93cc1ae329d8a27722a56e6b
+      新 dev/05@43fc999e21c1b0b6fb3c28a87fd5526b65a86ede
+
+  **无任何 status / quality / 分数字段变化。**
+
+【结论未变】
+  同步前：raw 7.98 | current 7.90 | final None | pass 52 / unknown 3 / partial 3
+  同步后：raw 7.98 | current 7.90 | final None | pass 52 / unknown 3 / partial 3
+
+【得分情景复跑（evidence/score_scenarios.py，测算值，非正式成绩）】
+  S0  现状                        raw 7.98  current 7.90  final None
+  S1a 只补讲解视频                raw 8.24  current 7.90  final None（上限 7.90 未解锁）
+  S1b 视频 + 班级群提交           raw 8.37  current 7.90  final None（上限 7.90 未解锁）
+  S2  再豁免三项阶段顺序发现      raw 8.50  current 8.50  final None
+  状态分布 S2：pass 58 / partial 0 / fail 0 / unknown 0 / na 0
+  说明：以上为**测算**，正式成绩仍为 7.90「待核定」，两者不得混用。
