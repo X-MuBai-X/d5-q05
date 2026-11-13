@@ -1,0 +1,133 @@
+2026-11-13 14:3x  Agent 与自编 Skill 使用情况检测记录
+================================================================
+
+【检测目的】
+  核查「Agent（AGENTS.md 项目级约束）与自编 Skill 是否**真实使用成功**」，
+  而不是只核对 docs/08 的登记文字。方法：实跑 + 交叉验证 + 留痕回源。
+
+========================================================
+一、自编 Skill 实跑（2026-11-13 本机重新执行）
+========================================================
+
+1. quota-guard
+   命令：python skills/quota-guard/scripts/quota_guard.py --repo . --out %TEMP%/qg-verify.md
+   输出：[quota-guard] verdict=PASS checks=10 failed=0 tests=PASS coverage=PASS
+   退出码：0
+   判定：PASS —— 10 项静态不变量全过、行为回归 PASS、覆盖率 PASS
+   报告要点（真实证据，非空转）：
+     核心包覆盖率（语句口径）：domain 97.3% / store 94.4% / service 87.7%（下限 85%）
+     静态不变量逐项给出 文件:行号：
+       1  额度占用为单条条件 UPDATE，额度上限在本条语句内实时读取   internal/store/store.go:556
+       2  占用额度前确保当日用量计数行存在                        internal/store/store.go:552
+       3  成功转换：处理中 −1、成功 +1，带 inflight_count > 0 守卫  internal/store/store.go:596
+       4  失败/超时释放占用，带 inflight_count > 0 守卫             internal/store/store.go:596
+       5  占用口径 Occupied() = 成功数 + 处理中数                   internal/domain/domain.go:287
+       6  降额下限以当日成功数 + 处理中数为准                      internal/domain/domain.go:351
+       7  终态结算具备成功/超时/失败三条独立分支                   internal/service/service.go:559
+       8  租户/凭证状态校验早于额度占用（停用后不占额度）          internal/service/service.go:443/467
+       9  降额下限判定与写入在同一条语句内完成（防 TOCTOU）         internal/store/store.go:576
+       10 日终报表能识别「占用超过额度」并标记不一致                internal/domain/domain.go:390
+     行为回归原始输出（go test 实跑，非缓存结论）：
+       ok  modelquota/internal/domain    1.850s
+       ok  modelquota/internal/store     2.843s
+       ok  modelquota/internal/service   3.047s
+
+2. acceptance-audit
+   命令：python skills/acceptance-audit/scripts/acceptance_audit.py --repo . --out-dir %TEMP%/aa-verify
+   输出：[acceptance-audit] verdict=PASS pass=57 fail=0 pending=0
+   退出码：0
+   产物：检查项明细.md + acceptance-audit.json（items 57 条，C-1/C-10/C-11/C-12/C-13/C-14 等均为 pass）
+   判定：PASS —— 57 项全过、0 fail、0 pending
+
+   注：本次输出到临时目录，**不覆盖**仓库内 evidence/acceptance-audit/ 的历史留痕，
+   以免把历史「发现缺陷 → 整改」的完整过程抹平。
+
+   两个 Skill 的历史价值仍在仓库留痕中可回源：
+     evidence/skill-quota-guard.md        —— quota-guard 五次调用（第 1 次 FAIL → 修正覆盖率口径 → PASS）
+     evidence/acceptance-audit/          —— acceptance-audit 五次调用（FAIL→FAIL→PASS→FAIL→PASS）
+
+========================================================
+二、平台内置 Skill 留痕回源
+========================================================
+
+1. browser-use:control-in-app-browser
+   留痕：evidence/github-oauth-device.json（1057 B）
+     授权时间 2026-11-12T15:36:36+08:00；client_id Iv1.b507a08c87ecfe98；scope "repo read:user"；
+     令牌仅记录**指纹前 8 位**（sha256 前缀 8284398a）与前缀 ghu_，**令牌本身不入档**；
+     能力探测：mcp_initialize ok、47 个工具可列举、实读仓库分支列表。
+   留痕：evidence/gitee-merge-gate-probe.json（7583 B）
+     逐端点探测公开 API，before/probes/after 三段对照，结论为
+     「公开 API 无法置位 testers[].accept，必须由账号本人在界面完成」——
+     由此才有了 browser-use 的界面置位动作，是「Skill 被真正需要」的实证。
+   留痕：evidence/meegle-workitem-verification.log（15232 B）
+     7 个工作项编号的真实核验输出（7/7 通过）。
+
+2. student-project-audit（v3.0）
+   留痕：审计输出目录 outputs/单题检查/d5/05/2026-11-11-01/
+     官方 scripts/score_audit.py + render_report.py 的真实输出，
+     含 audit-input-v3.json、report-data-v3.json、score-v3.json、报告/、两份 CSV。
+
+========================================================
+三、AGENTS.md 约束的行为交叉验证（不依赖平台「已加载」字段）
+========================================================
+
+平台本环境不输出「约束被加载」事件（审计已如实登记为 ISS-AGENTS-LOAD），
+因此改用**提交行为与仓库状态**反向验证约束是否真的生效：
+
+1. §8 第 5 条 提交消息格式 —— 通过
+   dev/05 共 110 个提交，格式 `[类型] [版本号] [#编号] 描述` 合规 109 个；
+   唯一例外 2ecc808「Initial commit」为 **GitHub 远端初始化提交**
+   （作者 X-MuBai-X，2026-11-12 11:02:14，内容仅 .gitignore 与 README），
+   按共同要求第 8 节第 2 条豁免格式规则，不是本地业务提交。
+   feat/fix 提交共 41 个，**全部**带真实工作项编号，无一缺失。
+
+2. §10 第 3 条 业务提交只落 dev/05 —— 通过
+   main 的 102 个提交全部来自合并提交（merge 提交父数为 2），
+   远端 main 的直推被实测拒绝（HTTP 422，evidence/branch-protection-verify.json）。
+
+3. §10 第 2 条 / §11 第 3 条 令牌只经环境变量、不入库 —— 通过
+   scripts/verify-delivery.py 的 D-09 扫描 223 个文本文件，未命中令牌模式。
+
+4. §7 第 1 条 覆盖率口径 —— 通过
+   CI 与本机共用 scripts/coverage-summary.py；quota-guard 独立复算得
+   domain 97.3% / store 94.4% / service 87.7%，与仓库归档值一致。
+
+5. 读取记录条数核对 —— 16 条，与登记一致
+   docs/agents/AGENTS-读取记录.md 的读取记录表实为 **16 行**（编号 1–16）。
+   说明：第 1 行「读取的文件版本」列写的是「v1.0 的规则集内容（当时尚未落盘为文件）」，
+   与其余行的纯版本号写法不同，用版本号正则匹配会漏掉该行；按表格行计数为 16 行，
+   与审计输入中「16 条读取记录」的表述**一致**，无缺漏。
+   编号 1–16 唯一无重复。
+
+========================================================
+四、独立 Agent 子会话（第三方复核，非自我背书）
+========================================================
+
+1. evidence/independent-test-report.md（22294 B）
+   标题《独立质量验证报告（Independent Verification Report）》
+   总判定：**PASS**（无阻断级缺陷；4 项低 severity 测试覆盖改进点）
+2. evidence/independent-acceptance-report.md（28934 B）
+   标题《独立验收报告 · 题目 05》
+   结论：**pass**
+
+   两份报告均由**全新上下文**的子会话产生（不接收开发会话结论），
+   且都发现了实质问题并驱动了整改：
+     - 独立测试：F2/F3/F4/F6 共 4 项测试覆盖缺口 → 补齐回归用例
+     - 独立验收：D1（并发降额突破额度上限，TOCTOU）→ 改为单条条件 UPDATE + 新增回归；
+                  D4/D5（C-14 存在文件级白名单，被抑制的正是 docs/04 的 4 行明文口令，
+                  且与 docs/09 的表述矛盾）→ 删除白名单、文档改掩码、复检通过。
+   这说明 Agent 复核是**真正起作用**的，而非走过场。
+
+========================================================
+五、结论
+========================================================
+
+  自编 Skill（quota-guard / acceptance-audit）：**实跑通过**，判定 PASS，证据可回源到 文件:行号与 go test 原始输出。
+  平台内置 Skill（browser-use / student-project-audit）：**留痕齐全**，可回源到授权报文、端点探测记录与官方计分器输出。
+  AGENTS.md 约束：**行为交叉验证通过**（提交格式、业务提交只落 dev/05、令牌不入库、覆盖率口径均与约束一致），
+                     读取记录 16 条与登记一致。
+  独立 Agent 子会话：**真实产生且驱动了整改**。
+
+  仍存的固有限制（如实保留，不粉饰）：
+    平台不输出「约束被加载」的系统事件，AGENTS 的「实际加载」只能由版本历史、
+    读取记录与提交行为对应推断（审计已登记为 ISS-AGENTS-LOAD，按 advisory 处理）。

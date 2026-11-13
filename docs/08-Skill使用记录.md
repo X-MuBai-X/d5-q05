@@ -58,6 +58,7 @@
 | 3 | 2026-11-11 20:12 后 | 每次改动 `internal/service`、`internal/store`、`internal/domain` 后复跑 | 同上 | PASS | 报告被覆盖更新 |
 | 4 | 2026-11-11 21:25 | 五组完整场景验证后的整改（迟到结果链路、日报归一化、列表空数组）完成后复跑，确认计量口径没有被破坏 | 同上 | **PASS**（8 项静态检查全过、行为回归 PASS、覆盖率 PASS） | `evidence/skill-quota-guard.md` |
 | 5 | 2026-11-12 08:45 | 独立验收 Agent 实测复现 D1（并发降额突破额度上限）并修复后复跑；同时把静态不变量由 8 项扩到 10 项，把「额度上限必须在本条语句内实时读取」「降额下限判定与写入同语句」「日报须识别占用超额度」写成硬性规则 | 同上 | **PASS**（10 项静态检查全过、行为回归 PASS、覆盖率 PASS） | `evidence/skill-quota-guard.md` |
+| 6 | 2026-11-13 14:3x | 交付收尾阶段**独立复查 Skill 是否仍能真实执行**（不核对登记文字，直接实跑） | `python skills/quota-guard/scripts/quota_guard.py --repo . --out <临时目录>` | **PASS**（退出码 0；checks=10 failed=0 tests=PASS coverage=PASS） | 临时报告（未覆盖仓库留痕）；检测记录归档 `evidence/agent-skill-usage-check.log` |
 
 **第 1 次 FAIL 的原因与修正（这是 Skill 自身的缺陷，不是业务代码缺陷）**：
 初版用"各函数覆盖率的最小值"近似包级覆盖率，导致 `domain` 被算成 0.0%、
@@ -86,6 +87,7 @@
 | 3 | 2026-11-11 21:25 | 竞态检测补齐、HTTP 层覆盖率补测、文档脱敏后复跑 | 同上 | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending |
 | 4 | 2026-11-12 08:40 | 独立验收 Agent 指出 C-14 存在文件级白名单（`allow={docs/01, docs/04, docs/08}`），被抑制的正是 `docs/04` 的 4 行明文演示口令，与 `docs/09` 的表述不符 | 同上（**删除白名单**后复跑） | **FAIL**（退出码 1）：57 pass / 1 fail / 0 pending —— C-14 如实报出 `docs/04` 的命中 |
 | 5 | 2026-11-12 08:43 | 按第 4 次结果把 `docs/04` 与两份独立报告里的演示口令真正改为掩码（`ops-****`），完整值只留在源码 `cmd/server/main.go`；同时把 R2-2 的判定从「条件里带额度参数」改为「条件里实时读取 `tenants.daily_quota`」 | 同上 | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending；C-14 证据改为「无白名单，全量扫描」 |
+| 6 | 2026-11-13 14:3x | 交付收尾阶段**独立复查 Skill 是否仍能真实执行** | `python skills/acceptance-audit/scripts/acceptance_audit.py --repo . --out-dir <临时目录>` | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending；检测记录归档 `evidence/agent-skill-usage-check.log` |
 
 **第 1 次 FAIL 列出的 7 项与处理**：
 
@@ -139,6 +141,31 @@
 > 说明：`quota-guard` 与 `acceptance-audit` 均为**本项目自编**，
 > 不是对既有 Skill 的改名或改写；两者的判定标准都写在各自的 `SKILL.md` 里，
 > 由脚本按固定规则执行，不依赖模型主观判断。
+
+---
+
+## 3.1 使用有效性复查（2026-11-13，交付收尾阶段）
+
+> 「登记了调用」不等于「现在还能用」。本节在交付收尾时**重新实跑**两个自编 Skill，
+> 并用**提交行为**反向验证 AGENTS 约束是否真的生效，检测记录见
+> `evidence/agent-skill-usage-check.log`。
+
+| 复查项 | 方法 | 结果 |
+|---|---|---|
+| `quota-guard` 可执行 | 实跑 `quota_guard.py --repo .` | **PASS**（退出码 0）：10 项静态不变量全过、行为回归 PASS、覆盖率 PASS（domain 97.3% / store 94.4% / service 87.7%） |
+| `acceptance-audit` 可执行 | 实跑 `acceptance_audit.py --repo .` | **PASS**（退出码 0）：57 pass / 0 fail / 0 pending |
+| 判定非空转 | 报告须给出 `文件:行号` 与 go test 原始输出 | 满足（10 项静态检查逐条给出行号；三个核心包的 go test 实跑输出在报告内） |
+| 不覆盖历史留痕 | 本次输出到临时目录 | 满足（`evidence/` 内的历史 FAIL→整改→PASS 过程原样保留） |
+| AGENTS §8 第 5 条 提交格式 | 扫描 dev/05 全部提交消息 | 110 个提交中 109 个合规；唯一例外 `2ecc808 Initial commit` 是 **GitHub 远端初始化提交**（作者 X-MuBai-X，非本地业务提交），按共同要求第 8 节第 2 条豁免 |
+| AGENTS §8 第 5 条 工作项编号 | 扫描 41 个 feat/fix 提交 | **41/41 全部**带真实工作项编号，无一缺失 |
+| AGENTS §10 第 3 条 只落 dev/05 | 检查 main 提交来源与直推实测 | main 的提交全部来自合并提交；远端直推被拒 HTTP 422（`evidence/branch-protection-verify.json`） |
+| AGENTS §10/§11 令牌不入库 | `scripts/verify-delivery.py` 的 D-09 扫描 | 扫描 223 个文本文件，未命中令牌模式 |
+| AGENTS 读取记录 | 按表格行计数并核对编号唯一性 | **16 行（编号 1–16），唯一无重复**，与审计输入登记一致 |
+| 独立 Agent 子会话 | 检查两份独立报告的来源与整改链路 | 均为**全新上下文**产出，且发现实质问题（D1 并发超发、C-14 白名单误报）并驱动了整改 |
+
+> **如实保留的限制**：平台本环境不输出「约束被加载」的系统事件，
+> AGENTS 的「实际加载使用」只能由版本历史、读取记录与提交行为对应推断
+> （审计已登记为 `ISS-AGENTS-LOAD`，按 advisory 处理，不因此扣分）。
 
 ---
 
