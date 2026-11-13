@@ -89,12 +89,11 @@ def gpgsig_header(info: dict) -> str:
     return "\n".join(out) + "\n"
 
 
-def build_raw(info: dict, tz_label: str) -> bytes:
+def build_raw(info: dict, tz_label: str, message: str) -> bytes:
     tree = info.get("tree", {}).get("sha", "")
     parents = [p.get("sha", "") for p in info.get("parents", [])]
     author = info.get("author", {})
     committer = info.get("committer", {})
-    message = info.get("message", "")
     return (
         f"tree {tree}\n"
         + "".join(f"parent {p}\n" for p in parents)
@@ -104,10 +103,24 @@ def build_raw(info: dict, tz_label: str) -> bytes:
           f"{to_epoch(committer.get('date', '1970-01-01T00:00:00Z'))} {tz_label}\n"
         + gpgsig_header(info)
         + "\n"
-        # 消息**原样**使用：GitHub 存的合并提交对象，消息末尾没有换行，
-        # 多加或少加一个 "\n" 都会让 SHA 对不上。
         + message
     ).encode("utf-8")
+
+
+def message_variants(message: str) -> list[str]:
+    """提交消息的候选形态。
+
+    REST API 的 `message` 字段会**剥掉末尾换行**，但对象里到底带不带尾换行取决于提交是怎么来的：
+    - GitHub 网页合并生成的提交：消息**末尾没有换行**（原样即正确）；
+    - 通过 Git Data API（`POST /git/commits`）创建的提交：消息**带尾换行**（需补一个 `\\n`）。
+
+    因此两种形态都要试，否则重建必然对不上远端 SHA（实测踩过：本地推上去的
+    `dev/05` 提交用 API 取回时算出 `0754e80b6f10`，补尾换行后才是远端的 `34253c696ba6`）。
+    """
+    variants = [message]
+    if not message.endswith("\n"):
+        variants.append(message + "\n")
+    return variants
 
 
 def main() -> int:
@@ -151,26 +164,29 @@ def main() -> int:
             return 1
 
     for tz_label in candidate_offsets():
-        raw = build_raw(info, tz_label)
-        proc = subprocess.run(["git", "-C", str(repo), "hash-object", "-t", "commit", "--stdin"],
-                              input=raw, capture_output=True)
-        if proc.returncode != 0:
-            print(f"计算提交对象失败：{proc.stderr.decode('utf-8', 'replace')[:300]}")
-            return 1
-        local_sha = proc.stdout.decode().strip()
-        if local_sha != remote_sha:
-            print(f"  偏移 {tz_label} 算得 {local_sha[:12]}，与远端不符，继续试下一个")
-            continue
-        # SHA 一致才写入对象库
-        proc = subprocess.run(["git", "-C", str(repo), "hash-object", "-t", "commit", "-w", "--stdin"],
-                              input=raw, capture_output=True)
-        if proc.returncode != 0:
-            print(f"写入提交对象失败：{proc.stderr.decode('utf-8', 'replace')[:300]}")
-            return 1
-        written = proc.stdout.decode().strip()
-        print(f"已在本地重建提交对象 {written[:12]}（与远端逐字节一致，时区偏移 {tz_label}）")
-        print(f"  树 {tree[:12]}｜父提交 {'、'.join(p[:12] for p in parents)}")
-        return 0
+        for message in message_variants(info.get("message", "")):
+            raw = build_raw(info, tz_label, message)
+            proc = subprocess.run(["git", "-C", str(repo), "hash-object", "-t", "commit", "--stdin"],
+                                  input=raw, capture_output=True)
+            if proc.returncode != 0:
+                print(f"计算提交对象失败：{proc.stderr.decode('utf-8', 'replace')[:300]}")
+                return 1
+            local_sha = proc.stdout.decode().strip()
+            if local_sha != remote_sha:
+                print(f"  偏移 {tz_label} / 消息尾换行 {'有' if message.endswith(chr(10)) else '无'}"
+                      f" 算得 {local_sha[:12]}，与远端不符，继续试下一个")
+                continue
+            # SHA 一致才写入对象库
+            proc = subprocess.run(["git", "-C", str(repo), "hash-object", "-t", "commit", "-w", "--stdin"],
+                                  input=raw, capture_output=True)
+            if proc.returncode != 0:
+                print(f"写入提交对象失败：{proc.stderr.decode('utf-8', 'replace')[:300]}")
+                return 1
+            written = proc.stdout.decode().strip()
+            print(f"已在本地重建提交对象 {written[:12]}（与远端逐字节一致，"
+                  f"时区偏移 {tz_label}，消息尾换行 {'有' if message.endswith(chr(10)) else '无'}）")
+            print(f"  树 {tree[:12]}｜父提交 {'、'.join(p[:12] for p in parents)}")
+            return 0
 
     print(f"重建失败：所有候选时区偏移都算不出与远端一致的 SHA（远端 {remote_sha[:12]}）")
     print("  （不写入不一致的对象，放弃）")
