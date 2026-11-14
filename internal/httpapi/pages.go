@@ -144,6 +144,10 @@ func (s *Server) requireIdentity(w http.ResponseWriter, r *http.Request) (servic
 	return identity, true
 }
 
+// baseData 装配页面公共数据：标题、身份、当前日期与时间、提示语。
+//
+// 成功提示（message）与错误提示（error）都从查询参数取，
+// 这样表单提交后重定向回来仍能显示操作结果。
 func (s *Server) baseData(r *http.Request, identity service.Identity, title string) pageData {
 	return pageData{
 		Title:    title,
@@ -203,6 +207,10 @@ type opsDiagnosticRow struct {
 	Diagnostic domain.Diagnostic
 }
 
+// handleOpsPage 渲染平台运营工作台。
+//
+// 展示租户与配额、各租户当日核查表、配额变更记录与诊断（迟到结果）。
+// 非运营身份访问会被重定向回首页，不渲染任何数据。
 func (s *Server) handleOpsPage(w http.ResponseWriter, r *http.Request) {
 	identity, ok := s.requireIdentity(w, r)
 	if !ok {
@@ -241,6 +249,7 @@ func (s *Server) handleOpsPage(w http.ResponseWriter, r *http.Request) {
 	s.render(w, http.StatusOK, s.templates.ops, data)
 }
 
+// renderOpsError 以 500 渲染运营工作台，并在顶部显示错误原因。
 func (s *Server) renderOpsError(w http.ResponseWriter, r *http.Request, identity service.Identity, err error) {
 	data := s.baseData(r, identity, "平台运营工作台")
 	data.Error = err.Error()
@@ -299,6 +308,10 @@ func (s *Server) adminViewFor(r *http.Request, identity service.Identity, day st
 	return view, nil
 }
 
+// handleAdminPage 渲染客户管理员工作台。
+//
+// 展示本租户概况、凭证列表、本租户用量与调用记录（含被拒绝的尝试）。
+// 非客户管理员身份访问会被重定向回首页。
 func (s *Server) handleAdminPage(w http.ResponseWriter, r *http.Request) {
 	identity, ok := s.requireIdentity(w, r)
 	if !ok {
@@ -341,6 +354,7 @@ func (s *Server) renderAdminWithSecret(w http.ResponseWriter, r *http.Request, i
 	s.render(w, http.StatusOK, s.templates.admin, data)
 }
 
+// renderAdminError 以 500 渲染客户管理员工作台，并在顶部显示错误原因。
 func (s *Server) renderAdminError(w http.ResponseWriter, r *http.Request, identity service.Identity, err error) {
 	data := s.baseData(r, identity, "客户管理员工作台")
 	data.Error = err.Error()
@@ -354,6 +368,10 @@ type appView struct {
 	Requests     []domain.ModelRequest
 }
 
+// handleAppPage 渲染客户应用工作台。
+//
+// 展示本凭证的调用记录与发起调用的表单；看不到其它凭证或其它租户的数据。
+// 非应用凭证身份访问会被重定向回首页。
 func (s *Server) handleAppPage(w http.ResponseWriter, r *http.Request) {
 	identity, ok := s.requireIdentity(w, r)
 	if !ok {

@@ -437,6 +437,10 @@ func SortStatuses(all []RequestStatus) []RequestStatus {
 	return out
 }
 
+// statusRank 返回终态在 StatusOrder 中的序号，用于排序与比较。
+//
+// 不在 StatusOrder 里的状态（如「被拒绝」以外的未知值）排在末尾，
+// 保证排序结果稳定，不因未知状态导致比较失败。
 func statusRank(s RequestStatus) int {
 	for i, v := range StatusOrder {
 		if v == s {

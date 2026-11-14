@@ -109,6 +109,9 @@ func (s *Service) SetClockOffset(d time.Duration) {
 // CurrentDay 返回当前 UTC 自然日。
 func (s *Service) CurrentDay() string { return domain.DayOf(s.clk.Now()) }
 
+// newID 生成带前缀的随机标识（如 req_、cred_）。
+//
+// 随机源不可用时退回时间戳，保证流程不中断（ID 唯一性优先级低于流程可用性）。
 func newID(prefix string) string {
 	buf := make([]byte, 8)
 	if _, err := rand.Read(buf); err != nil {
@@ -743,6 +746,9 @@ func (s *Service) Diagnostics(ctx context.Context, tenantID string) ([]domain.Di
 	return s.db.ListDiagnosticsByTenant(ctx, tenantID)
 }
 
+// firstNonEmpty 返回第一个非空字符串，全为空时返回空串。
+//
+// 用于「多个来源取其一」的宽松匹配（如租户名取自请求参数或既有记录）。
 func firstNonEmpty(values ...string) string {
 	for _, v := range values {
 		if strings.TrimSpace(v) != "" {

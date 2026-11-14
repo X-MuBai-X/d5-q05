@@ -25,6 +25,9 @@ import (
 	"modelquota/internal/upstream"
 )
 
+// main 是业务服务的进程入口。
+//
+// 参数解析与装配放在 runMain / buildServer 里，便于单元测试直接验证。
 func main() {
 	if err := runMain(os.Args[1:]); err != nil {
 		log.Fatalf("服务启动失败: %v", err)
@@ -47,6 +50,10 @@ func runMain(args []string) error {
 	return run(*addr, *dbPath, *upstreamURL, *enableTestHooks, *seed)
 }
 
+// run 启动 HTTP 服务并等待退出信号。
+//
+// 收到 Ctrl+C / SIGTERM 后走优雅关闭流程（最多等 10 秒），
+// 保证在途请求处理完再退出，避免数据库写入被打断。
 func run(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) error {
 	db, _, srv, err := buildServer(addr, dbPath, upstreamURL, enableTestHooks, seed)
 	if err != nil {
@@ -221,6 +228,9 @@ func seedData(ctx context.Context, db *store.DB) error {
 	return nil
 }
 
+// parseInt 解析整数参数，解析失败时返回错误（不静默取 0）。
+//
+// 用于读取设置表里的数值型配置（如教学时钟偏移秒数）。
 func parseInt(s string) (int, error) {
 	return strconv.Atoi(strings.TrimSpace(s))
 }

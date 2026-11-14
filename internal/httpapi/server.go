@@ -40,6 +40,10 @@ func New(svc *service.Service, tmpl *templates) *Server {
 // Handler 返回根处理器。
 func (s *Server) Handler() http.Handler { return s.mux }
 
+// routes 注册全部 HTTP 路由。
+//
+// 路由按角色分组：运营接口套 opsOnly、租户管理员接口套 adminOnly / tenantAdminOnly、
+// 应用接口套 appOnly —— 权限判定统一放在中间件里做，各 handler 只管业务（题面 R7）。
 func (s *Server) routes() {
 	s.mux.HandleFunc("/healthz", s.handleHealth)
 	s.mux.HandleFunc("/readyz", s.handleHealth)
@@ -132,6 +136,9 @@ func statusFor(err error) int {
 	}
 }
 
+// decodeJSON 严格解析 JSON 请求体。
+//
+// 两个要点：请求体上限 1MB；拒绝未知字段，避免拼错的字段名被静默忽略。
 func decodeJSON(r *http.Request, target any) error {
 	dec := json.NewDecoder(http.MaxBytesReader(nil, r.Body, 1<<20))
 	dec.DisallowUnknownFields()
@@ -266,6 +273,10 @@ type loginRequest struct {
 	Secret string `json:"secret"`
 }
 
+// handleLogin 处理登录请求，返回会话令牌并写入 Cookie。
+//
+// 两种登录方式：管理员用账号口令，客户应用用凭证密钥。
+// Cookie 设置 HttpOnly 与 SameSite=Lax，令牌不出现在页面脚本可读的位置。
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("仅支持 POST"))
@@ -309,6 +320,7 @@ func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) {
 	}, "/", "登录成功")
 }
 
+// handleLogout 注销当前会话并清除 Cookie。
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if token, err := s.identityToken(r); err == nil {
 		_ = s.svc.Logout(r.Context(), token)
@@ -317,6 +329,9 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	s.respond(w, r, http.StatusOK, map[string]any{"status": "logged_out"}, "/login", "已登出")
 }
 
+// identityToken 从 Cookie 或 Authorization 头取出会话令牌。
+//
+// 与 identityFrom 的区别：这里只取令牌本身（用于登出），不做身份还原。
 func (s *Server) identityToken(r *http.Request) (string, error) {
 	if cookie, err := r.Cookie(sessionCookie); err == nil {
 		return cookie.Value, nil
@@ -328,6 +343,7 @@ func (s *Server) identityToken(r *http.Request) (string, error) {
 	return "", domain.ErrUnauthorized
 }
 
+// handleWhoami 返回当前登录身份，用于前端或脚本自查身份与租户归属。
 func (s *Server) handleWhoami(w http.ResponseWriter, r *http.Request) {
 	s.withIdentity(func(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 		writeJSON(w, http.StatusOK, map[string]any{
@@ -358,6 +374,9 @@ type openTenantRequest struct {
 	Reason     string `json:"reason"`
 }
 
+// handleOpenTenant 为租户开通服务并设置初始日额度（R1）。
+//
+// 操作人与开通原因会留痕（配额变更记录），便于事后核查。
 func (s *Server) handleOpenTenant(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("仅支持 POST"))
@@ -388,6 +407,10 @@ type quotaRequest struct {
 	Reason     string `json:"reason"`
 }
 
+// handleAdjustQuota 调整租户的日额度（R5）。
+//
+// 降额下限由 service 层按「当日成功数 + 处理中数」判定，
+// 且判定与写入在同一条 SQL 里完成，避免并发降额把占用数顶到额度之上。
 func (s *Server) handleAdjustQuota(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("仅支持 POST"))
@@ -412,6 +435,9 @@ type disableTenantRequest struct {
 	Reason   string `json:"reason"`
 }
 
+// handleDisableTenant 停用租户（R6）。
+//
+// 停用后不再受理新调用；在途请求仍按原规则完成结算。
 func (s *Server) handleDisableTenant(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("仅支持 POST"))
@@ -430,6 +456,10 @@ func (s *Server) handleDisableTenant(w http.ResponseWriter, r *http.Request, ide
 		"/ops", "租户 "+in.TenantID+" 已停用，不再受理新调用")
 }
 
+// handleDailyReport 输出日终核查报表（R8）。
+//
+// 按租户与 UTC 自然日分列成功、失败、超时、处理中、被拒绝五类计数，
+// 并核对「成功记录数 == 计入用量次数」以及占用是否超过额度。
 func (s *Server) handleDailyReport(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 	tenantID, err := s.tenantScope(r, identity)
 	if err != nil {
@@ -445,6 +475,9 @@ func (s *Server) handleDailyReport(w http.ResponseWriter, r *http.Request, ident
 	writeJSON(w, http.StatusOK, map[string]any{"report": report})
 }
 
+// handleDiagnostics 输出迟到结果等诊断记录（R4）。
+//
+// 诊断只用于事后核查：迟到结果不改终态、不追加扣额、不计入成功量。
 func (s *Server) handleDiagnostics(w http.ResponseWriter, r *http.Request, identity service.Identity) {
 	tenantID, err := s.tenantScope(r, identity)
 	if err != nil {
@@ -463,6 +496,10 @@ type clockRequest struct {
 	OffsetSeconds int `json:"offset_seconds"`
 }
 
+// handleClock 调整教学时钟的偏移秒数。
+//
+// 教学时钟只偏移「当前时间」，配额与日期归属规则不变（题面共同要求允许用可配置教学时钟
+// 演示时间边界，但必须注明）。时钟前移后旧会话令牌随即失效。
 func (s *Server) handleClock(w http.ResponseWriter, r *http.Request, _ service.Identity) {
 	if r.Method != http.MethodPost {
 		writeError(w, http.StatusMethodNotAllowed, fmt.Errorf("仅支持 POST"))

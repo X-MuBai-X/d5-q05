@@ -58,8 +58,14 @@ func (d *DB) Migrate(ctx context.Context) error {
 // Close 关闭底层连接。
 func (d *DB) Close() error { return d.sql.Close() }
 
+// ts 把时间统一格式化为 UTC 的 RFC3339Nano 字符串后入库。
+//
+// 统一 UTC 与格式，避免各处时间表示不一致导致日期归属算错。
 func ts(t time.Time) string { return t.UTC().Format(time.RFC3339Nano) }
 
+// parseTS 解析库里的时间字符串，解析失败时返回零值时间。
+//
+// 零值时间表示「该时间未知」，调用方据此判断字段是否为空。
 func parseTS(s string) time.Time {
 	t, err := time.Parse(time.RFC3339Nano, s)
 	if err != nil {
@@ -68,6 +74,9 @@ func parseTS(s string) time.Time {
 	return t.UTC()
 }
 
+// nullIfEmpty 把空字符串转成 SQL NULL，非空则原样返回。
+//
+// 用于可空列的写入，避免把空串和「没有值」混为一谈。
 func nullIfEmpty(s string) any {
 	if s == "" {
 		return nil
@@ -240,6 +249,10 @@ func (d *DB) CreateCredential(ctx context.Context, c *domain.Credential) error {
 
 const credentialCols = `id, tenant_id, name, key_hash, status, created_at, created_by, disabled_at, disabled_by, disable_reason`
 
+// scanCredential 把一行凭证记录扫描成 domain.Credential。
+//
+// 可空列（停用时间/停用人/停用原因）用 sql.NullString 接，
+// 空值转成零值字段；状态与时间在这里统一转换。
 func scanCredential(sc interface{ Scan(...any) error }) (*domain.Credential, error) {
 	var c domain.Credential
 	var status, created string
@@ -346,6 +359,10 @@ func (d *DB) InsertRequest(ctx context.Context, r *domain.ModelRequest) error {
 	return nil
 }
 
+// scanRequest 把一行调用请求记录扫描成 domain.ModelRequest。
+//
+// 受理时间与完成时间是可空的（处理中的请求没有完成时间），
+// 上游结果与失败原因同样可空，都用 sql.NullString 接。
 func scanRequest(sc interface{ Scan(...any) error }) (*domain.ModelRequest, error) {
 	var r domain.ModelRequest
 	var status, received string

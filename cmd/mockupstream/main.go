@@ -42,6 +42,9 @@ type server struct {
 	seq  int
 }
 
+// main 是模拟上游服务的进程入口。
+//
+// 参数解析与启动逻辑放在 runMain 里，便于单元测试直接验证。
 func main() {
 	if err := runMain(os.Args[1:]); err != nil {
 		log.Printf("模拟上游服务退出: %v", err)
@@ -81,6 +84,13 @@ func run(addr string) error {
 	return nil
 }
 
+// handleComplete 处理上游补全请求，按 params.scenario 返回不同的模拟结果。
+//
+// 支撑题面要求的四类场景（题面 R4 与共同要求「必须能触发成功、失败、超时及重复通知场景」）：
+//   - success          正常返回内容
+//   - fail             返回上游明确失败
+//   - timeout          挂起不返回，用于触发「判定超时但上游稍后才有结果」
+//   - duplicate        同一请求编号重复通知，返回与首次相同的内容
 func (s *server) handleComplete(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "仅支持 POST", http.StatusMethodNotAllowed)
@@ -159,6 +169,9 @@ func (s *server) contentFor(req wireRequest, scenario string) string {
 	return s.seen[key]
 }
 
+// newID 生成模拟上游的任务编号（形如 mock-1）。
+//
+// 编号在进程内自增，配合 seen 缓存即可实现「重复通知不重复生成内容」。
 func (s *server) newID() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -166,6 +179,9 @@ func (s *server) newID() string {
 	return fmt.Sprintf("mock-%d", s.seq)
 }
 
+// stringParam 从参数表中取字符串值，取不到或类型不符时返回空串。
+//
+// 场景名等可选参数都通过它读取，避免调用方到处做类型断言。
 func stringParam(params map[string]any, key string) string {
 	if params == nil {
 		return ""

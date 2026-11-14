@@ -94,6 +94,10 @@ func (s *Service) LoginCredential(ctx context.Context, secret string) (string, I
 	return token, identity, nil
 }
 
+// issueSession 为一次登录签发会话令牌，并记录身份与有效期。
+//
+// 令牌用 24 字节随机数生成；记录里带上身份，
+// 使后续请求不必再查一次账号表就能还原出调用者身份。
 func (s *Service) issueSession(ctx context.Context, identity Identity) (string, error) {
 	buf := make([]byte, 24)
 	if _, err := rand.Read(buf); err != nil {

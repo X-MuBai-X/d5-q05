@@ -204,6 +204,9 @@ func (c *HTTPCallier) awaitLateResult(correlationID string, ch <-chan callResult
 	c.onLateResult(correlationID, r.resp, r.err)
 }
 
+// truncate 截断过长文本并在末尾补省略号，用于日志与错误摘要。
+//
+// 避免把上游返回的完整内容打印进日志。
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s
