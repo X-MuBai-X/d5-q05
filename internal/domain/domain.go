@@ -144,6 +144,11 @@ type Tenant struct {
 	Status     TenantStatus `json:"status"`
 	DailyQuota int          `json:"daily_quota"`
 	CreatedAt  time.Time    `json:"created_at"`
+	// Code 是租户的唯一代号（如 GEEK-AI），供界面与对账 CLI 按代号识别租户。
+	Code string `json:"code,omitempty"`
+	// InitialDailyQuota 是初始日额度（题面预置为 10），调额只改 DailyQuota，
+	// 因此这里保留「初始值」以便界面同时展示初始与当前额度。
+	InitialDailyQuota int `json:"initial_daily_quota,omitempty"`
 }
 
 // Admin 是平台运营或客户管理员账号。

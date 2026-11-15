@@ -56,6 +56,20 @@ func (d *DB) Migrate(ctx context.Context) error {
 	if _, err := d.sql.ExecContext(ctx, schemaSQL); err != nil {
 		return fmt.Errorf("执行建表脚本失败: %w", err)
 	}
+	// 租户补充「唯一代号」与「初始日额度」两列（需求文档 §5 数据模型）。
+	for _, c := range []struct{ name, ddl string }{
+		{"code", "ALTER TABLE tenants ADD COLUMN code TEXT"},
+		{"initial_daily_quota", "ALTER TABLE tenants ADD COLUMN initial_daily_quota INTEGER NOT NULL DEFAULT 10"},
+	} {
+		if has, err := d.hasColumn(ctx, "tenants", c.name); err != nil {
+			return err
+		} else if has {
+			continue
+		}
+		if _, err := d.sql.ExecContext(ctx, c.ddl); err != nil {
+			return fmt.Errorf("补列 %s 失败: %w", c.name, err)
+		}
+	}
 	// 额度变更流水补充「当时用量快照」与「被拒绝标记」两列（PRD R9）。
 	for _, c := range []struct{ name, ddl string }{
 		{"success_count_at_moment", "ALTER TABLE quota_changes ADD COLUMN success_count_at_moment INTEGER NOT NULL DEFAULT 0"},
@@ -131,9 +145,14 @@ func nullIfEmpty(s string) any {
 
 // CreateTenant 创建租户。
 func (d *DB) CreateTenant(ctx context.Context, t *domain.Tenant) error {
+	initial := t.InitialDailyQuota
+	if initial <= 0 {
+		initial = t.DailyQuota
+	}
 	_, err := d.sql.ExecContext(ctx,
-		`INSERT INTO tenants(id, name, status, daily_quota, created_at) VALUES(?,?,?,?,?)`,
-		t.ID, t.Name, string(t.Status), t.DailyQuota, ts(t.CreatedAt))
+		`INSERT INTO tenants(id, name, status, daily_quota, created_at, code, initial_daily_quota)
+		 VALUES(?,?,?,?,?,?,?)`,
+		t.ID, t.Name, string(t.Status), t.DailyQuota, ts(t.CreatedAt), nullIfEmpty(t.Code), initial)
 	if err != nil {
 		return fmt.Errorf("创建租户失败: %w", err)
 	}
@@ -143,14 +162,18 @@ func (d *DB) CreateTenant(ctx context.Context, t *domain.Tenant) error {
 // GetTenant 按 ID 读取租户。
 func (d *DB) GetTenant(ctx context.Context, id string) (*domain.Tenant, error) {
 	row := d.sql.QueryRowContext(ctx,
-		`SELECT id, name, status, daily_quota, created_at FROM tenants WHERE id=?`, id)
+		`SELECT id, name, status, daily_quota, created_at, code, initial_daily_quota FROM tenants WHERE id=?`, id)
 	var t domain.Tenant
 	var status, created string
-	if err := row.Scan(&t.ID, &t.Name, &status, &t.DailyQuota, &created); err != nil {
+	var code sql.NullString
+	if err := row.Scan(&t.ID, &t.Name, &status, &t.DailyQuota, &created, &code, &t.InitialDailyQuota); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domain.ErrNotFound
 		}
 		return nil, fmt.Errorf("读取租户失败: %w", err)
+	}
+	if code.Valid {
+		t.Code = code.String
 	}
 	t.Status = domain.TenantStatus(status)
 	t.CreatedAt = parseTS(created)
@@ -160,7 +183,7 @@ func (d *DB) GetTenant(ctx context.Context, id string) (*domain.Tenant, error) {
 // ListTenants 列出全部租户。
 func (d *DB) ListTenants(ctx context.Context) ([]domain.Tenant, error) {
 	rows, err := d.sql.QueryContext(ctx,
-		`SELECT id, name, status, daily_quota, created_at FROM tenants ORDER BY id`)
+		`SELECT id, name, status, daily_quota, created_at, code, initial_daily_quota FROM tenants ORDER BY id`)
 	if err != nil {
 		return nil, fmt.Errorf("列出租户失败: %w", err)
 	}
@@ -169,11 +192,15 @@ func (d *DB) ListTenants(ctx context.Context) ([]domain.Tenant, error) {
 	for rows.Next() {
 		var t domain.Tenant
 		var status, created string
-		if err := rows.Scan(&t.ID, &t.Name, &status, &t.DailyQuota, &created); err != nil {
+		var code sql.NullString
+		if err := rows.Scan(&t.ID, &t.Name, &status, &t.DailyQuota, &created, &code, &t.InitialDailyQuota); err != nil {
 			return nil, fmt.Errorf("扫描租户失败: %w", err)
 		}
 		t.Status = domain.TenantStatus(status)
 		t.CreatedAt = parseTS(created)
+		if code.Valid {
+			t.Code = code.String
+		}
 		out = append(out, t)
 	}
 	return out, rows.Err()

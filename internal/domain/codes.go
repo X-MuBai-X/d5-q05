@@ -85,7 +85,10 @@ func CodeOf(err error) string {
 		return CodeReasonRequired
 	case errors.Is(err, ErrQuotaRange):
 		return CodeQuotaRangeInvalid
-	case errors.Is(err, ErrRequestNoRequired), errors.Is(err, ErrRequestNoFormat):
+	case errors.Is(err, ErrRequestNoRequired), errors.Is(err, ErrRequestNoFormat),
+		errors.Is(err, ErrTenantMismatch):
+		// 凭证所属租户由系统确认：请求参数里指定别的租户属于参数问题，
+		// 必须落到明确业务码，不能掉进 INTERNAL_ERROR。
 		return CodeInvalidParams
 	case errors.Is(err, ErrTenantScopeRequired):
 		return CodeTenantScopeRequired

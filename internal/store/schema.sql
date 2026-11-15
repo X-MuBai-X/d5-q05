@@ -8,7 +8,9 @@ CREATE TABLE IF NOT EXISTS tenants (
     name          TEXT NOT NULL,
     status        TEXT NOT NULL,              -- pending / active / disabled
     daily_quota   INTEGER NOT NULL,           -- 租户级日额度，所有凭证共享（R2）
-    created_at    TEXT NOT NULL
+    created_at    TEXT NOT NULL,
+    code          TEXT,                       -- 租户唯一代号，如 GEEK-AI
+    initial_daily_quota INTEGER NOT NULL DEFAULT 10  -- 初始日额度，调额不改变它
 );
 
 CREATE TABLE IF NOT EXISTS admins (

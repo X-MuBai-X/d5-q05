@@ -144,10 +144,12 @@ func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed, resetD
 
 	handler := httpapi.New(svc, tmpl)
 	// 前端构建产物存在时由本进程一并托管：一个端口同时提供 API 与界面。
-	handler.MountStatic(webDir)
+	// MountStatic 返回**新的根处理器**（静态资源包在 mux 外面），
+	// 不能对 "/" 重复注册 —— ServeMux 会因此 panic。
+	root := handler.MountStatic(webDir)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           handler.Handler(),
+		Handler:           root,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	return db, svc, srv, nil
@@ -167,6 +169,7 @@ func seedData(ctx context.Context, db *store.DB) error {
 
 	tenants := []struct {
 		ID    string
+		Code  string
 		Name  string
 		Quota int
 		Admin struct {
@@ -174,8 +177,8 @@ func seedData(ctx context.Context, db *store.DB) error {
 			Password string
 		}
 	}{
-		{ID: "tenant-a", Name: "企业甲（演示活动客户）", Quota: 10},
-		{ID: "tenant-b", Name: "企业乙（凭证泄露客户）", Quota: 10},
+		{ID: "tenant-a", Code: "GEEK-AI", Name: "极客智联科技有限公司 [GEEK-AI]", Quota: 10},
+		{ID: "tenant-b", Code: "SHIELD-SEC", Name: "智汇数安企业计算中心 [SHIELD-SEC]", Quota: 10},
 	}
 	tenants[0].Admin.Username = "admin-a"
 	tenants[0].Admin.Password = "admin-a-secret"
@@ -204,11 +207,13 @@ func seedData(ctx context.Context, db *store.DB) error {
 			continue
 		}
 		if err := db.CreateTenant(ctx, &domain.Tenant{
-			ID:         t.ID,
-			Name:       t.Name,
-			Status:     domain.TenantActive,
-			DailyQuota: t.Quota,
-			CreatedAt:  now,
+			ID:                t.ID,
+			Code:              t.Code,
+			Name:              t.Name,
+			Status:            domain.TenantActive,
+			DailyQuota:        t.Quota,
+			InitialDailyQuota: t.Quota,
+			CreatedAt:         now,
 		}); err != nil {
 			return err
 		}

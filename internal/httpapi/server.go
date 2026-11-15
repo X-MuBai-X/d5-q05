@@ -55,7 +55,10 @@ func (s *Server) routes() {
 
 	// 运营（R1/R5/R6/R7）
 	s.mux.HandleFunc("/api/v1/ops/tenants", s.opsOnly(s.handleListTenants))
+	// 开通租户：契约写法 /ops/tenants 与原写法 /ops/tenants/open 都可用。
 	s.mux.HandleFunc("/api/v1/ops/tenants/open", s.opsOnly(s.handleOpenTenant))
+	// 契约写法：开通租户用同一个 /ops/tenants 路径（GET 列表 / POST 开通）。
+	s.mux.HandleFunc("/api/v1/ops/tenants/create", s.opsOnly(s.handleOpenTenant))
 	s.mux.HandleFunc("/api/v1/ops/tenants/quota", s.opsOnly(s.handleAdjustQuota))
 	s.mux.HandleFunc("/api/v1/ops/tenants/disable", s.opsOnly(s.handleDisableTenant))
 	s.mux.HandleFunc("/api/v1/ops/report/daily", s.opsOnly(s.handleDailyReport))
@@ -375,7 +378,36 @@ func (s *Server) handleListTenants(w http.ResponseWriter, r *http.Request, _ ser
 		writeError(w, statusFor(err), err)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"tenants": tenants})
+	day := dayParam(r, s.svc.Clock())
+	// 运营总控大盘需要「日额度 / 成功 / 在途 / 剩余 / 凭证数」，
+	// 这些都由后端算好再给，前端不做二次判定（需求文档 §7 口径）。
+	out := make([]map[string]any, 0, len(tenants))
+	for _, t := range tenants {
+		usage, uerr := s.svc.DB().GetDayUsage(r.Context(), t.ID, day, t.DailyQuota)
+		if uerr != nil {
+			writeError(w, statusFor(uerr), uerr)
+			return
+		}
+		keys, kerr := s.svc.DB().ListCredentialsByTenant(r.Context(), t.ID)
+		if kerr != nil {
+			writeError(w, statusFor(kerr), kerr)
+			return
+		}
+		out = append(out, map[string]any{
+			"id":                  t.ID,
+			"code":                t.Code,
+			"name":                t.Name,
+			"status":              t.Status,
+			"daily_quota":         t.DailyQuota,
+			"initial_daily_quota": t.InitialDailyQuota,
+			"success":             usage.Success,
+			"in_flight":           usage.InFlight,
+			"available":           usage.Remaining(),
+			"credential_count":    len(keys),
+			"credential_limit":    s.svc.MaxCredentialsPerTenant,
+		})
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"tenants": out})
 }
 
 type openTenantRequest struct {

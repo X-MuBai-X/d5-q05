@@ -149,10 +149,13 @@ func (s *Server) handleTenantRequests(w http.ResponseWriter, r *http.Request, id
 // ---------- 客户应用接口（R3/R4/R7） ----------
 
 type invokeRequest struct {
-	RequestNo string         `json:"request_no"`
-	Model     string         `json:"model"`
-	Prompt    string         `json:"prompt"`
-	Params    map[string]any `json:"params"`
+	RequestNo string `json:"request_no"`
+	// ClientReqID 是契约里的字段名（client_req_id），与 RequestNo 二选一。
+	// 两者都填时以 client_req_id 为准（契约优先）。
+	ClientReqID string         `json:"client_req_id"`
+	Model       string         `json:"model"`
+	Prompt      string         `json:"prompt"`
+	Params      map[string]any `json:"params"`
 	// Scenario 是页面演示用的便捷字段，等价于 params.scenario。
 	// 当 params 中已存在 scenario 时以 params 为准。
 	Scenario string `json:"scenario"`
@@ -191,9 +194,13 @@ func (s *Server) handleInvoke(w http.ResponseWriter, r *http.Request, identity s
 		writeError(w, http.StatusBadRequest, err)
 		return
 	}
+	requestNo := in.ClientReqID
+	if requestNo == "" {
+		requestNo = in.RequestNo
+	}
 	result, err := s.svc.Invoke(r.Context(), "credential:"+identity.SubjectID, identity.TenantID, identity.SubjectID,
 		service.InvokeInput{
-			RequestNo: in.RequestNo,
+			RequestNo: requestNo,
 			Model:     in.Model,
 			Prompt:    in.Prompt,
 			Params:    in.effectiveParams(),
@@ -203,10 +210,12 @@ func (s *Server) handleInvoke(w http.ResponseWriter, r *http.Request, identity s
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{
-		"request":     result.Request,
-		"replayed":    result.Replayed,
-		"usage":       result.Usage,
-		"diagnostics": result.Diagnostics,
+		"request":        result.Request,
+		"client_req_id":  requestNo,
+		"replayed":       result.Replayed,
+		"idempotent_hit": result.Replayed,
+		"usage":          result.Usage,
+		"diagnostics":    result.Diagnostics,
 	}, "/app", "调用 "+in.RequestNo+" 终态："+string(result.Request.Status))
 }
 

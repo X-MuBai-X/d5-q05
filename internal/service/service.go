@@ -110,6 +110,25 @@ func (s *Service) SetClockOffset(d time.Duration) {
 // CurrentDay 返回当前 UTC 自然日。
 func (s *Service) CurrentDay() string { return domain.DayOf(s.clk.Now()) }
 
+// tenantCode 由租户名派生一个唯一代号（如 GEEK-AI），供界面与对账 CLI 识别租户。
+// 取名中的字母数字并转大写；派生不出来时用租户 ID 兜底。
+func tenantCode(name string) string {
+	var b strings.Builder
+	for _, r := range strings.ToUpper(name) {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') {
+			b.WriteRune(r)
+		}
+	}
+	code := b.String()
+	if len(code) > 24 {
+		code = code[:24]
+	}
+	if code == "" {
+		return "TENANT"
+	}
+	return code
+}
+
 // newID 生成带前缀的随机标识（如 req_、cred_）。
 //
 // 随机源不可用时退回时间戳，保证流程不中断（ID 唯一性优先级低于流程可用性）。
@@ -146,11 +165,13 @@ func (s *Service) OpenTenant(ctx context.Context, operator string, in TenantInpu
 
 	if in.TenantID == "" {
 		tenant := &domain.Tenant{
-			ID:         newID("tenant"),
-			Name:       in.Name,
-			Status:     domain.TenantActive,
-			DailyQuota: in.DailyQuota,
-			CreatedAt:  now,
+			ID:                newID("tenant"),
+			Code:              tenantCode(in.Name),
+			Name:              in.Name,
+			Status:            domain.TenantActive,
+			DailyQuota:        in.DailyQuota,
+			InitialDailyQuota: in.DailyQuota,
+			CreatedAt:         now,
 		}
 		if err := s.db.CreateTenant(ctx, tenant); err != nil {
 			return nil, err
