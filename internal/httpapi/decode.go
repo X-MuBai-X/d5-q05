@@ -9,6 +9,8 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+
+	"modelquota/internal/domain"
 )
 
 // 本文件解决「HTML 表单提交」与「JSON 接口」共存的问题。
@@ -160,7 +162,10 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, status int, pay
 				http.StatusSeeOther)
 			return
 		}
-		writeJSON(w, status, map[string]any{"error": "服务内部错误，请稍后重试"})
+		writeJSON(w, status, map[string]any{
+			"code":    domain.CodeInternal,
+			"message": "服务内部错误，请稍后重试",
+		})
 		return
 	}
 	if isFormRequest(r) && redirectTo != "" {
@@ -181,4 +186,21 @@ func (s *Server) respond(w http.ResponseWriter, r *http.Request, status int, pay
 		return
 	}
 	writeJSON(w, status, payload)
+}
+
+// respondErr 输出错误响应：JSON 请求返回 {"code","message"}，表单请求重定向回工作台。
+//
+// 错误码由 domain.CodeOf(err) 从**哨兵错误**直接判定，不从文案反推，
+// 保证 code 与需求文档 §10 的错误码矩阵严格一致。
+func (s *Server) respondErr(w http.ResponseWriter, r *http.Request, err error, redirectTo string) {
+	status := statusFor(err)
+	if status >= http.StatusInternalServerError {
+		s.respond(w, r, status, nil, redirectTo, err.Error())
+		return
+	}
+	if isFormRequest(r) && redirectTo != "" {
+		s.respond(w, r, status, nil, redirectTo, err.Error())
+		return
+	}
+	writeError(w, status, err)
 }

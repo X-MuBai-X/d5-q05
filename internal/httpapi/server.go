@@ -437,7 +437,7 @@ func (s *Server) handleOpenTenant(w http.ResponseWriter, r *http.Request, identi
 		Reason:     in.Reason,
 	})
 	if err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/ops", err.Error())
+		s.respondErr(w, r, err, "/ops")
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{"tenant": tenant}, "/ops",
@@ -466,7 +466,7 @@ func (s *Server) handleAdjustQuota(w http.ResponseWriter, r *http.Request, ident
 	}
 	change, err := s.svc.AdjustQuota(r.Context(), identity.Username, in.TenantID, in.DailyQuota, in.Reason)
 	if err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/ops", err.Error())
+		s.respondErr(w, r, err, "/ops")
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{"change": change}, "/ops",
@@ -492,7 +492,7 @@ func (s *Server) handleDisableTenant(w http.ResponseWriter, r *http.Request, ide
 		return
 	}
 	if err := s.svc.DisableTenant(r.Context(), identity.Username, in.TenantID, in.Reason); err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/ops", err.Error())
+		s.respondErr(w, r, err, "/ops")
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{"status": "disabled", "tenant_id": in.TenantID},

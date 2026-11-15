@@ -56,7 +56,7 @@ func (s *Server) handleCreateCredential(w http.ResponseWriter, r *http.Request, 
 	cred, secret, err := s.svc.CreateCredential(r.Context(), identity.Username, identity.TenantID,
 		service.CredentialInput{Name: in.Name})
 	if err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/admin", err.Error())
+		s.respondErr(w, r, err, "/admin")
 		return
 	}
 	// 表单提交：密钥只返回一次，不能重定向丢失，直接渲染一次含密钥的页面。
@@ -87,7 +87,7 @@ func (s *Server) handleDisableCredential(w http.ResponseWriter, r *http.Request,
 		return
 	}
 	if err := s.svc.DisableCredential(r.Context(), identity.Username, identity.TenantID, in.CredentialID, in.Reason); err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/admin", err.Error())
+		s.respondErr(w, r, err, "/admin")
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{"status": "disabled", "credential_id": in.CredentialID},
@@ -206,7 +206,7 @@ func (s *Server) handleInvoke(w http.ResponseWriter, r *http.Request, identity s
 			Params:    in.effectiveParams(),
 		})
 	if err != nil {
-		s.respond(w, r, statusFor(err), map[string]any{"error": err.Error()}, "/app", err.Error())
+		s.respondErr(w, r, err, "/app")
 		return
 	}
 	s.respond(w, r, http.StatusOK, map[string]any{
