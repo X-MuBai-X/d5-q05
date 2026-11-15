@@ -350,8 +350,52 @@ func TestWriteErrorMasksInternalDetails(t *testing.T) {
 	if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
 		t.Fatalf("解析错误响应失败: %v", err)
 	}
-	if out["error"] != "服务内部错误，请稍后重试" {
-		t.Fatalf("500 响应体 = %v, 期望统一掩码文案", out["error"])
+	if out["message"] != "服务内部错误，请稍后重试" {
+		t.Fatalf("500 响应体 = %v, 期望统一掩码文案", out["message"])
+	}
+	if out["code"] != domain.CodeInternal {
+		t.Fatalf("500 响应码 = %v, 期望 %s", out["code"], domain.CodeInternal)
+	}
+}
+
+// TestErrorResponseUsesContractCodes 验证错误响应体按需求文档 §10 的错误码矩阵返回。
+//
+// 契约：非 2xx 响应统一为 {"code": "<错误码>", "message": "<面向人的说明>"}。
+// code 是程序判断依据，必须与矩阵一致。
+func TestErrorResponseUsesContractCodes(t *testing.T) {
+	cases := []struct {
+		name   string
+		err    error
+		status int
+		code   string
+	}{
+		{"额度耗尽", domain.ErrQuotaExceeded, http.StatusTooManyRequests, domain.CodeQuotaExceeded},
+		{"编号冲突", domain.ErrRequestNoConflict, http.StatusConflict, domain.CodeIdempotencyConflict},
+		{"凭证无效", domain.ErrUnauthorized, http.StatusUnauthorized, domain.CodeKeyNotFound},
+		{"凭证停用", domain.ErrCredentialDisabled, http.StatusForbidden, domain.CodeKeySuspended},
+		{"租户停用", domain.ErrTenantDisabled, http.StatusForbidden, domain.CodeTenantSuspended},
+		{"越权", domain.ErrForbidden, http.StatusForbidden, domain.CodeScopeDenied},
+		{"缺编号", domain.ErrRequestNoRequired, http.StatusBadRequest, domain.CodeInvalidParams},
+		{"凭证超限", domain.ErrCredentialLimit, http.StatusBadRequest, domain.CodeCredentialLimit},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rec := httptest.NewRecorder()
+			writeError(rec, c.status, c.err)
+			if rec.Code != c.status {
+				t.Fatalf("状态码 = %d, 期望 %d", rec.Code, c.status)
+			}
+			var out map[string]any
+			if err := json.Unmarshal(rec.Body.Bytes(), &out); err != nil {
+				t.Fatalf("解析错误响应失败: %v", err)
+			}
+			if out["code"] != c.code {
+				t.Fatalf("错误码 = %v, 期望 %s", out["code"], c.code)
+			}
+			if msg, _ := out["message"].(string); msg == "" {
+				t.Fatalf("错误响应缺少 message: %v", out)
+			}
+		})
 	}
 }
 

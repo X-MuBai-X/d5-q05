@@ -60,6 +60,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/v1/ops/tenants/disable", s.opsOnly(s.handleDisableTenant))
 	s.mux.HandleFunc("/api/v1/ops/report/daily", s.opsOnly(s.handleDailyReport))
 	s.mux.HandleFunc("/api/v1/ops/diagnostics", s.opsOnly(s.handleDiagnostics))
+	s.mux.HandleFunc("/api/v1/ops/quota-changes", s.opsOnly(s.handleQuotaChanges))
 	s.mux.HandleFunc("/api/v1/ops/clock", s.opsOnly(s.handleClock))
 
 	// 租户管理员（R1/R6/R7）
@@ -96,13 +97,23 @@ func writeJSON(w http.ResponseWriter, status int, payload any) {
 //
 // 500 类内部错误只回通用提示，具体原因写入服务端日志，
 // 避免把数据库细节、路径等内部信息暴露给调用方。
+// writeError 输出统一格式的错误响应：{"code": "<错误码>", "message": "<面向人的说明>"}。
+//
+// code 是**对外契约**（需求文档 §10 的错误码矩阵），前端据此判断原因并展示；
+// message 只面向人，随文案调整也不影响程序逻辑。
 func writeError(w http.ResponseWriter, status int, err error) {
 	if status >= http.StatusInternalServerError {
 		log.Printf("服务端内部错误: %v", err)
-		writeJSON(w, status, map[string]any{"error": "服务内部错误，请稍后重试"})
+		writeJSON(w, status, map[string]any{
+			"code":    domain.CodeInternal,
+			"message": "服务内部错误，请稍后重试",
+		})
 		return
 	}
-	writeJSON(w, status, map[string]any{"error": err.Error()})
+	writeJSON(w, status, map[string]any{
+		"code":    domain.CodeOf(err),
+		"message": err.Error(),
+	})
 }
 
 // statusFor 把领域错误映射为 HTTP 状态码。
@@ -490,6 +501,23 @@ func (s *Server) handleDiagnostics(w http.ResponseWriter, r *http.Request, ident
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"diagnostics": diags})
+}
+
+// handleQuotaChanges 列出额度变更流水（含被拒绝的变更），
+// 供运营总控大盘展示「额度变更流水（含被拒绝的变更）」与变更追溯（PRD R8/R9）。
+func (s *Server) handleQuotaChanges(w http.ResponseWriter, r *http.Request, identity service.Identity) {
+	tenantID, err := s.tenantScope(r, identity)
+	if err != nil {
+		writeError(w, statusFor(err), err)
+		return
+	}
+	day := dayParam(r, s.svc.Clock())
+	changes, err := s.svc.QuotaChanges(r.Context(), tenantID, day)
+	if err != nil {
+		writeError(w, statusFor(err), err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"changes": changes})
 }
 
 type clockRequest struct {

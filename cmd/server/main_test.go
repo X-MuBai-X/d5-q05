@@ -139,17 +139,19 @@ func TestSeedDataIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestSeedDataRepairsQuota(t *testing.T) {
+func TestSeedDataDoesNotOverwriteBusinessData(t *testing.T) {
 	db := newTestDB(t)
 	ctx := context.Background()
 
 	if err := seedData(ctx, db); err != nil {
 		t.Fatalf("首次写入预置数据失败: %v", err)
 	}
-	// 模拟额度被改过，再次 seed 应恢复为题面要求的 10。
+	// 运营把额度改到 99（业务数据）。
 	if err := db.UpdateTenantQuota(ctx, "tenant-a", 99); err != nil {
 		t.Fatalf("修改额度失败: %v", err)
 	}
+	// 重复 seed（等价于服务重启）不得把业务数据改回预置值：
+	// 共同要求第 1 节第 3 条要求「服务重启后业务结果仍可查询」。
 	if err := seedData(ctx, db); err != nil {
 		t.Fatalf("重复写入预置数据失败: %v", err)
 	}
@@ -157,8 +159,59 @@ func TestSeedDataRepairsQuota(t *testing.T) {
 	if err != nil {
 		t.Fatalf("读取租户失败: %v", err)
 	}
+	if tenant.DailyQuota != 99 {
+		t.Fatalf("额度 = %d, 期望保持 99（重启不得改写业务数据）", tenant.DailyQuota)
+	}
+}
+
+func TestResetDemoDataRestoresBaseline(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	if err := seedData(ctx, db); err != nil {
+		t.Fatalf("首次写入预置数据失败: %v", err)
+	}
+	if err := db.UpdateTenantQuota(ctx, "tenant-a", 99); err != nil {
+		t.Fatalf("修改额度失败: %v", err)
+	}
+	if err := db.UpdateTenantStatus(ctx, "tenant-a", domain.TenantDisabled); err != nil {
+		t.Fatalf("停用租户失败: %v", err)
+	}
+	// 显式演示重置：回到题面基线（额度 10、状态 active）。
+	if err := resetDemoData(ctx, db); err != nil {
+		t.Fatalf("演示重置失败: %v", err)
+	}
+	tenant, err := db.GetTenant(ctx, "tenant-a")
+	if err != nil {
+		t.Fatalf("读取租户失败: %v", err)
+	}
 	if tenant.DailyQuota != 10 {
 		t.Fatalf("额度 = %d, 期望恢复为 10", tenant.DailyQuota)
+	}
+	if tenant.Status != domain.TenantActive {
+		t.Fatalf("状态 = %s, 期望恢复为 active", tenant.Status)
+	}
+}
+
+func TestSeedDataKeepsDisabledTenantDisabled(t *testing.T) {
+	db := newTestDB(t)
+	ctx := context.Background()
+
+	if err := seedData(ctx, db); err != nil {
+		t.Fatalf("首次写入预置数据失败: %v", err)
+	}
+	if err := db.UpdateTenantStatus(ctx, "tenant-b", domain.TenantDisabled); err != nil {
+		t.Fatalf("停用租户失败: %v", err)
+	}
+	if err := seedData(ctx, db); err != nil {
+		t.Fatalf("重复写入预置数据失败: %v", err)
+	}
+	tenant, err := db.GetTenant(ctx, "tenant-b")
+	if err != nil {
+		t.Fatalf("读取租户失败: %v", err)
+	}
+	if tenant.Status != domain.TenantDisabled {
+		t.Fatalf("状态 = %s, 期望保持 disabled（seed 不得改写业务状态）", tenant.Status)
 	}
 }
 
@@ -180,7 +233,7 @@ func TestRunMainRejectsInvalidAddress(t *testing.T) {
 }
 
 func TestRunRejectsInvalidAddress(t *testing.T) {
-	err := run("127.0.0.1:99999", filepath.Join(t.TempDir(), "x.db"), "http://127.0.0.1:1", false, true)
+	err := run("127.0.0.1:99999", filepath.Join(t.TempDir(), "x.db"), "http://127.0.0.1:1", false, true, false, "")
 	if err == nil {
 		t.Fatalf("非法监听地址应返回错误")
 	}
@@ -189,7 +242,7 @@ func TestRunRejectsInvalidAddress(t *testing.T) {
 func TestRunCreatesDatabaseDirectory(t *testing.T) {
 	base := t.TempDir()
 	dbPath := filepath.Join(base, "nested", "dir", "app.db")
-	err := run("127.0.0.1:99999", dbPath, "http://127.0.0.1:1", false, true)
+	err := run("127.0.0.1:99999", dbPath, "http://127.0.0.1:1", false, true, false, "")
 	if err == nil {
 		t.Fatalf("非法监听地址应返回错误")
 	}
@@ -201,7 +254,7 @@ func TestRunCreatesDatabaseDirectory(t *testing.T) {
 // TestBuildServerWiresEverything 验证服务装配：建库、预置数据、路由可用。
 func TestBuildServerWiresEverything(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "app.db")
-	db, svc, srv, err := buildServer("127.0.0.1:18080", dbPath, "http://127.0.0.1:1", true, true)
+	db, svc, srv, err := buildServer("127.0.0.1:18080", dbPath, "http://127.0.0.1:1", true, true, false, "")
 	if err != nil {
 		t.Fatalf("装配服务失败: %v", err)
 	}
@@ -233,7 +286,7 @@ func TestBuildServerWiresEverything(t *testing.T) {
 // TestBuildServerWithoutSeed 验证不写入预置数据时不报错。
 func TestBuildServerWithoutSeed(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "app.db")
-	db, _, _, err := buildServer("127.0.0.1:18081", dbPath, "http://127.0.0.1:1", false, false)
+	db, _, _, err := buildServer("127.0.0.1:18081", dbPath, "http://127.0.0.1:1", false, false, false, "")
 	if err != nil {
 		t.Fatalf("装配服务失败: %v", err)
 	}
@@ -258,7 +311,7 @@ func TestBuildServerRestoresClockOffset(t *testing.T) {
 	}
 	_ = db.Close()
 
-	db2, svc, _, err := buildServer("127.0.0.1:18082", dbPath, "http://127.0.0.1:1", false, true)
+	db2, svc, _, err := buildServer("127.0.0.1:18082", dbPath, "http://127.0.0.1:1", false, true, false, "")
 	if err != nil {
 		t.Fatalf("装配服务失败: %v", err)
 	}

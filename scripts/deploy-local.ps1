@@ -33,7 +33,8 @@ param(
     [string]$LogFile = "",
     [string]$Commit = "",
     [switch]$SkipSmoke,
-    [switch]$KeepRunning
+    [switch]$KeepRunning,
+    [switch]$ResetDemo
 )
 
 $ErrorActionPreference = 'Stop'
@@ -118,8 +119,15 @@ try {
     Write-Log "已记录模拟上游 PID 文件：deploy\mockupstream.pid"
 
     Write-Log "--- 步骤 4/6：启动业务服务 ---"
+    $serverArgs = @('-addr', "127.0.0.1:$Port", '-db', $DbPath, '-upstream', "http://127.0.0.1:$UpstreamPort", '-enable-test-hooks')
+    if ($ResetDemo) {
+        # 显式演示重置：把预置租户的额度与状态恢复成题面基线。
+        # 默认不加 —— 重启不得改写已有业务数据（共同要求第 1 节第 3 条）。
+        $serverArgs += '-reset-demo'
+        Write-Log "已指定 -reset-demo：本次启动会把预置租户重置回题面基线"
+    }
     $serverProc = Start-Process -FilePath (Join-Path $binDir 'server.exe') `
-        -ArgumentList '-addr', "127.0.0.1:$Port", '-db', $DbPath, '-upstream', "http://127.0.0.1:$UpstreamPort", '-enable-test-hooks' `
+        -ArgumentList $serverArgs `
         -RedirectStandardOutput (Join-Path $logDir 'server.log') `
         -RedirectStandardError (Join-Path $logDir 'server.err.log') `
         -PassThru -WindowStyle Hidden

@@ -14,6 +14,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -239,6 +240,9 @@ func (s *Service) AdjustQuota(ctx context.Context, operator, tenantID string, ne
 	}
 	// 降额下限按 UTC 当日口径（确认结论 Q2）。
 	if err := domain.ValidateQuotaChange(newQuota, usage); err != nil {
+		// 被拒绝的变更**同样留痕**（PRD R9）：记录当时的用量快照与拒绝原因，
+		// 否则审计只能看到生效的变更，看不到「有人尝试降额但被拦下」。
+		s.auditRejectedQuota(ctx, operator, tenant, newQuota, reason, usage, err)
 		return nil, err
 	}
 
@@ -258,19 +262,56 @@ func (s *Service) AdjustQuota(ctx context.Context, operator, tenantID string, ne
 		return nil, domain.ValidateQuotaChange(newQuota, current)
 	}
 	change := &domain.QuotaChange{
-		ID:          newID("qc"),
-		TenantID:    tenantID,
-		OldQuota:    oldQuota,
-		NewQuota:    newQuota,
-		Operator:    operator,
-		Reason:      reason,
-		EffectiveAt: now,
-		Day:         day,
+		ID:                    newID("qc"),
+		TenantID:              tenantID,
+		OldQuota:              oldQuota,
+		NewQuota:              newQuota,
+		Operator:              operator,
+		Reason:                reason,
+		EffectiveAt:           now,
+		Day:                   day,
+		SuccessCountAtMoment:  usage.Success,
+		InFlightCountAtMoment: usage.InFlight,
 	}
 	if err := s.db.InsertQuotaChange(ctx, change); err != nil {
 		return nil, err
 	}
 	return change, nil
+}
+
+// auditRejectedQuota 记录一次被安全底线拦截的降额尝试（PRD R8/R9）。
+//
+// 写入失败**不掩盖**原始的业务错误：留痕是审计要求，但不能因为审计写不进去
+// 就把「降额被拒」这个结论吞掉，因此这里只记录日志、不改变返回的错误。
+func (s *Service) auditRejectedQuota(ctx context.Context, operator string, tenant *domain.Tenant,
+	newQuota int, reason string, usage domain.Usage, cause error) {
+	rejected := &domain.QuotaChange{
+		ID:                    newID("qc_rejected"),
+		TenantID:              tenant.ID,
+		OldQuota:              tenant.DailyQuota,
+		NewQuota:              newQuota,
+		Operator:              operator,
+		Reason:                reason,
+		EffectiveAt:           s.clk.Now(),
+		Day:                   domain.DayOf(s.clk.Now()),
+		SuccessCountAtMoment:  usage.Success,
+		InFlightCountAtMoment: usage.InFlight,
+		IsRejectedAttempt:     true,
+		RejectedReason: fmt.Sprintf("降额被安全底线拦截：新额度(%d)不得低于当日已成功数量(%d)加处理中数量(%d)",
+			newQuota, usage.Success, usage.InFlight),
+	}
+	if err := s.db.InsertQuotaChange(ctx, rejected); err != nil {
+		log.Printf("写入被拒绝的降额审计失败（租户 %s）: %v", tenant.ID, err)
+		return
+	}
+	_ = cause
+}
+
+// QuotaChanges 列出某租户在指定 UTC 日的额度变更流水（含被拒绝的变更）。
+//
+// day 为空时跨日列出，供运营总控大盘展示完整变更轨迹（PRD R8/R9）。
+func (s *Service) QuotaChanges(ctx context.Context, tenantID, day string) ([]domain.QuotaChange, error) {
+	return s.db.ListQuotaChangesByTenant(ctx, tenantID, day)
 }
 
 // DisableTenant 停用租户（R6）。停用后不再受理新调用，已受理请求正常结束。

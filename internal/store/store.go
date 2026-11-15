@@ -48,11 +48,54 @@ func New(sdb *sql.DB) *DB { return &DB{sql: sdb} }
 func (d *DB) SQL() *sql.DB { return d.sql }
 
 // Migrate 建表（幂等）。
+//
+// schema.sql 里的 CREATE TABLE IF NOT EXISTS 只保证「表存在」，
+// 不会给**已存在的旧库**补上后来新增的列，因此这里额外做一次幂等的补列。
+// 补列是 ADD COLUMN，重复执行不报错。
 func (d *DB) Migrate(ctx context.Context) error {
 	if _, err := d.sql.ExecContext(ctx, schemaSQL); err != nil {
 		return fmt.Errorf("执行建表脚本失败: %w", err)
 	}
+	// 额度变更流水补充「当时用量快照」与「被拒绝标记」两列（PRD R9）。
+	for _, c := range []struct{ name, ddl string }{
+		{"success_count_at_moment", "ALTER TABLE quota_changes ADD COLUMN success_count_at_moment INTEGER NOT NULL DEFAULT 0"},
+		{"in_flight_count_at_moment", "ALTER TABLE quota_changes ADD COLUMN in_flight_count_at_moment INTEGER NOT NULL DEFAULT 0"},
+		{"is_rejected_attempt", "ALTER TABLE quota_changes ADD COLUMN is_rejected_attempt INTEGER NOT NULL DEFAULT 0"},
+		{"rejected_reason", "ALTER TABLE quota_changes ADD COLUMN rejected_reason TEXT"},
+	} {
+		if has, err := d.hasColumn(ctx, "quota_changes", c.name); err != nil {
+			return err
+		} else if has {
+			continue
+		}
+		if _, err := d.sql.ExecContext(ctx, c.ddl); err != nil {
+			return fmt.Errorf("补列 %s 失败: %w", c.name, err)
+		}
+	}
 	return nil
+}
+
+// hasColumn 判断表里是否已有某列。
+func (d *DB) hasColumn(ctx context.Context, table, column string) (bool, error) {
+	rows, err := d.sql.QueryContext(ctx, "PRAGMA table_info("+table+")")
+	if err != nil {
+		return false, fmt.Errorf("读取表结构失败: %w", err)
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var cid int
+		var name, colType string
+		var notNull int
+		var dflt any
+		var pk int
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &dflt, &pk); err != nil {
+			return false, fmt.Errorf("扫描表结构失败: %w", err)
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	return false, rows.Err()
 }
 
 // Close 关闭底层连接。
@@ -654,35 +697,99 @@ func (d *DB) GetDayUsage(ctx context.Context, tenantID, day string, quota int) (
 
 // InsertQuotaChange 记录配额变更（R5）。
 func (d *DB) InsertQuotaChange(ctx context.Context, c *domain.QuotaChange) error {
+	rejected := 0
+	if c.IsRejectedAttempt {
+		rejected = 1
+	}
 	_, err := d.sql.ExecContext(ctx,
-		`INSERT INTO quota_changes(id, tenant_id, old_quota, new_quota, operator, reason, effective_at, day) VALUES(?,?,?,?,?,?,?,?)`,
-		c.ID, c.TenantID, c.OldQuota, c.NewQuota, c.Operator, c.Reason, ts(c.EffectiveAt), c.Day)
+		`INSERT INTO quota_changes(id, tenant_id, old_quota, new_quota, operator, reason, effective_at, day,
+			success_count_at_moment, in_flight_count_at_moment, is_rejected_attempt, rejected_reason)
+		 VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
+		c.ID, c.TenantID, c.OldQuota, c.NewQuota, c.Operator, c.Reason, ts(c.EffectiveAt), c.Day,
+		c.SuccessCountAtMoment, c.InFlightCountAtMoment, rejected, nullIfEmpty(c.RejectedReason))
 	if err != nil {
 		return fmt.Errorf("写入配额变更失败: %w", err)
 	}
 	return nil
 }
 
+// quotaChangeCols 是配额变更流水的读取列（含当时用量快照与被拒标记）。
+const quotaChangeCols = `id, tenant_id, old_quota, new_quota, operator, reason, effective_at, day,
+	success_count_at_moment, in_flight_count_at_moment, is_rejected_attempt, rejected_reason`
+
 // ListQuotaChanges 列出某租户某日的配额变更（R8）。
 func (d *DB) ListQuotaChanges(ctx context.Context, tenantID, day string) ([]domain.QuotaChange, error) {
 	rows, err := d.sql.QueryContext(ctx,
-		`SELECT id, tenant_id, old_quota, new_quota, operator, reason, effective_at, day
-		 FROM quota_changes WHERE tenant_id=? AND day=? ORDER BY effective_at, id`, tenantID, day)
+		`SELECT `+quotaChangeCols+` FROM quota_changes WHERE tenant_id=? AND day=? ORDER BY effective_at, id`,
+		tenantID, day)
 	if err != nil {
 		return nil, fmt.Errorf("列出配额变更失败: %w", err)
 	}
 	defer rows.Close()
 	out := make([]domain.QuotaChange, 0)
 	for rows.Next() {
-		var c domain.QuotaChange
-		var effective string
-		if err := rows.Scan(&c.ID, &c.TenantID, &c.OldQuota, &c.NewQuota, &c.Operator, &c.Reason, &effective, &c.Day); err != nil {
-			return nil, fmt.Errorf("扫描配额变更失败: %w", err)
+		c, err := scanQuotaChange(rows)
+		if err != nil {
+			return nil, err
 		}
-		c.EffectiveAt = parseTS(effective)
-		out = append(out, c)
+		out = append(out, *c)
 	}
-	return out, rows.Err()
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("遍历配额变更失败: %w", err)
+	}
+	return out, nil
+}
+
+// ListQuotaChangesByTenant 列出某租户的配额变更流水（可按日过滤，day 为空则不限日期）。
+//
+// 运营总控大盘要展示「额度变更流水（含被拒绝的变更）」，因此这里提供跨日读取。
+func (d *DB) ListQuotaChangesByTenant(ctx context.Context, tenantID, day string) ([]domain.QuotaChange, error) {
+	var (
+		rows *sql.Rows
+		err  error
+	)
+	if day == "" {
+		rows, err = d.sql.QueryContext(ctx,
+			`SELECT `+quotaChangeCols+` FROM quota_changes WHERE tenant_id=? ORDER BY effective_at DESC, id DESC`, tenantID)
+	} else {
+		rows, err = d.sql.QueryContext(ctx,
+			`SELECT `+quotaChangeCols+` FROM quota_changes WHERE tenant_id=? AND day=? ORDER BY effective_at DESC, id DESC`,
+			tenantID, day)
+	}
+	if err != nil {
+		return nil, fmt.Errorf("列出配额变更失败: %w", err)
+	}
+	defer rows.Close()
+	out := make([]domain.QuotaChange, 0)
+	for rows.Next() {
+		c, err := scanQuotaChange(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, *c)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("遍历配额变更失败: %w", err)
+	}
+	return out, nil
+}
+
+// scanQuotaChange 把一行变更流水扫描成 domain.QuotaChange。
+func scanQuotaChange(sc interface{ Scan(...any) error }) (*domain.QuotaChange, error) {
+	var c domain.QuotaChange
+	var effective string
+	var rejected int
+	var rejectedReason sql.NullString
+	if err := sc.Scan(&c.ID, &c.TenantID, &c.OldQuota, &c.NewQuota, &c.Operator, &c.Reason,
+		&effective, &c.Day, &c.SuccessCountAtMoment, &c.InFlightCountAtMoment, &rejected, &rejectedReason); err != nil {
+		return nil, fmt.Errorf("扫描配额变更失败: %w", err)
+	}
+	c.EffectiveAt = parseTS(effective)
+	c.IsRejectedAttempt = rejected != 0
+	if rejectedReason.Valid {
+		c.RejectedReason = rejectedReason.String
+	}
+	return &c, nil
 }
 
 // InsertEvent 记录租户/凭证事件（R6/R8）。

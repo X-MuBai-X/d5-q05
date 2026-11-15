@@ -95,7 +95,11 @@ CREATE TABLE IF NOT EXISTS quota_changes (
     operator     TEXT NOT NULL,
     reason       TEXT NOT NULL,
     effective_at TEXT NOT NULL,
-    day          TEXT NOT NULL
+    day          TEXT NOT NULL,
+    success_count_at_moment  INTEGER NOT NULL DEFAULT 0,  -- 变更当时的成功数快照（PRD R9）
+    in_flight_count_at_moment INTEGER NOT NULL DEFAULT 0,  -- 变更当时的在途数快照（PRD R9）
+    is_rejected_attempt       INTEGER NOT NULL DEFAULT 0,  -- 1 = 这是一次被拒绝的变更尝试
+    rejected_reason           TEXT
 );
 CREATE INDEX IF NOT EXISTS ix_quota_changes_day ON quota_changes(tenant_id, day);
 

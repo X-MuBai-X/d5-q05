@@ -43,19 +43,21 @@ func runMain(args []string) error {
 	dbPath := fs.String("db", "./data/app.db", "SQLite 数据库路径")
 	upstreamURL := fs.String("upstream", "http://127.0.0.1:9091", "上游模型服务地址")
 	enableTestHooks := fs.Bool("enable-test-hooks", false, "是否开放平台侧测试钩子（含迟到结果注入）")
-	seed := fs.Bool("seed", true, "是否写入预置数据")
+	seed := fs.Bool("seed", true, "是否写入预置数据（幂等：只补缺失，不改写已有业务数据）")
+	resetDemo := fs.Bool("reset-demo", false, "是否把预置租户的额度与状态重置回题面基线（演示前显式使用）")
+	webDir := fs.String("web-dir", httpapi.StaticDir, "前端构建产物目录；存在时由本进程一并托管")
 	if err := fs.Parse(args); err != nil {
 		return err
 	}
-	return run(*addr, *dbPath, *upstreamURL, *enableTestHooks, *seed)
+	return run(*addr, *dbPath, *upstreamURL, *enableTestHooks, *seed, *resetDemo, *webDir)
 }
 
 // run 启动 HTTP 服务并等待退出信号。
 //
 // 收到 Ctrl+C / SIGTERM 后走优雅关闭流程（最多等 10 秒），
 // 保证在途请求处理完再退出，避免数据库写入被打断。
-func run(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) error {
-	db, _, srv, err := buildServer(addr, dbPath, upstreamURL, enableTestHooks, seed)
+func run(addr, dbPath, upstreamURL string, enableTestHooks, seed, resetDemo bool, webDir string) error {
+	db, _, srv, err := buildServer(addr, dbPath, upstreamURL, enableTestHooks, seed, resetDemo, webDir)
 	if err != nil {
 		return err
 	}
@@ -87,7 +89,7 @@ func run(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) error {
 // buildServer 完成服务装配：建库、写入预置数据、恢复教学时钟、装配 HTTP 服务。
 //
 // 单独拆出来是为了让「装配」这一步可被单元测试直接验证。
-func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) (*store.DB, *service.Service, *http.Server, error) {
+func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed, resetDemo bool, webDir string) (*store.DB, *service.Service, *http.Server, error) {
 	if dir := filepath.Dir(dbPath); dir != "" && dir != "." {
 		if err := os.MkdirAll(dir, 0o755); err != nil {
 			return nil, nil, nil, err
@@ -113,6 +115,15 @@ func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) (
 		}
 	}
 
+	// 显式的演示重置：只在调用方要求时把预置租户恢复成题面基线。
+	// 默认不执行 —— 重启不得改写已有业务数据（共同要求第 1 节第 3 条）。
+	if resetDemo {
+		if err := resetDemoData(ctx, db); err != nil {
+			_ = db.Close()
+			return nil, nil, nil, err
+		}
+	}
+
 	// 上游不可用时服务仍可启动，调用会返回上游失败——这正是需要观察的异常路径。
 	client := upstream.NewHTTPCallier(upstreamURL, &http.Client{}, "mock-upstream")
 	svc := service.New(db, service.SystemClock{}, client)
@@ -131,9 +142,12 @@ func buildServer(addr, dbPath, upstreamURL string, enableTestHooks, seed bool) (
 		return nil, nil, nil, err
 	}
 
+	handler := httpapi.New(svc, tmpl)
+	// 前端构建产物存在时由本进程一并托管：一个端口同时提供 API 与界面。
+	handler.MountStatic(webDir)
 	srv := &http.Server{
 		Addr:              addr,
-		Handler:           httpapi.New(svc, tmpl).Handler(),
+		Handler:           handler.Handler(),
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 	return db, svc, srv, nil
@@ -169,11 +183,21 @@ func seedData(ctx context.Context, db *store.DB) error {
 	tenants[1].Admin.Password = "admin-b-secret"
 
 	for _, t := range tenants {
-		existing, err := db.GetTenant(ctx, t.ID)
-		if err == nil {
-			// 租户已存在则不重复写入，但确保配额与状态正确。
-			if existing.DailyQuota != t.Quota {
-				if err := db.UpdateTenantQuota(ctx, t.ID, t.Quota); err != nil {
+		if _, err := db.GetTenant(ctx, t.ID); err == nil {
+			// 租户已存在：**不改动任何已有业务状态**。
+			// 共同要求第 1 节第 3 条要求「服务重启后业务结果仍可查询」，
+			// 运营调整过的日额度属于业务数据，重启不能把它改回预置值；
+			// 演示前要回到题面基线，请显式调用 resetDemoData（-reset-demo 开关）。
+			// 这里只补齐缺失的客户管理员账号，同样不动已有账号。
+			if _, adminErr := db.GetAdminByUsername(ctx, t.Admin.Username); adminErr != nil {
+				if err := db.CreateAdmin(ctx, &domain.Admin{
+					ID:           "admin_" + t.ID,
+					TenantID:     t.ID,
+					Username:     t.Admin.Username,
+					PasswordHash: domain.HashSecret(t.Admin.Password),
+					Role:         domain.AdminTenant,
+					CreatedAt:    now,
+				}); err != nil {
 					return err
 				}
 			}
@@ -224,6 +248,41 @@ func seedData(ctx context.Context, db *store.DB) error {
 		}); err != nil {
 			return err
 		}
+	}
+	return nil
+}
+
+// resetDemoData 把预置租户的日额度恢复到题面基线（每个企业 10 次），并把租户状态复位为 active。
+//
+// 这是**演示前显式重置**用的入口，默认不执行：
+// 共同要求第 1 节第 3 条要求「服务重启后业务结果仍可查询」，
+// 因此 seedData 只补齐缺失的预置数据、绝不改写已有业务状态；
+// 教学演示需要回到题面起点时，由部署脚本显式带上 -reset-demo 调用本函数。
+func resetDemoData(ctx context.Context, db *store.DB) error {
+	now := time.Now().UTC()
+	for _, t := range []struct {
+		ID    string
+		Quota int
+	}{
+		{ID: "tenant-a", Quota: 10},
+		{ID: "tenant-b", Quota: 10},
+	} {
+		tenant, err := db.GetTenant(ctx, t.ID)
+		if err != nil {
+			// 租户不存在时无需重置（seedData 会负责创建）。
+			continue
+		}
+		if tenant.DailyQuota != t.Quota {
+			if err := db.UpdateTenantQuota(ctx, t.ID, t.Quota); err != nil {
+				return err
+			}
+		}
+		if tenant.Status != domain.TenantActive {
+			if err := db.UpdateTenantStatus(ctx, t.ID, domain.TenantActive); err != nil {
+				return err
+			}
+		}
+		_ = now
 	}
 	return nil
 }

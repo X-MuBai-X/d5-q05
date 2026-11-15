@@ -216,6 +216,15 @@ type QuotaChange struct {
 	Reason      string    `json:"reason"`
 	EffectiveAt time.Time `json:"effective_at"`
 	Day         string    `json:"day"`
+	// SuccessCountAtMoment 与 InFlightCountAtMoment 是变更发生**当时**的用量快照，
+	// 用于事后复核「这次降额为什么被允许/被拒」（PRD R8/R9）。
+	SuccessCountAtMoment  int `json:"success_count_at_moment"`
+	InFlightCountAtMoment int `json:"in_flight_count_at_moment"`
+	// IsRejectedAttempt 标记这条记录是一次**被拒绝**的变更尝试。
+	// 被拒绝的变更同样留痕，审计时不能只看到生效的变更（PRD R9）。
+	IsRejectedAttempt bool `json:"is_rejected_attempt"`
+	// RejectedReason 说明被拒的原因（如低于当日成功数加处理中数）。
+	RejectedReason string `json:"rejected_reason,omitempty"`
 }
 
 // TenantEvent 记录租户/凭证停用等影响用量核查的业务事件（题面 R8）。
