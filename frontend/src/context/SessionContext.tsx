@@ -23,6 +23,11 @@ import type { Identity, Role } from '@/types';
  * 单一后台端：顶栏中间的账号切换器决定当前身份，
  * 身份决定角色，角色决定 ① 可见页面集合 ② 数据可见范围。
  * 所有数据都由后端返回，前端不做任何业务判定。
+ *
+ * 登录入口有两种（与真实网关场景一致）：
+ *   - 用户登录：运营 / 客户管理员用**账号 + 口令**登录；
+ *   - 密钥登录：客户应用用管理员创建凭证时拿到的 **sk- 密钥**登录。
+ * 两种登录都直接向后端校验，前端不预置口令、不做本地比对。
  * ================================================================== */
 
 export interface AccountDef {
@@ -56,7 +61,12 @@ export const ROLE_PERMISSIONS: Record<Role, string[]> = {
   TENANT_APP: ['使用凭证发起调用', '查询自身凭证请求', '携带租户内唯一编号', '无权查看他人数据']
 };
 
-/** 预置演示账号（账号名 / 口令来自后端 seedData，属公开演示值）。 */
+/**
+ * 预置演示账号（账号名 / 口令来自后端 seedData，属公开演示值）。
+ *
+ * 这里**只用于顶栏的账号切换器**（演示时在不同角色间快速切换），
+ * 登录页本身不预置口令：用户必须自己输入账号与口令，由后端校验。
+ */
 export const ACCOUNTS: AccountDef[] = [
   {
     id: 'ops',
@@ -142,6 +152,10 @@ interface SessionContextValue {
   error: string | null;
   /** 切换账号；应用账号需提供 sk- 密钥 */
   switchAccount: (accountId: string, secret?: string) => Promise<void>;
+  /** 用户登录：用账号 + 口令登录（口令由后端校验） */
+  loginWithPassword: (username: string, password: string) => Promise<void>;
+  /** 密钥登录：用 sk- 访问密钥登录（密钥由后端校验） */
+  loginWithSecret: (secret: string) => Promise<void>;
   signOut: () => Promise<void>;
   /** 应用账号已记住的密钥（用于提示是否已填写） */
   hasSecret: (accountId: string) => boolean;
@@ -149,12 +163,41 @@ interface SessionContextValue {
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
 
+/**
+ * 由后端返回的身份反查出一条「账号」记录，供顶栏切换器显示与切换。
+ *
+ * 优先匹配预置账号（演示时能显示中文角色名与数据范围说明）；
+ * 匹配不到（例如用不在预置表里的账号登录）就按身份现场生成一条，
+ * 保证登录成功后顶栏依然能正确显示当前身份。
+ */
+function accountFor(identity: Identity): AccountDef {
+  const preset = ACCOUNTS.find(a => {
+    if (a.role !== identity.role) return false;
+    if (a.loginKind === 'password') return a.username === identity.subjectId;
+    return false;
+  });
+  if (preset) return preset;
+
+  const dynamicId = `${identity.role.toLowerCase()}:${identity.subjectId}`;
+  return {
+    id: dynamicId,
+    displayName: identity.displayName || identity.subjectId,
+    role: identity.role,
+    loginKind: identity.role === 'TENANT_APP' ? 'secret' : 'password',
+    username: identity.role === 'TENANT_APP' ? undefined : identity.subjectId,
+    scope: identity.tenantName || identity.tenantCode || ROLE_SCOPE[identity.role].replace('数据范围：', ''),
+    description: `${ROLE_LABEL[identity.role]}：${identity.subjectId}`
+  };
+}
+
 export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [identity, setIdentity] = useState<Identity | null>(null);
   const [activeAccountId, setActiveAccountId] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [switching, setSwitching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** 登录后按身份生成的账号条目（不在预置表里的账号也能正常显示） */
+  const [dynamicAccount, setDynamicAccount] = useState<AccountDef | null>(null);
 
   // 启动时用已保存的令牌恢复会话
   useEffect(() => {
@@ -168,12 +211,9 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
       .then(id => {
         if (cancelled) return;
         setIdentity(id);
-        const matched = ACCOUNTS.find(a => {
-          if (a.role !== id.role) return false;
-          if (a.loginKind === 'password') return a.username === id.displayName;
-          return false;
-        });
-        setActiveAccountId(matched?.id ?? null);
+        const account = accountFor(id);
+        setActiveAccountId(account.id);
+        if (!ACCOUNTS.some(a => a.id === account.id)) setDynamicAccount(account);
       })
       .catch(() => {
         setToken(null);
@@ -214,6 +254,73 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     }
   }, []);
 
+  /**
+   * 用户登录：输入账号与口令，由**后端**校验。
+   *
+   * 前端不预置口令、不做本地比对 —— 口令错了就是后端返回 401，
+   * 前端只负责把后端给的错误码与文案原样展示。
+   */
+  const loginWithPassword = useCallback(async (username: string, password: string) => {
+    const name = username.trim();
+    if (!name) {
+      const message = '请输入账号';
+      setError(message);
+      throw new Error(message);
+    }
+    if (!password) {
+      const message = '请输入口令';
+      setError(message);
+      throw new Error(message);
+    }
+    setSwitching(true);
+    setError(null);
+    try {
+      const result = await loginAdmin(name, password);
+      setIdentity(result.identity);
+      const account = accountFor(result.identity);
+      setActiveAccountId(account.id);
+      if (!ACCOUNTS.some(a => a.id === account.id)) setDynamicAccount(account);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '登录失败';
+      setError(message);
+      throw e;
+    } finally {
+      setSwitching(false);
+    }
+  }, []);
+
+  /**
+   * 密钥登录：输入 sk- 访问密钥，由**后端**校验。
+   *
+   * 密钥本身决定身份（凭证绑定租户），因此这里不需要用户再选应用；
+   * 登录成功后按后端返回的身份确定角色与数据范围。
+   */
+  const loginWithSecret = useCallback(async (secret: string) => {
+    const value = secret.trim();
+    if (!value) {
+      const message = '请输入访问密钥';
+      setError(message);
+      throw new Error(message);
+    }
+    setSwitching(true);
+    setError(null);
+    try {
+      const result = await loginCredential(value);
+      setIdentity(result.identity);
+      const account = accountFor(result.identity);
+      // 密钥按「身份」记住：下次用同一个密钥登录时可直接切换
+      writeSecret(account.id, value);
+      setActiveAccountId(account.id);
+      if (!ACCOUNTS.some(a => a.id === account.id)) setDynamicAccount(account);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : '登录失败';
+      setError(message);
+      throw e;
+    } finally {
+      setSwitching(false);
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
     try {
       await apiLogout();
@@ -225,20 +332,38 @@ export const SessionProvider: React.FC<{ children: ReactNode }> = ({ children })
     setToken(null);
   }, []);
 
+  const accounts = useMemo(
+    () => (dynamicAccount ? [...ACCOUNTS, dynamicAccount] : ACCOUNTS),
+    [dynamicAccount]
+  );
+
   const value = useMemo<SessionContextValue>(
     () => ({
       ready,
       identity,
       role: identity?.role ?? null,
-      accounts: ACCOUNTS,
+      accounts,
       activeAccountId,
       switching,
       error,
       switchAccount,
+      loginWithPassword,
+      loginWithSecret,
       signOut,
       hasSecret: (accountId: string) => readSecret(accountId).length > 0
     }),
-    [ready, identity, activeAccountId, switching, error, switchAccount, signOut]
+    [
+      ready,
+      identity,
+      accounts,
+      activeAccountId,
+      switching,
+      error,
+      switchAccount,
+      loginWithPassword,
+      loginWithSecret,
+      signOut
+    ]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

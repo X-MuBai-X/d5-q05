@@ -238,7 +238,19 @@ export const LabeledInput: React.FC<{
   mono?: boolean;
   readOnly?: boolean;
   type?: string;
-}> = ({ label, hint, value, onChange, placeholder, mono, readOnly, type = 'text' }) => (
+  /** 浏览器自动填充提示（登录页按真实场景给账号/口令带上） */
+  autoComplete?: string;
+}> = ({
+  label,
+  hint,
+  value,
+  onChange,
+  placeholder,
+  mono,
+  readOnly,
+  type = 'text',
+  autoComplete
+}) => (
   <label className="block">
     <span className="block text-xs font-medium text-slate-500 mb-1.5">{label}</span>
     <input
@@ -246,6 +258,7 @@ export const LabeledInput: React.FC<{
       value={value}
       readOnly={readOnly}
       placeholder={placeholder}
+      autoComplete={autoComplete}
       onChange={e => onChange(e.target.value)}
       className={`${fieldClass} ${mono ? 'font-mono' : ''} ${
         readOnly ? 'bg-slate-50 text-slate-500' : 'bg-white'
