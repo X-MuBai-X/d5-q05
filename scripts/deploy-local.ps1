@@ -9,6 +9,13 @@
     这是本项目「教学验收环境」的落地方式：本机真实进程 + 可访问服务地址
     http://127.0.0.1:8080，不是 mock、不是容器编排。
 
+    编码约定（v2.8.0 起强制，见 AGENTS.md §8 第 8 条）：
+    Windows 上 PowerShell 5.1 采集原生命令（git / bash）输出时，是按
+    [Console]::OutputEncoding 解码的；控制台代码页默认 GBK(936)，会把 UTF-8 中文
+    解成串码（乱码），而且这个过程**不可逆**（非法字节被替换成 '?'）。
+    因此本脚本一律不依赖控制台代码页：原生命令的输出重定向到临时文件，
+    再用 UTF-8 显式读取；日志文件也统一以 UTF-8（无 BOM）追加。
+
 .PARAMETER Port
     服务端口，默认 8080。
 
@@ -56,10 +63,21 @@ $deployLog = if ([string]::IsNullOrWhiteSpace($LogFile)) {
 } else {
     if ([System.IO.Path]::IsPathRooted($LogFile)) { $LogFile } else { Join-Path $repo $LogFile }
 }
+
+# 日志统一用 UTF-8（无 BOM）追加：避免 PowerShell 5.1 的 `-Encoding utf8` 产生 BOM，
+# 也避免任何默认代码页参与写入。
+$script:Utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+
+function Read-Utf8Text([string]$path) {
+    # 显式按 UTF-8 读取文件内容；不依赖任何代码页推断。
+    if ([string]::IsNullOrWhiteSpace($path) -or -not (Test-Path -LiteralPath $path)) { return '' }
+    return [System.IO.File]::ReadAllText($path, [System.Text.Encoding]::UTF8)
+}
+
 function Write-Log([string]$text) {
     $line = "[{0}] {1}" -f (Get-Date -Format 'yyyy-MM-dd HH:mm:ss zzz'), $text
     Write-Output $line
-    Add-Content -Path $deployLog -Value $line -Encoding utf8
+    [System.IO.File]::AppendAllText($deployLog, $line + "`r`n", $script:Utf8NoBom)
 }
 
 $serverProc = $null
@@ -82,7 +100,21 @@ try {
     }
     if ([string]::IsNullOrWhiteSpace($deployCommit)) { $deployCommit = "(未知)" }
     Write-Log "部署提交：$deployCommit"
-    Write-Log "部署提交标题：$(& git -C $repo log -1 --format=%s $deployCommit 2>$null)"
+    # 提交标题走「子进程重定向到文件 + 显式 UTF-8 读取」，
+    # 避免中文标题被控制台代码页解成串码（历史日志里的乱码就是从这里来的）。
+    $titleFile = Join-Path $env:TEMP ("d5-git-title-" + [guid]::NewGuid().ToString('N') + ".txt")
+    try {
+        $titleProc = Start-Process -FilePath 'git' `
+            -ArgumentList @('-c', 'i18n.logOutputEncoding=utf-8', '-C', ('"{0}"' -f $repo), 'log', '-1', '--format=%s', $deployCommit) `
+            -RedirectStandardOutput $titleFile -RedirectStandardError "$titleFile.err" `
+            -NoNewWindow -Wait -PassThru
+        $deployTitle = (Read-Utf8Text $titleFile).Trim()
+    } catch {
+        $deployTitle = "(读取提交标题失败：$($_.Exception.Message))"
+    } finally {
+        Remove-Item -LiteralPath $titleFile, "$titleFile.err" -Force -ErrorAction SilentlyContinue
+    }
+    Write-Log "部署提交标题：$deployTitle"
 
     Write-Log "--- 步骤 1/6：检查端口占用 ---"
     # 必须先确认端口空闲：否则新进程启动失败，而健康检查与冒烟会打到旧进程上，
@@ -159,17 +191,35 @@ try {
         Write-Log "恢复办法：停止进程即可回退；数据库为本地 SQLite 文件，删除 $DbPath 即回到初始预置状态"
         return
     }
+    # 冒烟输出同样走「重定向到文件 + 显式 UTF-8 读取」：
+    # bash 直接把 UTF-8 字节写进文件，PowerShell 不参与解码，因此不会串码；
+    # 退出码仍取自 bash 进程本身。
     $bash = Get-Command bash -ErrorAction SilentlyContinue
     $gitBash = 'C:\Program Files\Git\bin\bash.exe'
-    if (Test-Path $gitBash) {
-        $smoke = & $gitBash -lc "cd '$($repo -replace '\\','/')' && BASE_URL=http://127.0.0.1:$Port bash scripts/smoke-test.sh" 2>&1
-        $smokeExit = $LASTEXITCODE
-    } elseif ($bash) {
-        $smoke = & bash -lc "cd '$($repo -replace '\\','/')' && BASE_URL=http://127.0.0.1:$Port bash scripts/smoke-test.sh" 2>&1
-        $smokeExit = $LASTEXITCODE
-    } else {
+    $bashExe = if (Test-Path $gitBash) { $gitBash } elseif ($bash) { $bash.Source } else { '' }
+    if ([string]::IsNullOrWhiteSpace($bashExe)) {
         $smoke = @('未找到 bash，跳过冒烟脚本（CI 中由 ubuntu runner 执行）')
         $smokeExit = 2
+    } else {
+        $smokeFile = Join-Path $env:TEMP ("d5-smoke-" + [guid]::NewGuid().ToString('N') + ".log")
+        $smokeFilePosix = $smokeFile -replace '\\', '/'
+        $repoPosix = $repo -replace '\\', '/'
+        $bashCmd = "cd '$repoPosix' && BASE_URL=http://127.0.0.1:$Port bash scripts/smoke-test.sh > '$smokeFilePosix' 2>&1"
+        try {
+            if ($bashExe -eq $gitBash) {
+                & $gitBash -lc $bashCmd
+            } else {
+                & bash -lc $bashCmd
+            }
+            $smokeExit = $LASTEXITCODE
+        } finally {
+            $smokeText = Read-Utf8Text $smokeFile
+            Remove-Item -LiteralPath $smokeFile -Force -ErrorAction SilentlyContinue
+        }
+        $smoke = @()
+        foreach ($l in ($smokeText -split "`r?`n")) {
+            if ($null -ne $l) { $smoke += $l.TrimEnd() }
+        }
     }
     foreach ($l in $smoke) { Write-Log "  $l" }
     Write-Log "业务冒烟退出码：$smokeExit"

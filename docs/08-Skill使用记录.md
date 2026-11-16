@@ -185,3 +185,63 @@
 | 重新部署后冒烟打到旧二进制 | 端口 8080 被上一轮实例占用，新进程启动失败但健康检查仍 200；部署脚本加端口预检，占用即失败退出 | 后续每次部署日志均记录「端口检查通过」 |
 | 新建租户缺名称返回 500 | 新增 `ErrTenantNameRequired`，按 400 处理 | `TestOpsOpenTenantRequiresNameForNewTenant` 通过 |
 | acceptance-audit 的 C-14 误报 `task_output` / `ask_xxx` | 收紧 `sk_` 正则（前置换行字符边界），不放宽判定标准 | 复跑 C-14 pass |
+
+---
+
+## 5. v2.8.0 迭代 · 部署日志中文乱码整改轮（2026-11-16）
+
+### 5.1 现象与根因
+
+`evidence/deployment-live-20261116-082406.log` 的中文冒烟段落整段显示为
+`涓氬姟鍐掔儫` / `閫氱煡` 之类串码，且 39 条冒烟结论被并成了十几行。
+
+逐字节回读该文件后定位到根因：`scripts/deploy-local.ps1` 用
+`& $gitBash -lc ...` 把 bash 的 UTF-8 输出**直接收进 PowerShell 变量**再写盘，
+而 PowerShell 5.1 是按 `[Console]::OutputEncoding`（本机控制台代码页 GBK/936）解码的：
+
+- UTF-8 字节被按 GBK 解读 → 中文变成串码；
+- 非法字节序列被替换成 `?` → **原文不可逆**，无法靠换编码还原；
+- 被 GBK 当作双字节尾字节吞掉的 `0x0A` → 换行丢失，多行被并成一行。
+
+同一脚本里的「部署提交标题」行（取自 `git log -1 --format=%s`）也受同一影响。
+脚本自己拼接的行（时间戳、路径、健康检查 JSON、冒烟退出码）全部正常，因为它们
+不经过原生命令采集路径——这一点本身就是根因的判别证据。
+
+### 5.2 处置顺序（约束先于代码）
+
+| 步骤 | 动作 | 落点 |
+|---|---|---|
+| 1 | 先把「中文证据必须按 UTF-8 采集与写盘」写成硬约束并升版 AGENTS.md | `AGENTS.md` v2.8.0 §8 第 8 条；归档 `docs/agents/AGENTS-v2.8.0.md` |
+| 2 | 修脚本：`git` 提交标题改用 `Start-Process -RedirectStandardOutput` 落临时文件后按 UTF-8 显式读取；冒烟输出改为在 bash 内部重定向到临时文件后按 UTF-8 显式读取（退出码仍取自 bash 进程） | `scripts/deploy-local.ps1`（新增 `Read-Utf8Text()`） |
+| 3 | 日志写入改为 `[System.IO.File]::AppendAllText(..., UTF8Encoding($false))`，统一 UTF-8 无 BOM | 同上 `Write-Log()` |
+| 4 | 实跑一次真实部署并**逐行回读校验** | `evidence/deployment-live-20261116-084255.log` |
+| 5 | 历史日志中**可回源**的行按 `git log` 还原；**不可回源**的段落不臆造 | 见 5.3 |
+
+### 5.3 历史日志的处理（可回源才还原，不可回源不臆造）
+
+| 文件 | 乱码范围 | 处理 |
+|---|---|---|
+| `deployment-browser-verify.log`、`deployment-browser-verify2.log`、`deployment-fullstack-verify2.log`（2 处）、`deployment-login-verify.log` | 仅「部署提交标题」一行 | 该行取值完全由 `git log -1 --format=%s <同一行的部署 SHA>` 决定，属**可回源事实**，已按 git 还原；其余行未改动 |
+| `deployment-live-20261116-082406.log` | 「部署提交标题」一行 + 中文冒烟段落 | 标题行按 git 还原；**中文冒烟段落的原文已被 GBK 替换成 `?`，不可回源**，因此不臆造——该损坏副本已移除，由本轮同代码实跑的新日志 `evidence/deployment-live-20261116-084255.log` 取代（39 项冒烟全过、退出码 0，结论与旧日志一致） |
+| `deployment-main.log` | 无 | 曾因脚本比对逻辑误判为乱码，**已回退**，保持原样 |
+
+> 移除的是**损坏且被取代的重复件**，其结论（通过 39 项 / 失败 0 项 / 退出码 0）
+> 由新日志完整保留，未删除任何失败记录或待补证记录。
+
+### 5.4 本轮实跑校验结果（逐行回读）
+
+`evidence/deployment-live-20261116-084255.log`：
+
+- 文件编码：UTF-8、**无 BOM**、CRLF 行尾、78 行；
+- 中文：全部可读，**零串码**（串码特征字符集扫描结果为空）；
+- 冒烟：`[PASS]` 39 条、`[FAIL]` 0 条，结论行「=== 冒烟结果：通过 39 项，失败 0 项 ===」；
+- 业务冒烟退出码：`0`；
+- 部署提交：`a7df46ee9df1`（标题中文正常显示）；
+- 服务：`http://127.0.0.1:8080`（PID 27080）、模拟上游 `http://127.0.0.1:9091`（PID 16292），脚本退出码 0。
+
+### 5.5 规则沉淀
+
+新增 `AGENTS.md` §8 第 8 条（v2.8.0），四条要求：① 原生命令输出重定向到文件后按 UTF-8
+显式读取；② 证据与日志统一 UTF-8 无 BOM；③ 改动后必须实跑并逐行回读校验；
+④ 历史串码只能用可回源事实还原、不得臆造。逐条对照见
+`docs/agents/AGENTS-读取记录.md` §6。

@@ -1,8 +1,8 @@
 {
-  "checked_at": "2026-11-15T21:01:14.746770+08:00",
+  "checked_at": "2026-11-16T08:45:58.269143+08:00",
   "counts": {
-    "PASS": 7,
-    "PENDING": 1,
+    "PASS": 8,
+    "PENDING": 0,
     "FAIL": 0
   },
   "checks": [
@@ -13,8 +13,8 @@
     },
     {
       "id": "D-02 远端分支承载",
-      "status": "PENDING",
-      "detail": "无法读取任何远端分支：gitee: fatal: unable to access 'https://gitee.com/xishiyao/d5.git/': Failed to connect to gitee.com port 443 via 127.0.0.1 after 2082 ms: Could not connect to server；origin: fatal: unable to access 'https://github.com/X-MuBai-X/d5.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2062 ms: Could not connect to serve；github-q05: fatal: unable to access 'https://github.com/X-MuBai-X/d5-q05.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2048 ms: Could not connect to s"
+      "status": "PASS",
+      "detail": "远端 gitee 分支 ['dev/05', 'main', 'master']；远端 main 头部 0c9cca3 是**合并提交**（父提交数=2，第二父提交 1d4d547 是远端 dev/05 头部 20c3a52 的祖先），业务内容经 PR 合入 main 而非直推；main 提交数=74；真实推送实测直推被服务端拒绝"
     },
     {
       "id": "提交消息格式与编号必填",
@@ -44,7 +44,7 @@
     {
       "id": "D-09 仓库无令牌明文",
       "status": "PASS",
-      "detail": "扫描 279 个文本文件，未命中令牌模式"
+      "detail": "扫描 281 个文本文件，未命中令牌模式"
     }
   ]
 }
