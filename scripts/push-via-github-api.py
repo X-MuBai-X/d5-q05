@@ -190,7 +190,7 @@ def main() -> int:
                 idx += 2
             if not path:
                 raise RuntimeError(f"无法解析 diff 条目的路径：{meta!r}")
-            if new_sha == "0":  # 删除
+            if set(new_sha) == {"0"}:  # 删除：新 SHA 为 40 个 0
                 entries.append({"path": path, "mode": old_mode, "type": "blob", "sha": None})
                 continue
             blob = git_bin(repo, new_sha)
