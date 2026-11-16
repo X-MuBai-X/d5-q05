@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-15T20:30:17.282681+08:00",
+  "checked_at": "2026-11-15T21:01:14.746770+08:00",
   "counts": {
     "PASS": 7,
     "PENDING": 1,
@@ -14,7 +14,7 @@
     {
       "id": "D-02 远端分支承载",
       "status": "PENDING",
-      "detail": "无法读取任何远端分支：gitee: fatal: unable to access 'https://gitee.com/xishiyao/d5.git/': Failed to connect to gitee.com port 443 via 127.0.0.1 after 2066 ms: Could not connect to server；origin: fatal: unable to access 'https://github.com/X-MuBai-X/d5.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2052 ms: Could not connect to serve；github-q05: fatal: unable to access 'https://github.com/X-MuBai-X/d5-q05.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2058 ms: Could not connect to s"
+      "detail": "无法读取任何远端分支：gitee: fatal: unable to access 'https://gitee.com/xishiyao/d5.git/': Failed to connect to gitee.com port 443 via 127.0.0.1 after 2082 ms: Could not connect to server；origin: fatal: unable to access 'https://github.com/X-MuBai-X/d5.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2062 ms: Could not connect to serve；github-q05: fatal: unable to access 'https://github.com/X-MuBai-X/d5-q05.git/': Failed to connect to github.com port 443 via 127.0.0.1 after 2048 ms: Could not connect to s"
     },
     {
       "id": "提交消息格式与编号必填",
@@ -44,7 +44,7 @@
     {
       "id": "D-09 仓库无令牌明文",
       "status": "PASS",
-      "detail": "扫描 276 个文本文件，未命中令牌模式"
+      "detail": "扫描 279 个文本文件，未命中令牌模式"
     }
   ]
 }
